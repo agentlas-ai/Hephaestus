@@ -21,6 +21,7 @@ required_files=(
   "modes/team-builder.md"
   "modes/agentlas-packager.md"
   ".agents/agentlas-core-engine-meta-agent/agent.md"
+  ".agents/plugins/marketplace.json"
   ".agentlas/mode-map.json"
   ".agentlas/agent-card.json"
   ".agentlas/company-blueprint.json"
@@ -30,6 +31,7 @@ required_files=(
   ".agentlas/vault-references.json"
   "CLAUDE.md"
   "GEMINI.md"
+  ".claude-plugin/marketplace.json"
   ".claude/commands/meta-agent.md"
   ".claude/agents/agentlas-core-engine-meta-agent.md"
   ".claude/skills/agentlas-core-engine-meta-agent/SKILL.md"
@@ -38,6 +40,7 @@ required_files=(
   "claude/plugins/agentlas-core-engine-meta-agent/SKILL.md"
   ".gemini/GEMINI.md"
   "codex/plugins/agentlas-core-engine-meta-agent/.codex-plugin/plugin.json"
+  "codex/.agents/plugins/marketplace.json"
   "codex/plugins/agentlas-core-engine-meta-agent/skills/agentlas-core-engine-meta-agent/SKILL.md"
 )
 

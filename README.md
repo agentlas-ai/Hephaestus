@@ -42,13 +42,27 @@ agents. They are not extra members of this meta-agent team.
 Run this from the project where you want the meta-agent team available:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.1/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.2/scripts/install.sh | bash
 ```
 
 To install into a different folder:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.1/scripts/install.sh | bash -s -- /path/to/project
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.2/scripts/install.sh | bash -s -- /path/to/project
+```
+
+## Claude Plugin Install
+
+```bash
+claude plugin marketplace add https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --sparse .claude-plugin claude/plugins
+claude plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
+```
+
+## Codex Plugin Install
+
+```bash
+codex plugin marketplace add jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --ref v0.1.2
+codex plugin add agentlas-core-engine-meta-agent@agentlas-core-engine
 ```
 
 ## Repository Map
@@ -64,6 +78,7 @@ curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_c
 ├── skills/                           # reusable architecture procedures
 ├── .agents/                          # portable runtime-discovered core
 ├── .agentlas/                        # mode, memory, sitemap, package contracts
+├── .claude-plugin/                   # Claude marketplace manifest
 ├── .claude/                          # Claude command/agent/skill adapters
 ├── claude/                            # Claude Code plugin package
 ├── .gemini/                          # Gemini adapter

@@ -1,12 +1,14 @@
 {
   "schemaVersion": "1.0",
   "package": "agentlas-core-engine-meta-agent",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Portable Markdown-first three-agent meta-agent team for creating single agents, creating multi-agent teams, and packaging existing agents into Agentlas architecture.",
   "entrypoints": {
     "canonical": "AGENTS.md",
     "singleAgent": "agent.md",
     "codexPlugin": "codex/plugins/agentlas-core-engine-meta-agent/.codex-plugin/plugin.json",
+    "codexMarketplace": ".agents/plugins/marketplace.json",
+    "claudeMarketplace": ".claude-plugin/marketplace.json",
     "claudePlugin": "claude/plugins/agentlas-core-engine-meta-agent/.claude-plugin/plugin.json",
     "claudeCommand": ".claude/commands/meta-agent.md",
     "gemini": "GEMINI.md",
@@ -35,6 +37,7 @@
     "skills",
     ".agents",
     ".agentlas",
+    ".claude-plugin",
     ".claude",
     "claude",
     ".gemini",

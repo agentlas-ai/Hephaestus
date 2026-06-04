@@ -17,7 +17,7 @@
         "name": "Agentlas",
         "email": "jeongmk522-netizen@users.noreply.github.com"
       },
-      "source": "./plugins/agentlas-core-engine-meta-agent"
+      "source": "./claude/plugins/agentlas-core-engine-meta-agent"
     }
   ]
 }

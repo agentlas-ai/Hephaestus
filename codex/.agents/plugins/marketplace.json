@@ -1,0 +1,21 @@
+{
+  "name": "agentlas-core-engine",
+  "interface": {
+    "displayName": "Agentlas Core Engine"
+  },
+  "plugins": [
+    {
+      "name": "agentlas-core-engine-meta-agent",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agentlas-core-engine-meta-agent"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL",
+        "products": ["CODEX"]
+      },
+      "category": "AI Agents"
+    }
+  ]
+}
