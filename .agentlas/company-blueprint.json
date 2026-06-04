@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "teamId": "agentlas-core-engine-meta-agent",
-  "name": "Agentlas Core Engine Meta-Agent Team",
+  "teamId": "agentlas-meta-agent",
+  "name": "agentlas-meta-agent",
   "topology": "hub-and-spoke",
   "orchestrator": "AGENTS.md",
   "router": "AGENTS.md",

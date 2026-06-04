@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "package": "agentlas-core-engine-meta-agent",
-  "version": "0.1.2",
+  "package": "agentlas-meta-agent",
+  "version": "0.1.3",
   "description": "Portable Markdown-first three-agent meta-agent team for creating single agents, creating multi-agent teams, and packaging existing agents into Agentlas architecture.",
   "entrypoints": {
     "canonical": "AGENTS.md",

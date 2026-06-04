@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "Agentlas Core Engine plugins for Claude Code.",
-    "version": "0.1.2"
+    "version": "0.1.3"
   },
   "plugins": [
     {
-      "name": "agentlas-core-engine-meta-agent",
+      "name": "agentlas-meta-agent",
       "description": "Three-agent meta-agent team for creating single agents, creating multi-agent teams, and packaging existing agents into Agentlas architecture.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": {
         "name": "Agentlas",
         "email": "jeongmk522-netizen@users.noreply.github.com"

@@ -4,7 +4,7 @@
   </a>
 </p>
 
-<h1 align="center">Agentlas Core Engine Meta-Agent Team</h1>
+<h1 align="center">agentlas-meta-agent</h1>
 
 <p align="center">
   <strong>Turn a rough agent idea into an installable Agentlas package for Codex, Claude Code, Gemini, Cursor, Desktop, and terminal workflows.</strong>
@@ -40,7 +40,7 @@
 
 ## 한 줄 소개
 
-**Agentlas Core Engine Meta-Agent Team**은 "이런 에이전트 하나 만들어줘", "우리 팀 업무를 맡길 멀티 에이전트 팀으로 패키징해줘", "이미 만든 Claude/Codex/Hermes/OpenClaw 스타일 에이전트를 Agentlas 구조로 정리해줘" 같은 요청을 받아서, 바로 설치하고 검증할 수 있는 공개 Agentlas agent repo로 바꿔주는 3인 메타 에이전트 팀입니다.
+**agentlas-meta-agent**은 "이런 에이전트 하나 만들어줘", "우리 팀 업무를 맡길 멀티 에이전트 팀으로 패키징해줘", "이미 만든 Claude/Codex/Hermes/OpenClaw 스타일 에이전트를 Agentlas 구조로 정리해줘" 같은 요청을 받아서, 바로 설치하고 검증할 수 있는 공개 Agentlas agent repo로 바꿔주는 3인 메타 에이전트 팀입니다.
 
 이 repo는 모델이 아닙니다. 채팅 UI도 아닙니다. **에이전트와 에이전트 팀을 제품처럼 포장하는 공개 운영체제 계약**입니다. 결과물은 `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, visible `agents/`, reusable `skills/`, `.agentlas/` 계약, runtime adapter, 설치 스크립트, 검증 스크립트를 포함합니다.
 
@@ -71,13 +71,13 @@ PM Soul, Memory Curator, sitemap/task-bias, policy, eval, QA gate, runtime adapt
 ### 1. 아무 프로젝트에 terminal로 설치
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.2/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.3/scripts/install.sh | bash
 ```
 
 다른 폴더에 설치하려면:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.2/scripts/install.sh | bash -s -- /path/to/project
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.3/scripts/install.sh | bash -s -- /path/to/project
 ```
 
 설치 후 확인:
@@ -95,14 +95,14 @@ scripts/public_safety_check.sh
 
 ```bash
 claude plugin marketplace add https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --sparse .claude-plugin claude/plugins
-claude plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
+claude plugin install agentlas-meta-agent@agentlas-core-engine
 ```
 
 이미 Claude Code 안에 들어와 있다면 slash command로도 설치할 수 있습니다.
 
 ```text
 /plugin marketplace add https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --sparse .claude-plugin claude/plugins
-/plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
+/plugin install agentlas-meta-agent@agentlas-core-engine
 /reload-plugins
 /plugin list
 ```
@@ -110,7 +110,7 @@ claude plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
 정상 적용 예시는 이런 흐름입니다.
 
 ```text
-✓ Installed agentlas-core-engine-meta-agent. Run /reload-plugins to apply.
+✓ Installed agentlas-meta-agent. Run /reload-plugins to apply.
 Reloaded: 1 plugin · 0 skills · 9 agents · 0 hooks · 0 plugin MCP servers · 0 plugin LSP servers
 ```
 
@@ -120,7 +120,7 @@ Reloaded: 1 plugin · 0 skills · 9 agents · 0 hooks · 0 plugin MCP servers ·
 git clone https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent.git
 cd agent_agentlas_core_engine_meta_agent
 claude plugin marketplace add ./claude
-claude plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
+claude plugin install agentlas-meta-agent@agentlas-core-engine
 ```
 
 ### 3. Codex plugin으로 설치
@@ -128,9 +128,9 @@ claude plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
 Codex도 사용자가 자기 환경에 marketplace를 추가한 뒤 plugin을 설치해야 합니다.
 
 ```bash
-codex plugin marketplace add jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --ref v0.1.2
+codex plugin marketplace add jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --ref v0.1.3
 codex plugin list
-codex plugin add agentlas-core-engine-meta-agent@agentlas-core-engine
+codex plugin add agentlas-meta-agent@agentlas-core-engine
 codex plugin list
 ```
 
@@ -184,7 +184,7 @@ Package it for Codex, Claude, Gemini, and Agentlas Desktop.
 Codex:
 
 ```text
-Use the Agentlas Core Engine Meta-Agent Team.
+Use the agentlas-meta-agent.
 Build a multi-agent customer-support operations team with PM Soul, Memory Curator, QA gate, and public-safe release checks.
 ```
 
@@ -238,7 +238,7 @@ This repo intentionally does **not** include private Agentlas web service code, 
 
 ## 简介
 
-**Agentlas Core Engine Meta-Agent Team** 是一个三成员元代理团队，用来把粗略的代理想法、团队工作流，或已有的 Claude/Codex/OpenClaw/Hermes 风格工作区，整理成可安装、可验证、可公开发布的 Agentlas 代理仓库。
+**agentlas-meta-agent** 是一个三成员元代理团队，用来把粗略的代理想法、团队工作流，或已有的 Claude/Codex/OpenClaw/Hermes 风格工作区，整理成可安装、可验证、可公开发布的 Agentlas 代理仓库。
 
 它不是模型，也不是单一聊天界面。它是一个 **agent package layer**：让代理输出落到真实文件中，包括 `AGENTS.md`、`CLAUDE.md`、`GEMINI.md`、visible `agents/`、`skills/`、`.agentlas/` contracts、runtime adapters、install scripts 和 verification scripts。
 
@@ -255,7 +255,7 @@ This repo intentionally does **not** include private Agentlas web service code, 
 Terminal install:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.2/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.3/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -263,7 +263,7 @@ scripts/public_safety_check.sh
 Install into another folder:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.2/scripts/install.sh | bash -s -- /path/to/project
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.3/scripts/install.sh | bash -s -- /path/to/project
 ```
 
 Claude Code plugin:
@@ -274,14 +274,14 @@ Install from terminal:
 
 ```bash
 claude plugin marketplace add https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --sparse .claude-plugin claude/plugins
-claude plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
+claude plugin install agentlas-meta-agent@agentlas-core-engine
 ```
 
 Or install from inside Claude Code:
 
 ```text
 /plugin marketplace add https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --sparse .claude-plugin claude/plugins
-/plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
+/plugin install agentlas-meta-agent@agentlas-core-engine
 /reload-plugins
 /plugin list
 ```
@@ -289,9 +289,9 @@ Or install from inside Claude Code:
 Codex plugin:
 
 ```bash
-codex plugin marketplace add jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --ref v0.1.2
+codex plugin marketplace add jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --ref v0.1.3
 codex plugin list
-codex plugin add agentlas-core-engine-meta-agent@agentlas-core-engine
+codex plugin add agentlas-meta-agent@agentlas-core-engine
 codex plugin list
 ```
 
@@ -329,7 +329,7 @@ Desktop gives a visible local operating surface. Terminal gives reproducible rep
 
 ## What this is
 
-**Agentlas Core Engine Meta-Agent Team** converts rough agent ideas, multi-agent team requests, and existing local agent workspaces into installable Agentlas-compatible repositories.
+**agentlas-meta-agent** converts rough agent ideas, multi-agent team requests, and existing local agent workspaces into installable Agentlas-compatible repositories.
 
 It is not another model and not just a chat UI. It is a **portable agent packaging layer**. It turns an agent plan into files that other runtimes can actually read: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, visible `agents/`, reusable `skills/`, `.agentlas/` contracts, schemas, templates, install scripts, and verification scripts.
 
@@ -346,7 +346,7 @@ It is not another model and not just a chat UI. It is a **portable agent packagi
 Terminal install:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.2/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.3/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -354,7 +354,7 @@ scripts/public_safety_check.sh
 Install into another project:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.2/scripts/install.sh | bash -s -- /path/to/project
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.3/scripts/install.sh | bash -s -- /path/to/project
 ```
 
 Claude Code plugin:
@@ -365,14 +365,14 @@ Install from terminal:
 
 ```bash
 claude plugin marketplace add https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --sparse .claude-plugin claude/plugins
-claude plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
+claude plugin install agentlas-meta-agent@agentlas-core-engine
 ```
 
 Or install from inside Claude Code:
 
 ```text
 /plugin marketplace add https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --sparse .claude-plugin claude/plugins
-/plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
+/plugin install agentlas-meta-agent@agentlas-core-engine
 /reload-plugins
 /plugin list
 ```
@@ -380,16 +380,16 @@ Or install from inside Claude Code:
 Expected apply flow:
 
 ```text
-✓ Installed agentlas-core-engine-meta-agent. Run /reload-plugins to apply.
+✓ Installed agentlas-meta-agent. Run /reload-plugins to apply.
 Reloaded: 1 plugin · 0 skills · 9 agents · 0 hooks · 0 plugin MCP servers · 0 plugin LSP servers
 ```
 
 Codex plugin:
 
 ```bash
-codex plugin marketplace add jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --ref v0.1.2
+codex plugin marketplace add jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --ref v0.1.3
 codex plugin list
-codex plugin add agentlas-core-engine-meta-agent@agentlas-core-engine
+codex plugin add agentlas-meta-agent@agentlas-core-engine
 codex plugin list
 ```
 
@@ -436,7 +436,7 @@ Package it for Codex, Claude, Gemini, and Agentlas Desktop.
 ```
 
 ```text
-Use the Agentlas Core Engine Meta-Agent Team.
+Use the agentlas-meta-agent.
 Build a multi-agent customer-support operations team with PM Soul, Memory Curator, QA gate, and public-safe release checks.
 ```
 
@@ -480,7 +480,7 @@ This repo is public by design. It does not include hosted billing/account logic,
 
 ## 概要
 
-**Agentlas Core Engine Meta-Agent Team** は、曖昧な agent アイデア、multi-agent team の要望、既存の Claude/Codex/OpenClaw/Hermes 風 workspace を、インストール可能で検証可能な Agentlas package に変換する 3 人構成の meta-agent team です。
+**agentlas-meta-agent** は、曖昧な agent アイデア、multi-agent team の要望、既存の Claude/Codex/OpenClaw/Hermes 風 workspace を、インストール可能で検証可能な Agentlas package に変換する 3 人構成の meta-agent team です。
 
 これはモデルでも、単なるチャット UI でもありません。Agent を repo として残すための **portable packaging layer** です。`AGENTS.md`、`CLAUDE.md`、`GEMINI.md`、visible `agents/`、`skills/`、`.agentlas/` contracts、runtime adapters、install scripts、verification scripts を生成または修復します。
 
@@ -497,7 +497,7 @@ This repo is public by design. It does not include hosted billing/account logic,
 Terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.2/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.3/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -505,7 +505,7 @@ scripts/public_safety_check.sh
 別フォルダへ:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.2/scripts/install.sh | bash -s -- /path/to/project
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.3/scripts/install.sh | bash -s -- /path/to/project
 ```
 
 Claude Code plugin:
@@ -516,14 +516,14 @@ Install from terminal:
 
 ```bash
 claude plugin marketplace add https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --sparse .claude-plugin claude/plugins
-claude plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
+claude plugin install agentlas-meta-agent@agentlas-core-engine
 ```
 
 Or install from inside Claude Code:
 
 ```text
 /plugin marketplace add https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --sparse .claude-plugin claude/plugins
-/plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
+/plugin install agentlas-meta-agent@agentlas-core-engine
 /reload-plugins
 /plugin list
 ```
@@ -531,9 +531,9 @@ Or install from inside Claude Code:
 Codex plugin:
 
 ```bash
-codex plugin marketplace add jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --ref v0.1.2
+codex plugin marketplace add jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --ref v0.1.3
 codex plugin list
-codex plugin add agentlas-core-engine-meta-agent@agentlas-core-engine
+codex plugin add agentlas-meta-agent@agentlas-core-engine
 codex plugin list
 ```
 
@@ -571,7 +571,7 @@ Desktop は見える実行面を提供します。Terminal は repo への再現
 
 ## परिचय
 
-**Agentlas Core Engine Meta-Agent Team** एक तीन-agent meta team है। यह rough agent idea, multi-agent workflow, या पहले से बने Claude/Codex/OpenClaw/Hermes-style workspace को installable और verifiable Agentlas package में बदलता है।
+**agentlas-meta-agent** एक तीन-agent meta team है। यह rough agent idea, multi-agent workflow, या पहले से बने Claude/Codex/OpenClaw/Hermes-style workspace को installable और verifiable Agentlas package में बदलता है।
 
 यह कोई नया model नहीं है और केवल chat UI भी नहीं है। यह एक **portable agent packaging layer** है। इसका काम agent को वास्तविक repo files में बदलना है: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, visible `agents/`, reusable `skills/`, `.agentlas/` contracts, runtime adapters, install scripts, और verification scripts।
 
@@ -588,7 +588,7 @@ Desktop は見える実行面を提供します。Terminal は repo への再現
 Terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.2/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.3/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -596,7 +596,7 @@ scripts/public_safety_check.sh
 दूसरे folder में:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.2/scripts/install.sh | bash -s -- /path/to/project
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.3/scripts/install.sh | bash -s -- /path/to/project
 ```
 
 Claude Code plugin:
@@ -607,14 +607,14 @@ Install from terminal:
 
 ```bash
 claude plugin marketplace add https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --sparse .claude-plugin claude/plugins
-claude plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
+claude plugin install agentlas-meta-agent@agentlas-core-engine
 ```
 
 Or install from inside Claude Code:
 
 ```text
 /plugin marketplace add https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --sparse .claude-plugin claude/plugins
-/plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
+/plugin install agentlas-meta-agent@agentlas-core-engine
 /reload-plugins
 /plugin list
 ```
@@ -622,9 +622,9 @@ Or install from inside Claude Code:
 Codex plugin:
 
 ```bash
-codex plugin marketplace add jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --ref v0.1.2
+codex plugin marketplace add jeongmk522-netizen/agent_agentlas_core_engine_meta_agent --ref v0.1.3
 codex plugin list
-codex plugin add agentlas-core-engine-meta-agent@agentlas-core-engine
+codex plugin add agentlas-meta-agent@agentlas-core-engine
 codex plugin list
 ```
 

@@ -17,7 +17,7 @@ Add this repo's Claude marketplace from a local checkout:
 
 ```bash
 claude plugin marketplace add ./claude
-claude plugin install agentlas-core-engine-meta-agent@agentlas-core-engine
+claude plugin install agentlas-meta-agent@agentlas-core-engine
 ```
 
 Use directly for a Claude session:

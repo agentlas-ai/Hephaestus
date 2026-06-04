@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "name": "Agentlas Core Engine Meta-Agent",
-  "slug": "agentlas-core-engine-meta-agent",
+  "name": "agentlas-meta-agent",
+  "slug": "agentlas-meta-agent",
   "summary": "Portable meta-agent team for creating Codex, Claude Code, Gemini, and AGENTS.md-compatible agent repositories.",
   "capabilities": [
     "single_agent_builder",

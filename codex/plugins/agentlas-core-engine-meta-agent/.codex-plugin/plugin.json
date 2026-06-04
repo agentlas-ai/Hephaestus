@@ -1,7 +1,7 @@
 {
-  "id": "agentlas-core-engine-meta-agent",
-  "name": "agentlas-core-engine-meta-agent",
-  "version": "0.1.2",
+  "id": "agentlas-meta-agent",
+  "name": "agentlas-meta-agent",
+  "version": "0.1.3",
   "description": "Three-agent meta-agent team for creating single agents, creating multi-agent teams, and packaging existing agents into Agentlas architecture.",
   "author": {
     "name": "Agentlas"
@@ -12,7 +12,7 @@
   "keywords": ["agentlas", "meta-agent", "agents", "codex", "claude", "gemini"],
   "skills": "skills",
   "interface": {
-    "displayName": "Agentlas Core Engine Meta-Agent",
+    "displayName": "agentlas-meta-agent",
     "shortDescription": "Create or package Agentlas-compatible agents and teams.",
     "longDescription": "A portable three-agent meta-agent team: Single Agent Builder, Multi Agent Team Builder, and Agentlas Packager. It creates self-evolving single agents, full multi-agent teams, and packages existing agents into Agentlas architecture.",
     "developerName": "Agentlas",
@@ -24,6 +24,6 @@
       "runtime_adapters",
       "memory_architecture"
     ],
-    "defaultPrompt": "Use the Agentlas Core Engine Meta-Agent Team to create or package an Agentlas-compatible agent."
+    "defaultPrompt": "Use the agentlas-meta-agent to create or package an Agentlas-compatible agent."
   }
 }

@@ -3,7 +3,7 @@ set -euo pipefail
 
 target="${1:-$PWD}"
 force="${AGENTLAS_META_OS_FORCE:-0}"
-repo_tarball="${AGENTLAS_META_OS_TARBALL_URL:-https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/archive/refs/tags/v0.1.2.tar.gz}"
+repo_tarball="${AGENTLAS_META_OS_TARBALL_URL:-https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/archive/refs/tags/v0.1.3.tar.gz}"
 
 usage() {
   cat <<'EOF'
@@ -79,5 +79,5 @@ if [[ -d "$target/scripts" ]]; then
   chmod +x "$target"/scripts/*.sh 2>/dev/null || true
 fi
 
-echo "Agentlas Core Engine Meta-Agent Team installed into: $target"
+echo "agentlas-meta-agent installed into: $target"
 echo "Read AGENTS.md, then run: scripts/verify-package.sh"

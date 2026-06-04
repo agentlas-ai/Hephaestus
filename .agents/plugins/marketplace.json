@@ -5,7 +5,7 @@
   },
   "plugins": [
     {
-      "name": "agentlas-core-engine-meta-agent",
+      "name": "agentlas-meta-agent",
       "source": {
         "source": "local",
         "path": "./codex/plugins/agentlas-core-engine-meta-agent"

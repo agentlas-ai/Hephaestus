@@ -1,10 +1,10 @@
-# Agentlas Core Engine Meta-Agent Memory
+# agentlas-meta-agent Memory
 
 This is public memory for `agent_agentlas_core_engine_meta_agent`.
 
 ## Stable Facts
 
-- Agent name: Agentlas Core Engine Meta-Agent
+- Agent name: agentlas-meta-agent
 - Agent slug: agentlas_core_engine_meta_agent
 - Repository name: agent_agentlas_core_engine_meta_agent
 - Public site: `https://agentlas.cloud`
