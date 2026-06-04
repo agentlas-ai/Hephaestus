@@ -40,13 +40,13 @@ agents. They are not extra members of this meta-agent team.
 Run this from the project where you want the meta-agent team available:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.0/scripts/install.sh | bash
 ```
 
 To install into a different folder:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/main/scripts/install.sh | bash -s -- /path/to/project
+curl -fsSL https://raw.githubusercontent.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/v0.1.0/scripts/install.sh | bash -s -- /path/to/project
 ```
 
 ## Repository Map

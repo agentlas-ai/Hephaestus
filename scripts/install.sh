@@ -3,7 +3,7 @@ set -euo pipefail
 
 target="${1:-$PWD}"
 force="${AGENTLAS_META_OS_FORCE:-0}"
-repo_tarball="${AGENTLAS_META_OS_TARBALL_URL:-https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/archive/refs/heads/main.tar.gz}"
+repo_tarball="${AGENTLAS_META_OS_TARBALL_URL:-https://github.com/jeongmk522-netizen/agent_agentlas_core_engine_meta_agent/archive/refs/tags/v0.1.0.tar.gz}"
 
 usage() {
   cat <<'EOF'
