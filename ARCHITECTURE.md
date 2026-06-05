@@ -58,6 +58,7 @@ The canonical core is runtime-neutral:
 - `.agentlas/curator-decisions.jsonl` in generated packages
 - `.agentlas/super-ontology-contract.json` in generated packages
 - `.agentlas/super-ontology-open-world-coverage.json` in generated packages
+- `.agentlas/super-ontology-consensus-coordination.json` in generated packages
 - `.agentlas/super-ontology-task-coverage.json` in generated packages
 - `.agentlas/super-ontology-contextual-flow.json` in generated packages
 - `.agentlas/super-ontology-causal-impact.json` in generated packages
@@ -91,7 +92,7 @@ Three runtime behaviors are public contracts here, not private product code:
   first-class recall stays off until local Curator review and workspace policy
   approve it.
 - Super Ontology candidate contract: generated packages may ship export-only
-  adaptive knowledge governance metadata, open-world coverage, task coverage, contextual-flow,
+  adaptive knowledge governance metadata, open-world coverage, consensus coordination, task coverage, contextual-flow,
   causal-impact metadata, assurance-case metadata, knowledge-homeostasis
   metadata, adversarial-provenance metadata, epistemic-calibration metadata,
   semantic-alignment metadata, resilience-control metadata,
@@ -113,7 +114,7 @@ contracts that the three builders generate or repair inside output packages:
 - PM Soul or project owner.
 - Memory Curator and Memory Tickets.
 - Skill lifecycle registry, trial evidence, and Curator promotion decisions.
-- Super Ontology candidate contract, open-world coverage, task coverage, contextual flow, causal
+- Super Ontology candidate contract, open-world coverage, consensus coordination, task coverage, contextual flow, causal
   impact, assurance cases, knowledge homeostasis, adversarial provenance,
   epistemic calibration, semantic alignment, resilience control, invariant verification, replay evidence, and promotion
   evidence.

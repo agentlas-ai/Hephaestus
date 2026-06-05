@@ -41,6 +41,7 @@ Recommended minimum:
 ├── curator-decisions.jsonl
 ├── super-ontology-contract.json
 ├── super-ontology-open-world-coverage.json
+├── super-ontology-consensus-coordination.json
 ├── super-ontology-task-coverage.json
 ├── super-ontology-contextual-flow.json
 ├── super-ontology-causal-impact.json
@@ -113,7 +114,7 @@ overwriting user content.
 - Candidate-only adaptive knowledge governance metadata.
 - Keeps `runtimeGraphWriteEnabled` and `zeroErrorClaim` false on export.
 - Names the source-intake, evidence-packet, belief-ledger, knowledge-capsule,
-  affordance-binding, open-world-coverage, task-coverage, contextual-flow, causal-impact,
+  affordance-binding, open-world-coverage, consensus-coordination, task-coverage, contextual-flow, causal-impact,
   assurance-case, knowledge-homeostasis, adversarial-provenance,
   epistemic-calibration, semantic-alignment, resilience-control,
   invariant-verification,
@@ -127,6 +128,14 @@ overwriting user content.
   review lower or approve authority.
 - Blocks proposal/deck examples from being treated as proof that all future
   work is covered.
+
+`super-ontology-consensus-coordination.json`
+
+- Export-only consensus coordination seed.
+- Keeps agent agreement, majority vote, debate, model-judge approval,
+  distributed replica merge, and cross-runtime sync from becoming write
+  authority without independent evidence, veto, owner/policy review, sync
+  review, invariants, and rollback.
 
 `super-ontology-task-coverage.json`
 

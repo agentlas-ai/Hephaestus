@@ -12,6 +12,7 @@ Generated or packaged repos may include:
 .agentlas/
   super-ontology-contract.json
   super-ontology-open-world-coverage.json
+  super-ontology-consensus-coordination.json
   super-ontology-task-coverage.json
   super-ontology-contextual-flow.json
   super-ontology-causal-impact.json
@@ -31,6 +32,7 @@ Generated or packaged repos may include:
 
 - Describes the allowed ontology pipeline: source intake, evidence packets,
   belief ledger, knowledge capsules, affordance binding, open-world coverage,
+  consensus coordination,
   task coverage,
   promotion readiness, replay drills, and rollback.
 - Must set `runtimeGraphWriteEnabled` to `false` on export.
@@ -71,6 +73,18 @@ Generated or packaged repos may include:
 - Keeps `runtimePromotionAllowed=false` on export.
 - Blocks proposal/deck examples from being treated as proof that every future
   task is covered.
+
+`super-ontology-consensus-coordination.json`
+
+- Public-safe consensus coordination seed.
+- Requires agent agreement, majority vote, debate, model-judge approval,
+  distributed replica merge, and cross-runtime sync to remain candidate signals
+  until independent evidence, veto roles, owner/policy review, sync review,
+  invariants, and rollback are present.
+- Keeps `runtimePromotionAllowed=false` on export.
+- Blocks agent agreement, simple majority, debate stability, model-judge
+  confidence, last-writer-wins route sync, and distributed replica merge from
+  becoming write authority.
 
 `super-ontology-task-coverage.json`
 
@@ -216,6 +230,10 @@ rollbackRequired = true
 openWorldCoverageRequired = true
 unknownCombinationRuntimeWritesBlocked = true
 uncoveredModalityRuntimeWritesBlocked = true
+consensusCoordinationRequired = true
+agentAgreementRuntimeWritesBlocked = true
+majorityVoteRuntimeWritesBlocked = true
+splitBrainRuntimeWritesBlocked = true
 taskCoverageRequired = true
 contextualFlowRequired = true
 causalImpactRequired = true
@@ -251,21 +269,22 @@ The public contract names these layers:
 4. knowledge capsule,
 5. affordance action binding,
 6. open-world coverage contract,
-7. task coverage contract,
-8. contextual flow contract,
-9. causal impact contract,
-10. assurance case contract,
-11. knowledge homeostasis contract,
-12. adversarial provenance contract,
-13. epistemic calibration contract,
-14. semantic alignment contract,
-15. resilience control contract,
-16. invariant verification contract,
-17. Agentlas integration contract,
-18. Memory Curator bridge,
-19. promotion readiness,
-20. promotion replay drill,
-21. architecture sync review.
+7. consensus coordination contract,
+8. task coverage contract,
+9. contextual flow contract,
+10. causal impact contract,
+11. assurance case contract,
+12. knowledge homeostasis contract,
+13. adversarial provenance contract,
+14. epistemic calibration contract,
+15. semantic alignment contract,
+16. resilience control contract,
+17. invariant verification contract,
+18. Agentlas integration contract,
+19. Memory Curator bridge,
+20. promotion readiness,
+21. promotion replay drill,
+22. architecture sync review.
 
 ## Hard Stops
 
