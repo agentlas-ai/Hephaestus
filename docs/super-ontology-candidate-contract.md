@@ -18,6 +18,7 @@ Generated or packaged repos may include:
   super-ontology-knowledge-homeostasis.json
   super-ontology-adversarial-provenance.json
   super-ontology-epistemic-calibration.json
+  super-ontology-semantic-alignment.json
   super-ontology-replays.jsonl
   super-ontology-evidence.jsonl
   super-ontology-memory-bridge.jsonl
@@ -142,6 +143,21 @@ Generated or packaged repos may include:
   class, model disagreement as consensus, inconclusive tool output as action,
   uncalibrated route sync, and wide judge intervals in regulated answers.
 
+`super-ontology-semantic-alignment.json`
+
+- Public-safe semantic alignment seed.
+- Requires proposed glossary, schema, ontology, relation, hierarchy,
+  entity-resolution, source-system merge, memory-merge, release-sync, or no-match
+  decisions to name relation type, scope, ambiguity, semantic evidence,
+  structural evidence, lexical evidence, negative evidence, validation checks,
+  owner controls, blocked shortcuts, change policy, and rollback.
+- Keeps `runtimePromotionAllowed=false` on export.
+- Blocks same label as same meaning, embedding similarity as exact match,
+  close-match as transitive truth, generated label as ontology class, OCR label
+  as property alignment, AppBridge route as source ontology edit,
+  same-individual without stable identifier, unit label without compatibility,
+  source conflict as memory merge, and no-match promoted to weak match.
+
 ## Default State
 
 Every exported Super Ontology contract starts as:
@@ -160,10 +176,13 @@ assuranceCaseRequired = true
 knowledgeHomeostasisRequired = true
 adversarialProvenanceRequired = true
 epistemicCalibrationRequired = true
+semanticAlignmentRequired = true
 memoryCuratorBridgeRequired = true
 directDurableMemoryWritesBlocked = true
 untrustedSourceRuntimeWritesBlocked = true
 uncalibratedRuntimeWritesBlocked = true
+highAuthorityAlignmentReviewRequired = true
+unreviewedSemanticRuntimeWritesBlocked = true
 ```
 
 The package can be searched, reviewed, and replayed. It cannot write official
@@ -185,11 +204,12 @@ The public contract names these layers:
 10. knowledge homeostasis contract,
 11. adversarial provenance contract,
 12. epistemic calibration contract,
-13. Agentlas integration contract,
-14. Memory Curator bridge,
-15. promotion readiness,
-16. promotion replay drill,
-17. architecture sync review.
+13. semantic alignment contract,
+14. Agentlas integration contract,
+15. Memory Curator bridge,
+16. promotion readiness,
+17. promotion replay drill,
+18. architecture sync review.
 
 ## Hard Stops
 
@@ -220,6 +240,10 @@ Automatic promotion is blocked when:
   confident answer, graph write, tool action, memory write, or public artifact;
 - a regulated answer, financial estimate, scientific claim, physical action, or
   route sync has an uncalibrated confidence band or wide judge interval;
+- a same label, similar embedding, generated label, OCR label, route label,
+  abbreviation, or unit label would become an exact/equivalent/same-individual
+  relation, graph edge, memory merge, or public artifact without scope,
+  validation, owner review, diff, and rollback;
 - an AppBridge route output would be treated as source-write authority;
 - a release artifact lacks SLSA or in-toto style provenance;
 - AppBridge is treated as source of truth;

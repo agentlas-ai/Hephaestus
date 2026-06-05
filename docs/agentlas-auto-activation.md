@@ -47,6 +47,7 @@ Recommended minimum:
 ├── super-ontology-knowledge-homeostasis.json
 ├── super-ontology-adversarial-provenance.json
 ├── super-ontology-epistemic-calibration.json
+├── super-ontology-semantic-alignment.json
 ├── super-ontology-replays.jsonl
 ├── super-ontology-evidence.jsonl
 ├── super-ontology-memory-bridge.jsonl
@@ -111,7 +112,7 @@ overwriting user content.
 - Names the source-intake, evidence-packet, belief-ledger, knowledge-capsule,
   affordance-binding, task-coverage, contextual-flow, causal-impact,
   assurance-case, knowledge-homeostasis, adversarial-provenance,
-  epistemic-calibration,
+  epistemic-calibration, semantic-alignment,
   promotion-readiness, replay, and sync-review gates.
 
 `super-ontology-task-coverage.json`
@@ -188,6 +189,19 @@ overwriting user content.
   sources, low retrieval relevance, stale policies, noisy OCR, inconclusive
   tool output, model disagreement, wide judge intervals, and uncalibrated route
   sync from becoming confident answers or graph writes.
+
+`super-ontology-semantic-alignment.json`
+
+- Export-only term, schema, ontology, entity, relation, and glossary alignment
+  seed.
+- Requires proposed matches to name source context, artifact type, source term,
+  target term, alignment intent, candidate relation, scope, ambiguity, semantic
+  evidence, structural evidence, lexical evidence, negative evidence,
+  validation checks, owner/curator controls, change policy, and rollback.
+- Keeps runtime promotion disabled and blocks same labels, embedding similarity,
+  generated labels, OCR labels, AppBridge route labels, source conflicts,
+  missing unit compatibility, missing direction checks, and no-match cases from
+  becoming graph or memory changes.
 
 `super-ontology-replays.jsonl` and `super-ontology-evidence.jsonl`
 

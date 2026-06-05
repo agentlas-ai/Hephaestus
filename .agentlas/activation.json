@@ -25,6 +25,7 @@
     ".agentlas/super-ontology-knowledge-homeostasis.json",
     ".agentlas/super-ontology-adversarial-provenance.json",
     ".agentlas/super-ontology-epistemic-calibration.json",
+    ".agentlas/super-ontology-semantic-alignment.json",
     ".agentlas/super-ontology-replays.jsonl",
     ".agentlas/super-ontology-evidence.jsonl",
     ".agentlas/super-ontology-memory-bridge.jsonl"
