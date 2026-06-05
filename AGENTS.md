@@ -94,6 +94,7 @@ Generated or packaged repos must include the relevant subset of:
 - `.agentlas/super-ontology-contract.json`;
 - `.agentlas/super-ontology-replays.jsonl`;
 - `.agentlas/super-ontology-evidence.jsonl`;
+- `.agentlas/super-ontology-memory-bridge.jsonl`;
 - runtime adapters and smoke-test docs;
 - install or verification scripts;
 - public-safety notes if the output is meant for GitHub.

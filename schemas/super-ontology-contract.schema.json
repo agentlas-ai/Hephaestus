@@ -34,6 +34,7 @@
           "knowledge_capsule",
           "affordance_action_binding",
           "agentlas_integration_contract",
+          "memory_curator_bridge",
           "promotion_readiness",
           "promotion_replay_drill",
           "architecture_sync_review"
@@ -43,10 +44,11 @@
     },
     "evidenceLedgers": {
       "type": "object",
-      "required": ["replays", "promotionEvidence", "memoryTickets"],
+      "required": ["replays", "promotionEvidence", "memoryCuratorBridge", "memoryTickets"],
       "properties": {
         "replays": { "type": "string" },
         "promotionEvidence": { "type": "string" },
+        "memoryCuratorBridge": { "type": "string" },
         "memoryTickets": { "type": "string" }
       },
       "additionalProperties": false
@@ -63,6 +65,8 @@
         "canaryRequiredForMixedContext",
         "rollbackRequired",
         "syncReviewRequired",
+        "memoryCuratorBridgeRequired",
+        "directDurableMemoryWritesBlocked",
         "appbridgeSourceWritesBlocked"
       ],
       "properties": {
@@ -70,6 +74,8 @@
         "canaryRequiredForMixedContext": { "const": true },
         "rollbackRequired": { "const": true },
         "syncReviewRequired": { "const": true },
+        "memoryCuratorBridgeRequired": { "const": true },
+        "directDurableMemoryWritesBlocked": { "const": true },
         "appbridgeSourceWritesBlocked": { "const": true }
       },
       "additionalProperties": false

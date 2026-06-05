@@ -13,6 +13,7 @@ Generated or packaged repos may include:
   super-ontology-contract.json
   super-ontology-replays.jsonl
   super-ontology-evidence.jsonl
+  super-ontology-memory-bridge.jsonl
 ```
 
 `super-ontology-contract.json`
@@ -39,6 +40,16 @@ Generated or packaged repos may include:
 - Evidence must identify the proof key, target surface, status, and summary
   without storing private logs, local paths, credentials, or raw source content.
 
+`super-ontology-memory-bridge.jsonl`
+
+- Append-only Memory Curator bridge candidates.
+- Empty on export; the public core repo may carry a public-safe seed row for
+  schema visibility.
+- Rows must keep `durable_write_enabled=false` until Memory Curator, Policy
+  Gate, PM Soul, or architecture sync review accepts the ticket.
+- Rows must not store raw prompts, secret values, private paths, full
+  transcripts, or direct durable memory writes.
+
 ## Default State
 
 Every exported Super Ontology contract starts as:
@@ -50,6 +61,8 @@ zeroErrorClaim = false
 shadowRequired = true
 canaryRequiredForMixedContext = true
 rollbackRequired = true
+memoryCuratorBridgeRequired = true
+directDurableMemoryWritesBlocked = true
 ```
 
 The package can be searched, reviewed, and replayed. It cannot write official
@@ -65,9 +78,10 @@ The public contract names these layers:
 4. knowledge capsule,
 5. affordance action binding,
 6. Agentlas integration contract,
-7. promotion readiness,
-8. promotion replay drill,
-9. architecture sync review.
+7. Memory Curator bridge,
+8. promotion readiness,
+9. promotion replay drill,
+10. architecture sync review.
 
 ## Hard Stops
 
@@ -79,6 +93,9 @@ Automatic promotion is blocked when:
 - a downstream agent receives the whole graph instead of a task capsule;
 - a tool call lacks argument provenance or user authority;
 - AppBridge is treated as source of truth;
+- a candidate bypasses the Memory Curator bridge and writes durable memory
+  directly;
+- a memory candidate stores raw prompt, private path, or secret-like material;
 - rollback is missing;
 - live shadow/canary evidence is missing for runtime behavior.
 

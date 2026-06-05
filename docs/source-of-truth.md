@@ -65,6 +65,7 @@ These files are the public contract surface:
 - `.agentlas/super-ontology-contract.json` in generated packages
 - `.agentlas/super-ontology-replays.jsonl` in generated packages
 - `.agentlas/super-ontology-evidence.jsonl` in generated packages
+- `.agentlas/super-ontology-memory-bridge.jsonl` in generated packages
 - `agents/10-single-agent-builder/agent.md`
 - `agents/20-multi-agent-team-builder/agent.md`
 - `agents/30-agentlas-packager/agent.md`

@@ -42,6 +42,7 @@ Recommended minimum:
 ├── super-ontology-contract.json
 ├── super-ontology-replays.jsonl
 ├── super-ontology-evidence.jsonl
+├── super-ontology-memory-bridge.jsonl
 └── activation.json
 ```
 
@@ -108,6 +109,13 @@ overwriting user content.
 - Empty append-only ledgers for future shadow/canary/rollback replay and
   promotion evidence.
 - They do not make the ontology runtime-active by themselves.
+
+`super-ontology-memory-bridge.jsonl`
+
+- Empty append-only Memory Curator bridge ledger on export.
+- Later runtimes may append redacted Memory Ticket bridge candidates only after
+  raw prompts, secret values, private paths, and direct durable memory writes
+  are blocked.
 
 ## Runtime Behavior
 
