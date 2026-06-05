@@ -102,7 +102,7 @@ The following formerly runtime-owned behaviors are now public contracts:
    `docs/super-ontology-candidate-contract.md`.
    Its task coverage seed, contextual-flow seed, causal-impact seed,
    assurance-case seed, knowledge-homeostasis seed, adversarial-provenance seed,
-   epistemic-calibration seed, semantic-alignment seed, and Memory Curator bridge ledger are
+   epistemic-calibration seed, semantic-alignment seed, resilience-control seed, and Memory Curator bridge ledger are
    candidate-only: task coverage
    classifies requested work before action, contextual flow blocks unsafe
    boundary crossings, causal impact blocks relation-as-intervention jumps,
@@ -114,8 +114,11 @@ The following formerly runtime-owned behaviors are now public contracts:
    from becoming confident answers or runtime writes, and the bridge keeps
    semantic alignment blocks same-label, similar-embedding, OCR, generated-label,
    route-label, and high-authority `same_as` shortcuts from becoming graph or
-   memory changes without scope, evidence, owner review, diff, and rollback, and
-   the bridge keeps direct durable memory writes blocked until Curator, Policy,
+   memory changes without scope, evidence, owner review, diff, and rollback.
+   Resilience control blocks degraded validators, retrieval drift, tool errors,
+   parser/sensor degradation, Memory Curator backlog, sync drift, rollback
+   failures, and emergency-stop bypasses from keeping nominal write authority.
+   The bridge keeps direct durable memory writes blocked until Curator, Policy,
    PM Soul, or sync review approves a later phase.
 
 These are contract-level syncs. They do not move hosted billing, account state,

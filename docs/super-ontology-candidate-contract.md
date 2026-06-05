@@ -19,6 +19,7 @@ Generated or packaged repos may include:
   super-ontology-adversarial-provenance.json
   super-ontology-epistemic-calibration.json
   super-ontology-semantic-alignment.json
+  super-ontology-resilience-control.json
   super-ontology-replays.jsonl
   super-ontology-evidence.jsonl
   super-ontology-memory-bridge.jsonl
@@ -158,6 +159,22 @@ Generated or packaged repos may include:
   same-individual without stable identifier, unit label without compatibility,
   source conflict as memory merge, and no-match promoted to weak match.
 
+`super-ontology-resilience-control.json`
+
+- Public-safe degraded-operation and self-adaptive control seed.
+- Requires degraded operation to name control-loop phase, degradation signal,
+  hazard type, operating mode, control decision, trigger threshold, observed
+  evidence, feedback channels, controls, blocked shortcuts, Memory Curator
+  policy, sync policy, and rollback.
+- Keeps `runtimePromotionAllowed=false` on export.
+- Blocks validator disagreement as graph write, retrieval drift as current
+  answer, semantic regression as memory merge, provenance gap as tool authority,
+  Memory Curator backlog as direct memory write, tool error spike as unbounded
+  retry, unknown task as normal execution, context-flow violation as public
+  export, sync drift as release surface, degraded parser as ontology class,
+  rollback failure as runtime promotion, and AppBridge route as emergency-stop
+  bypass.
+
 ## Default State
 
 Every exported Super Ontology contract starts as:
@@ -177,12 +194,15 @@ knowledgeHomeostasisRequired = true
 adversarialProvenanceRequired = true
 epistemicCalibrationRequired = true
 semanticAlignmentRequired = true
+resilienceControlRequired = true
 memoryCuratorBridgeRequired = true
 directDurableMemoryWritesBlocked = true
 untrustedSourceRuntimeWritesBlocked = true
 uncalibratedRuntimeWritesBlocked = true
 highAuthorityAlignmentReviewRequired = true
 unreviewedSemanticRuntimeWritesBlocked = true
+degradedRuntimeWritesBlocked = true
+emergencyStopBypassBlocked = true
 ```
 
 The package can be searched, reviewed, and replayed. It cannot write official
@@ -205,11 +225,12 @@ The public contract names these layers:
 11. adversarial provenance contract,
 12. epistemic calibration contract,
 13. semantic alignment contract,
-14. Agentlas integration contract,
-15. Memory Curator bridge,
-16. promotion readiness,
-17. promotion replay drill,
-18. architecture sync review.
+14. resilience control contract,
+15. Agentlas integration contract,
+16. Memory Curator bridge,
+17. promotion readiness,
+18. promotion replay drill,
+19. architecture sync review.
 
 ## Hard Stops
 
@@ -244,6 +265,11 @@ Automatic promotion is blocked when:
   abbreviation, or unit label would become an exact/equivalent/same-individual
   relation, graph edge, memory merge, or public artifact without scope,
   validation, owner review, diff, and rollback;
+- validator disagreement, retrieval drift, semantic regression, provenance
+  gaps, Memory Curator backlog, tool error spikes, unknown task families,
+  context-flow violations, sync drift, degraded parser/sensor signals, rollback
+  failure, or emergency-stop bypass would keep nominal graph, memory, tool,
+  route, release, or public-artifact authority;
 - an AppBridge route output would be treated as source-write authority;
 - a release artifact lacks SLSA or in-toto style provenance;
 - AppBridge is treated as source of truth;

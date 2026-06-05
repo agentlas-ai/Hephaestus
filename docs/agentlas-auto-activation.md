@@ -48,6 +48,7 @@ Recommended minimum:
 ├── super-ontology-adversarial-provenance.json
 ├── super-ontology-epistemic-calibration.json
 ├── super-ontology-semantic-alignment.json
+├── super-ontology-resilience-control.json
 ├── super-ontology-replays.jsonl
 ├── super-ontology-evidence.jsonl
 ├── super-ontology-memory-bridge.jsonl
@@ -112,7 +113,7 @@ overwriting user content.
 - Names the source-intake, evidence-packet, belief-ledger, knowledge-capsule,
   affordance-binding, task-coverage, contextual-flow, causal-impact,
   assurance-case, knowledge-homeostasis, adversarial-provenance,
-  epistemic-calibration, semantic-alignment,
+  epistemic-calibration, semantic-alignment, resilience-control,
   promotion-readiness, replay, and sync-review gates.
 
 `super-ontology-task-coverage.json`
@@ -202,6 +203,18 @@ overwriting user content.
   generated labels, OCR labels, AppBridge route labels, source conflicts,
   missing unit compatibility, missing direction checks, and no-match cases from
   becoming graph or memory changes.
+
+`super-ontology-resilience-control.json`
+
+- Export-only degraded-operation and self-adaptive control seed.
+- Requires degraded operation to name control-loop phase, signal, hazard,
+  operating mode, control decision, trigger threshold, feedback, controls,
+  blocked shortcuts, Memory Curator policy, sync policy, and rollback.
+- Keeps runtime promotion disabled and blocks validator disagreement, retrieval
+  drift, semantic regression, provenance gaps, curator backlog, tool error
+  spikes, unknown tasks, context-flow violations, sync drift, degraded parsers,
+  rollback failure, and emergency-stop bypass from becoming graph, memory, tool,
+  route, release, or public-artifact authority.
 
 `super-ontology-replays.jsonl` and `super-ontology-evidence.jsonl`
 

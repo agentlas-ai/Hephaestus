@@ -65,6 +65,7 @@ The canonical core is runtime-neutral:
 - `.agentlas/super-ontology-adversarial-provenance.json` in generated packages
 - `.agentlas/super-ontology-epistemic-calibration.json` in generated packages
 - `.agentlas/super-ontology-semantic-alignment.json` in generated packages
+- `.agentlas/super-ontology-resilience-control.json` in generated packages
 - `.agentlas/super-ontology-replays.jsonl` in generated packages
 - `.agentlas/super-ontology-evidence.jsonl` in generated packages
 - `.agentlas/super-ontology-memory-bridge.jsonl` in generated packages
@@ -91,14 +92,14 @@ Three runtime behaviors are public contracts here, not private product code:
   adaptive knowledge governance metadata, task coverage, contextual-flow,
   causal-impact metadata, assurance-case metadata, knowledge-homeostasis
   metadata, adversarial-provenance metadata, epistemic-calibration metadata,
-  semantic-alignment metadata, replay ledgers, and promotion
+  semantic-alignment metadata, resilience-control metadata, replay ledgers, and promotion
   evidence ledgers. Runtime graph
   writes, cross-context information flows, relation-as-action jumps, broad
   safety claims, stale or desynced knowledge use, hostile-source promotion, and
   uncalibrated answers or writes, and unreviewed term/schema/ontology merges
   stay off until shadow/canary replay, rollback, homeostasis review,
   adversarial-provenance review, epistemic-calibration review,
-  semantic-alignment review, and sync review approve a later phase.
+  semantic-alignment review, resilience-control review, and sync review approve a later phase.
 
 ## Generated Architecture Components
 
@@ -110,7 +111,7 @@ contracts that the three builders generate or repair inside output packages:
 - Skill lifecycle registry, trial evidence, and Curator promotion decisions.
 - Super Ontology candidate contract, task coverage, contextual flow, causal
   impact, assurance cases, knowledge homeostasis, adversarial provenance,
-  epistemic calibration, semantic alignment, replay evidence, and promotion
+  epistemic calibration, semantic alignment, resilience control, replay evidence, and promotion
   evidence.
 - Sitemap and task bias.
 - LLM runtime architecture.
