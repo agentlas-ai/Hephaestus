@@ -33,6 +33,7 @@
     "entity_identity_resolution_contract",
     "temporal_state_transition_contract",
     "capability_delegation_authority_contract",
+    "privacy_confidentiality_boundary_contract",
     "agentlas_integration_contract",
     "memory_curator_bridge",
     "promotion_readiness",
@@ -64,7 +65,8 @@
     "temporalStateTransition": ".agentlas/super-ontology-temporal-state-transition.json",
     "capabilityDelegationAuthority": ".agentlas/super-ontology-capability-delegation-authority.json",
     "memoryCuratorBridge": ".agentlas/super-ontology-memory-bridge.jsonl",
-    "memoryTickets": ".agentlas/memory-tickets.jsonl"
+    "memoryTickets": ".agentlas/memory-tickets.jsonl",
+    "privacyConfidentialityBoundary": ".agentlas/super-ontology-privacy-confidentiality-boundary.json"
   },
   "hardStops": [
     "zero_error_claim",
@@ -325,7 +327,31 @@
     "raw_prompt_or_secret_memory_capture",
     "missing_memory_curator_bridge",
     "missing_rollback",
-    "missing_shadow_or_canary_evidence"
+    "missing_shadow_or_canary_evidence",
+    "missing_privacy_confidentiality_boundary_contract",
+    "pii_as_normal_fact",
+    "secret_as_graph_label",
+    "confidential_deck_as_public_context",
+    "consent_missing_for_personal_data",
+    "legal_basis_missing_for_processing",
+    "purpose_reuse_without_privacy_review",
+    "training_on_private_material",
+    "public_export_without_redaction",
+    "retention_expired_memory",
+    "data_subject_delete_ignored",
+    "cross_tenant_context_bleed",
+    "customer_data_as_public_demo",
+    "personal_life_as_company_context",
+    "employee_note_as_hr_decision",
+    "inferred_sensitive_attribute_to_output",
+    "redacted_text_reidentified",
+    "connector_cache_as_allowed_use",
+    "screenshot_ocr_without_classification",
+    "embedding_of_secret_without_policy",
+    "vector_search_private_neighbor_leak",
+    "shared_memory_without_audience_boundary",
+    "confidential_source_to_untrusted_model",
+    "legal_privilege_lost_by_disclosure"
   ],
   "promotionPolicy": {
     "shadowRequired": true,
@@ -396,7 +422,13 @@
     "purposeBoundCapabilityRequired": true,
     "memoryCuratorBridgeRequired": true,
     "directDurableMemoryWritesBlocked": true,
-    "appbridgeSourceWritesBlocked": true
+    "appbridgeSourceWritesBlocked": true,
+    "privacyConfidentialityBoundaryRequired": true,
+    "unclassifiedPrivateRuntimeWritesBlocked": true,
+    "privacyBoundaryReviewRequired": true,
+    "publicTrainingDisclosureFlagRequired": true,
+    "deletionAndRetentionStateRequired": true,
+    "crossTenantPrivacyBleedBlocked": true
   },
   "surfacePolicy": {
     "publicResearchRepo": {

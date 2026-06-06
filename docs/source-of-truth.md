@@ -84,6 +84,7 @@ These files are the public contract surface:
 - `.agentlas/super-ontology-entity-identity-resolution.json` in generated packages
 - `.agentlas/super-ontology-temporal-state-transition.json` in generated packages
 - `.agentlas/super-ontology-capability-delegation-authority.json` in generated packages
+- `.agentlas/super-ontology-privacy-confidentiality-boundary.json` in generated packages
 - `.agentlas/super-ontology-replays.jsonl` in generated packages
 - `.agentlas/super-ontology-evidence.jsonl` in generated packages
 - `.agentlas/super-ontology-memory-bridge.jsonl` in generated packages

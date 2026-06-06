@@ -109,7 +109,8 @@ The following formerly runtime-owned behaviors are now public contracts:
    stakeholder-preference-governance seed, normative-authority-drift seed,
    side-effect-containment seed, source-lineage-version seed,
    entity-identity-resolution seed, temporal-state-transition seed,
-   capability-delegation-authority seed, and Memory
+   capability-delegation-authority seed, privacy-confidentiality-boundary seed,
+   and Memory
    Curator bridge ledger are
    candidate-only: task coverage
    classifies requested work before action, contextual flow blocks unsafe

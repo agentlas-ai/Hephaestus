@@ -15,15 +15,37 @@
     "promotionPolicy"
   ],
   "properties": {
-    "schemaVersion": { "type": "string" },
-    "kind": { "const": "agentlas-super-ontology-contract" },
-    "state": {
-      "enum": ["export_only", "local_candidate", "shadow", "canary", "active", "archived"]
+    "schemaVersion": {
+      "type": "string"
     },
-    "projectId": { "type": "string" },
-    "draftId": { "type": ["string", "null"] },
-    "runtimeGraphWriteEnabled": { "const": false },
-    "zeroErrorClaim": { "const": false },
+    "kind": {
+      "const": "agentlas-super-ontology-contract"
+    },
+    "state": {
+      "enum": [
+        "export_only",
+        "local_candidate",
+        "shadow",
+        "canary",
+        "active",
+        "archived"
+      ]
+    },
+    "projectId": {
+      "type": "string"
+    },
+    "draftId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "runtimeGraphWriteEnabled": {
+      "const": false
+    },
+    "zeroErrorClaim": {
+      "const": false
+    },
     "layers": {
       "type": "array",
       "items": {
@@ -54,6 +76,7 @@
           "entity_identity_resolution_contract",
           "temporal_state_transition_contract",
           "capability_delegation_authority_contract",
+          "privacy_confidentiality_boundary_contract",
           "agentlas_integration_contract",
           "memory_curator_bridge",
           "promotion_readiness",
@@ -89,41 +112,97 @@
         "entityIdentityResolution",
         "temporalStateTransition",
         "capabilityDelegationAuthority",
+        "privacyConfidentialityBoundary",
         "memoryCuratorBridge",
         "memoryTickets"
       ],
       "properties": {
-        "replays": { "type": "string" },
-        "promotionEvidence": { "type": "string" },
-        "openWorldCoverage": { "type": "string" },
-        "consensusCoordination": { "type": "string" },
-        "taskCoverage": { "type": "string" },
-        "contextualFlow": { "type": "string" },
-        "causalImpact": { "type": "string" },
-        "assuranceCase": { "type": "string" },
-        "knowledgeHomeostasis": { "type": "string" },
-        "adversarialProvenance": { "type": "string" },
-        "epistemicCalibration": { "type": "string" },
-        "semanticAlignment": { "type": "string" },
-        "resilienceControl": { "type": "string" },
-        "invariantVerification": { "type": "string" },
-        "observabilityTelemetry": { "type": "string" },
-        "objectiveProxyValidity": { "type": "string" },
-        "stakeholderPreferenceGovernance": { "type": "string" },
-        "normativeAuthorityDrift": { "type": "string" },
-        "sideEffectContainment": { "type": "string" },
-        "sourceLineageVersion": { "type": "string" },
-        "entityIdentityResolution": { "type": "string" },
-        "temporalStateTransition": { "type": "string" },
-        "capabilityDelegationAuthority": { "type": "string" },
-        "memoryCuratorBridge": { "type": "string" },
-        "memoryTickets": { "type": "string" }
+        "replays": {
+          "type": "string"
+        },
+        "promotionEvidence": {
+          "type": "string"
+        },
+        "openWorldCoverage": {
+          "type": "string"
+        },
+        "consensusCoordination": {
+          "type": "string"
+        },
+        "taskCoverage": {
+          "type": "string"
+        },
+        "contextualFlow": {
+          "type": "string"
+        },
+        "causalImpact": {
+          "type": "string"
+        },
+        "assuranceCase": {
+          "type": "string"
+        },
+        "knowledgeHomeostasis": {
+          "type": "string"
+        },
+        "adversarialProvenance": {
+          "type": "string"
+        },
+        "epistemicCalibration": {
+          "type": "string"
+        },
+        "semanticAlignment": {
+          "type": "string"
+        },
+        "resilienceControl": {
+          "type": "string"
+        },
+        "invariantVerification": {
+          "type": "string"
+        },
+        "observabilityTelemetry": {
+          "type": "string"
+        },
+        "objectiveProxyValidity": {
+          "type": "string"
+        },
+        "stakeholderPreferenceGovernance": {
+          "type": "string"
+        },
+        "normativeAuthorityDrift": {
+          "type": "string"
+        },
+        "sideEffectContainment": {
+          "type": "string"
+        },
+        "sourceLineageVersion": {
+          "type": "string"
+        },
+        "entityIdentityResolution": {
+          "type": "string"
+        },
+        "temporalStateTransition": {
+          "type": "string"
+        },
+        "capabilityDelegationAuthority": {
+          "type": "string"
+        },
+        "memoryCuratorBridge": {
+          "type": "string"
+        },
+        "memoryTickets": {
+          "type": "string"
+        },
+        "privacyConfidentialityBoundary": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     },
     "hardStops": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "minItems": 1
     },
     "promotionPolicy": {
@@ -195,80 +274,242 @@
         "delegationChainRequired",
         "capabilityAttenuationRequired",
         "purposeBoundCapabilityRequired",
+        "crossTenantPrivacyBleedBlocked",
+        "deletionAndRetentionStateRequired",
+        "publicTrainingDisclosureFlagRequired",
+        "privacyBoundaryReviewRequired",
+        "unclassifiedPrivateRuntimeWritesBlocked",
+        "privacyConfidentialityBoundaryRequired",
         "memoryCuratorBridgeRequired",
         "directDurableMemoryWritesBlocked",
         "appbridgeSourceWritesBlocked"
       ],
       "properties": {
-        "shadowRequired": { "const": true },
-        "canaryRequiredForMixedContext": { "const": true },
-        "rollbackRequired": { "const": true },
-        "syncReviewRequired": { "const": true },
-        "openWorldCoverageRequired": { "const": true },
-        "unknownCombinationRuntimeWritesBlocked": { "const": true },
-        "uncoveredModalityRuntimeWritesBlocked": { "const": true },
-        "consensusCoordinationRequired": { "const": true },
-        "agentAgreementRuntimeWritesBlocked": { "const": true },
-        "majorityVoteRuntimeWritesBlocked": { "const": true },
-        "splitBrainRuntimeWritesBlocked": { "const": true },
-        "taskCoverageRequired": { "const": true },
-        "contextualFlowRequired": { "const": true },
-        "causalImpactRequired": { "const": true },
-        "assuranceCaseRequired": { "const": true },
-        "knowledgeHomeostasisRequired": { "const": true },
-        "adversarialProvenanceRequired": { "const": true },
-        "untrustedSourceRuntimeWritesBlocked": { "const": true },
-        "epistemicCalibrationRequired": { "const": true },
-        "uncalibratedRuntimeWritesBlocked": { "const": true },
-        "semanticAlignmentRequired": { "const": true },
-        "highAuthorityAlignmentReviewRequired": { "const": true },
-        "unreviewedSemanticRuntimeWritesBlocked": { "const": true },
-        "resilienceControlRequired": { "const": true },
-        "degradedRuntimeWritesBlocked": { "const": true },
-        "emergencyStopBypassBlocked": { "const": true },
-        "invariantVerificationRequired": { "const": true },
-        "runtimeInvariantWritesBlocked": { "const": true },
-        "forbiddenTransitionBlocked": { "const": true },
-        "observabilityTelemetryRequired": { "const": true },
-        "unobservableRuntimeWritesBlocked": { "const": true },
-        "auditSinkRequired": { "const": true },
-        "crossSurfaceCorrelationRequired": { "const": true },
-        "objectiveProxyValidityRequired": { "const": true },
-        "proxyOptimizationRuntimeWritesBlocked": { "const": true },
-        "countermetricRequired": { "const": true },
-        "metricGamingProbeRequired": { "const": true },
-        "stakeholderPreferenceGovernanceRequired": { "const": true },
-        "singleStakeholderRuntimeWritesBlocked": { "const": true },
-        "aggregationRuleRequired": { "const": true },
-        "appealPathRequired": { "const": true },
-        "normativeAuthorityDriftRequired": { "const": true },
-        "stalePolicyRuntimeWritesBlocked": { "const": true },
-        "jurisdictionScopeRequired": { "const": true },
-        "authorityHierarchyRequired": { "const": true },
-        "sideEffectContainmentRequired": { "const": true },
-        "irreversibleRuntimeActionsBlocked": { "const": true },
-        "idempotencyKeyRequired": { "const": true },
-        "compensationPlanRequired": { "const": true },
-        "sourceLineageVersionRequired": { "const": true },
-        "unversionedSourceRuntimeWritesBlocked": { "const": true },
-        "derivedArtifactPromotionBlocked": { "const": true },
-        "lineageRepairRequired": { "const": true },
-        "entityIdentityResolutionRequired": { "const": true },
-        "ambiguousIdentityRuntimeWritesBlocked": { "const": true },
-        "identityMergeReviewRequired": { "const": true },
-        "identityRollbackRequired": { "const": true },
-        "temporalStateTransitionRequired": { "const": true },
-        "timelessStateRuntimeWritesBlocked": { "const": true },
-        "eventReplayRequired": { "const": true },
-        "projectionVersionRequired": { "const": true },
-        "capabilityDelegationAuthorityRequired": { "const": true },
-        "unscopedCapabilityRuntimeWritesBlocked": { "const": true },
-        "delegationChainRequired": { "const": true },
-        "capabilityAttenuationRequired": { "const": true },
-        "purposeBoundCapabilityRequired": { "const": true },
-        "memoryCuratorBridgeRequired": { "const": true },
-        "directDurableMemoryWritesBlocked": { "const": true },
-        "appbridgeSourceWritesBlocked": { "const": true }
+        "shadowRequired": {
+          "const": true
+        },
+        "canaryRequiredForMixedContext": {
+          "const": true
+        },
+        "rollbackRequired": {
+          "const": true
+        },
+        "syncReviewRequired": {
+          "const": true
+        },
+        "openWorldCoverageRequired": {
+          "const": true
+        },
+        "unknownCombinationRuntimeWritesBlocked": {
+          "const": true
+        },
+        "uncoveredModalityRuntimeWritesBlocked": {
+          "const": true
+        },
+        "consensusCoordinationRequired": {
+          "const": true
+        },
+        "agentAgreementRuntimeWritesBlocked": {
+          "const": true
+        },
+        "majorityVoteRuntimeWritesBlocked": {
+          "const": true
+        },
+        "splitBrainRuntimeWritesBlocked": {
+          "const": true
+        },
+        "taskCoverageRequired": {
+          "const": true
+        },
+        "contextualFlowRequired": {
+          "const": true
+        },
+        "causalImpactRequired": {
+          "const": true
+        },
+        "assuranceCaseRequired": {
+          "const": true
+        },
+        "knowledgeHomeostasisRequired": {
+          "const": true
+        },
+        "adversarialProvenanceRequired": {
+          "const": true
+        },
+        "untrustedSourceRuntimeWritesBlocked": {
+          "const": true
+        },
+        "epistemicCalibrationRequired": {
+          "const": true
+        },
+        "uncalibratedRuntimeWritesBlocked": {
+          "const": true
+        },
+        "semanticAlignmentRequired": {
+          "const": true
+        },
+        "highAuthorityAlignmentReviewRequired": {
+          "const": true
+        },
+        "unreviewedSemanticRuntimeWritesBlocked": {
+          "const": true
+        },
+        "resilienceControlRequired": {
+          "const": true
+        },
+        "degradedRuntimeWritesBlocked": {
+          "const": true
+        },
+        "emergencyStopBypassBlocked": {
+          "const": true
+        },
+        "invariantVerificationRequired": {
+          "const": true
+        },
+        "runtimeInvariantWritesBlocked": {
+          "const": true
+        },
+        "forbiddenTransitionBlocked": {
+          "const": true
+        },
+        "observabilityTelemetryRequired": {
+          "const": true
+        },
+        "unobservableRuntimeWritesBlocked": {
+          "const": true
+        },
+        "auditSinkRequired": {
+          "const": true
+        },
+        "crossSurfaceCorrelationRequired": {
+          "const": true
+        },
+        "objectiveProxyValidityRequired": {
+          "const": true
+        },
+        "proxyOptimizationRuntimeWritesBlocked": {
+          "const": true
+        },
+        "countermetricRequired": {
+          "const": true
+        },
+        "metricGamingProbeRequired": {
+          "const": true
+        },
+        "stakeholderPreferenceGovernanceRequired": {
+          "const": true
+        },
+        "singleStakeholderRuntimeWritesBlocked": {
+          "const": true
+        },
+        "aggregationRuleRequired": {
+          "const": true
+        },
+        "appealPathRequired": {
+          "const": true
+        },
+        "normativeAuthorityDriftRequired": {
+          "const": true
+        },
+        "stalePolicyRuntimeWritesBlocked": {
+          "const": true
+        },
+        "jurisdictionScopeRequired": {
+          "const": true
+        },
+        "authorityHierarchyRequired": {
+          "const": true
+        },
+        "sideEffectContainmentRequired": {
+          "const": true
+        },
+        "irreversibleRuntimeActionsBlocked": {
+          "const": true
+        },
+        "idempotencyKeyRequired": {
+          "const": true
+        },
+        "compensationPlanRequired": {
+          "const": true
+        },
+        "sourceLineageVersionRequired": {
+          "const": true
+        },
+        "unversionedSourceRuntimeWritesBlocked": {
+          "const": true
+        },
+        "derivedArtifactPromotionBlocked": {
+          "const": true
+        },
+        "lineageRepairRequired": {
+          "const": true
+        },
+        "entityIdentityResolutionRequired": {
+          "const": true
+        },
+        "ambiguousIdentityRuntimeWritesBlocked": {
+          "const": true
+        },
+        "identityMergeReviewRequired": {
+          "const": true
+        },
+        "identityRollbackRequired": {
+          "const": true
+        },
+        "temporalStateTransitionRequired": {
+          "const": true
+        },
+        "timelessStateRuntimeWritesBlocked": {
+          "const": true
+        },
+        "eventReplayRequired": {
+          "const": true
+        },
+        "projectionVersionRequired": {
+          "const": true
+        },
+        "capabilityDelegationAuthorityRequired": {
+          "const": true
+        },
+        "unscopedCapabilityRuntimeWritesBlocked": {
+          "const": true
+        },
+        "delegationChainRequired": {
+          "const": true
+        },
+        "capabilityAttenuationRequired": {
+          "const": true
+        },
+        "purposeBoundCapabilityRequired": {
+          "const": true
+        },
+        "memoryCuratorBridgeRequired": {
+          "const": true
+        },
+        "directDurableMemoryWritesBlocked": {
+          "const": true
+        },
+        "appbridgeSourceWritesBlocked": {
+          "const": true
+        },
+        "privacyConfidentialityBoundaryRequired": {
+          "const": true
+        },
+        "unclassifiedPrivateRuntimeWritesBlocked": {
+          "const": true
+        },
+        "privacyBoundaryReviewRequired": {
+          "const": true
+        },
+        "publicTrainingDisclosureFlagRequired": {
+          "const": true
+        },
+        "deletionAndRetentionStateRequired": {
+          "const": true
+        },
+        "crossTenantPrivacyBleedBlocked": {
+          "const": true
+        }
       },
       "additionalProperties": false
     },
@@ -276,12 +517,22 @@
       "type": "object",
       "additionalProperties": {
         "type": "object",
-        "required": ["defaultDecision"],
+        "required": [
+          "defaultDecision"
+        ],
         "properties": {
           "defaultDecision": {
-            "enum": ["candidate_only", "shadow_required", "canary_required", "sync_review_required", "blocked"]
+            "enum": [
+              "candidate_only",
+              "shadow_required",
+              "canary_required",
+              "sync_review_required",
+              "blocked"
+            ]
           },
-          "notes": { "type": "string" }
+          "notes": {
+            "type": "string"
+          }
         },
         "additionalProperties": true
       }

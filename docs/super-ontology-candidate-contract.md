@@ -32,6 +32,7 @@ Generated or packaged repos may include:
   super-ontology-entity-identity-resolution.json
   super-ontology-temporal-state-transition.json
   super-ontology-capability-delegation-authority.json
+  super-ontology-privacy-confidentiality-boundary.json
   super-ontology-replays.jsonl
   super-ontology-evidence.jsonl
   super-ontology-memory-bridge.jsonl
@@ -380,6 +381,25 @@ Generated or packaged repos may include:
   actions, shared service account as identity, task goal as permission, and
   hidden tool calls without policy decisions.
 
+`super-ontology-privacy-confidentiality-boundary.json`
+
+- Public-safe privacy/confidentiality boundary seed.
+- Requires PII, secrets, HR notes, legal privilege, personal diary context,
+  customer decks, connector caches, screenshots, embeddings, inferred
+  sensitive attributes, and company-confidential material to name
+  classification, subject category, owner/controller, purpose, audience,
+  legal or confidentiality basis, minimization, redaction, retention,
+  transfer, public/training flags, access decision, audit, breach owner, and
+  rollback before authority-bearing use.
+- Keeps `runtimePromotionAllowed=false` on export.
+- Blocks PII as normal fact, secrets as graph labels, customer decks as public
+  context, missing consent/legal basis, private material as training data,
+  public export without redaction, retention-expired memory, ignored deletion
+  requests, cross-tenant bleed, customer data as demo content, personal life as
+  company context, employee notes as HR decisions, inferred sensitive
+  attributes as output, embedding leaks, vector-neighbor leaks, and
+  confidential source text sent to untrusted models.
+
 ## Default State
 
 Every exported Super Ontology contract starts as:
@@ -433,6 +453,12 @@ unscopedCapabilityRuntimeWritesBlocked = true
 delegationChainRequired = true
 capabilityAttenuationRequired = true
 purposeBoundCapabilityRequired = true
+privacyConfidentialityBoundaryRequired = true
+unclassifiedPrivateRuntimeWritesBlocked = true
+privacyBoundaryReviewRequired = true
+publicTrainingDisclosureFlagRequired = true
+deletionAndRetentionStateRequired = true
+crossTenantPrivacyBleedBlocked = true
 memoryCuratorBridgeRequired = true
 directDurableMemoryWritesBlocked = true
 untrustedSourceRuntimeWritesBlocked = true

@@ -61,6 +61,7 @@ Recommended minimum:
 ├── super-ontology-entity-identity-resolution.json
 ├── super-ontology-temporal-state-transition.json
 ├── super-ontology-capability-delegation-authority.json
+├── super-ontology-privacy-confidentiality-boundary.json
 ├── super-ontology-replays.jsonl
 ├── super-ontology-evidence.jsonl
 ├── super-ontology-memory-bridge.jsonl
@@ -379,6 +380,20 @@ overwriting user content.
   caveats, consent or owner approval, policy decision/version, revocation
   check, audit trace, rollback snapshot, and post-action verification where
   needed.
+
+`super-ontology-privacy-confidentiality-boundary.json`
+
+- Export-only privacy/confidentiality boundary seed.
+- Keeps runtime promotion disabled and blocks PII, secrets, HR notes, legal
+  privilege, personal diary context, customer decks, connector caches,
+  screenshots, embeddings, and inferred sensitive attributes from becoming
+  graph, memory, public, training, tool, route, customer-output,
+  personalization, retrieval, or analytics authority.
+- Requires data classification, sensitivity label, source span, subject
+  category, owner/controller, purpose, audience, legal or confidentiality
+  basis, minimization, redaction, retention, transfer, public/training flags,
+  access policy decision, audit trace, breach owner, and rollback evidence
+  where needed.
 
 `super-ontology-replays.jsonl` and `super-ontology-evidence.jsonl`
 

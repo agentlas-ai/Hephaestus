@@ -74,6 +74,7 @@ required_files=(
   ".agentlas/super-ontology-entity-identity-resolution.json"
   ".agentlas/super-ontology-temporal-state-transition.json"
   ".agentlas/super-ontology-capability-delegation-authority.json"
+  ".agentlas/super-ontology-privacy-confidentiality-boundary.json"
   ".agentlas/super-ontology-replays.jsonl"
   ".agentlas/super-ontology-evidence.jsonl"
   ".agentlas/super-ontology-memory-bridge.jsonl"
@@ -101,6 +102,7 @@ required_files=(
   "schemas/super-ontology-entity-identity-resolution.schema.json"
   "schemas/super-ontology-temporal-state-transition.schema.json"
   "schemas/super-ontology-capability-delegation-authority.schema.json"
+  "schemas/super-ontology-privacy-confidentiality-boundary.schema.json"
   "schemas/super-ontology-memory-bridge.schema.json"
   "templates/activation.json.tpl"
   "templates/skill-registry.json.tpl"
@@ -126,6 +128,7 @@ required_files=(
   "templates/super-ontology-entity-identity-resolution.json.tpl"
   "templates/super-ontology-temporal-state-transition.json.tpl"
   "templates/super-ontology-capability-delegation-authority.json.tpl"
+  "templates/super-ontology-privacy-confidentiality-boundary.json.tpl"
   "templates/super-ontology-memory-bridge.jsonl.tpl"
   "assets/agentlas-agent-lab-banner.svg"
   "assets/agentlas-meta-agent-architecture.svg"
@@ -170,6 +173,8 @@ from pathlib import Path
 
 for path in Path(".").rglob("*.json"):
     if ".git" in path.parts:
+        continue
+    if path.name.startswith("._"):
         continue
     try:
         json.loads(path.read_text(encoding="utf-8"))
