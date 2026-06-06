@@ -11,12 +11,6 @@ from .runtime import DEFAULT_DB_PATH, OntologyRuntime, RuntimeConfig
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ontology", description="Hephaestus local-first ontology runtime")
     parser.add_argument("--db", default=str(DEFAULT_DB_PATH), help="SQLite runtime database path")
-    parser.add_argument(
-        "--vector-provider",
-        default="local_hashing",
-        choices=["local_hashing", "auto", "openai"],
-        help="Embedding provider. 'auto' uses OpenAI when OPENAI_API_KEY is set, otherwise local hashing.",
-    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     ingest = sub.add_parser("ingest", help="Ingest a file or directory")
@@ -65,7 +59,7 @@ def main(argv: list[str] | None = None) -> int:
     import_cmd.add_argument("source")
 
     args = parser.parse_args(argv)
-    runtime = OntologyRuntime(RuntimeConfig(db_path=Path(args.db), vector_provider=args.vector_provider))
+    runtime = OntologyRuntime(RuntimeConfig(db_path=Path(args.db)))
 
     if args.command == "ingest":
         return emit(runtime.ingest_path(args.path, access_scope=args.scope, parent_source_id=args.parent_source_id))

@@ -338,7 +338,7 @@ The runtime stack is layered:
 | Layer | Role |
 |---|---|
 | Source archive and chunk store | Stores source metadata, checksum, source type, parser status, version, privacy scope, lineage, chunks, source spans, token estimates, and checksums |
-| Search index | Uses SQLite FTS5 plus a pluggable vector adapter; local hashing works without keys, and OpenAI embeddings can be selected with `--vector-provider openai` when `OPENAI_API_KEY` is set |
+| Search index | Uses SQLite FTS5 plus local hashing vectors; no API key is needed and source text stays local |
 | Ontology graph | Stores entities, aliases, relations, confidence, evidence chunks, observed/valid time fields, source lineage, and active/stale/deprecated status |
 | GraphRAG retriever | Returns text evidence and graph slices together |
 | Memory Curator bridge | Creates candidate tickets only; direct durable memory writes are blocked |

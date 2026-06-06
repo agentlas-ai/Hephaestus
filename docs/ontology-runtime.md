@@ -77,10 +77,8 @@ bin/ontology ingest examples/ontology-corpus --scope internal
 ## Search And GraphRAG
 
 Full-text search uses SQLite FTS5. Vector search uses the `local_hashing`
-adapter by default: a deterministic hashed bag-of-words vector that works
-without provider keys. OpenAI embeddings can be selected with
-`--vector-provider openai` when `OPENAI_API_KEY` is set. `--vector-provider auto`
-uses OpenAI when the key exists and otherwise falls back to the local adapter.
+adapter: a deterministic hashed bag-of-words vector that works without provider
+keys and without sending source text to a remote service.
 
 `ontology query` returns more than text chunks:
 
@@ -159,8 +157,7 @@ The runtime verification covers:
 - Binary HWP parsing depends on `hwp5txt`; HWPX is parsed directly.
 - PDF text parsing depends on `pdftotext`.
 - Image OCR uses macOS Vision first and Tesseract when available.
-- OpenAI embeddings require `OPENAI_API_KEY`; without a key, the default local
-  vector adapter remains real and deterministic.
+- Vector search is local-only in this package. No API key is required.
 - Entity and relation extraction is deterministic and source-grounded. It does
   not use an LLM to infer hidden facts.
 - The local runtime stores user-selected source metadata and chunks in the

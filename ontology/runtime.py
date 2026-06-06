@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-from .embeddings import build_vector_adapter, cosine_similarity, tokenize
+from .embeddings import LocalHashingVectorAdapter, cosine_similarity, tokenize
 from .parsers import ParsedRecord, SourceParserRegistry
 from .utils import clamp, content_hash, estimate_tokens, json_dumps, json_loads, normalize_name, normalized_key, stable_hash, utc_now
 
@@ -25,7 +25,6 @@ class DirectDurableMemoryWriteBlocked(RuntimeError):
 class RuntimeConfig:
     db_path: Path | str = DEFAULT_DB_PATH
     chunk_token_limit: int = 220
-    vector_provider: str = "local_hashing"
     working_memory_ttl_seconds: int = 3600
 
 
@@ -34,7 +33,7 @@ class OntologyRuntime:
         self.config = config or RuntimeConfig()
         self.db_path = Path(self.config.db_path)
         self.parser_registry = SourceParserRegistry()
-        self.vector_adapter = build_vector_adapter(self.config.vector_provider)
+        self.vector_adapter = LocalHashingVectorAdapter()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.migrate()
 
@@ -194,7 +193,7 @@ class OntologyRuntime:
                 "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)",
                 (SCHEMA_VERSION, utc_now()),
             )
-            vector_config = {"provider": self.config.vector_provider}
+            vector_config = {"provider": "local_hashing"}
             if hasattr(self.vector_adapter, "dimensions"):
                 vector_config["dimensions"] = self.vector_adapter.dimensions
             conn.execute(

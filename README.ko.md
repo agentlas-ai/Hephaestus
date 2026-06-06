@@ -257,7 +257,7 @@ Super Ontology 파일은 안전 규칙층입니다. 실제 저장/검색/graph/m
 | 층 | 역할 |
 |---|---|
 | Source archive / chunk store | 원본 파일 metadata, checksum, type, parser status, version, privacy scope, lineage, chunk span을 저장합니다. |
-| Search / vector | SQLite FTS5와 local hashing vector를 기본으로 쓰고, `OPENAI_API_KEY`가 있으면 OpenAI embedding adapter를 선택할 수 있습니다. |
+| Search / vector | SQLite FTS5와 local hashing vector만 씁니다. API key가 필요 없고 원문이 밖으로 나가지 않습니다. |
 | Ontology graph | entity, alias, relation, confidence, evidence chunk, observed/valid time, stale/deprecated 상태를 저장합니다. |
 | GraphRAG | chunk와 graph edge를 같이 반환합니다. 단순 vector 검색이 아닙니다. |
 | Memory Curator | durable memory에 바로 쓰지 않고 candidate ticket만 만듭니다. |

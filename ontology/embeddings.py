@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import math
-import json
-import os
 import re
-import urllib.request
 from dataclasses import dataclass
 from typing import Iterable, Protocol
 
@@ -24,8 +21,7 @@ class LocalHashingVectorAdapter:
     """Deterministic local semantic fallback.
 
     This is not a mock: it is a stable hashed bag-of-words vector that works
-    without provider keys. Hosted embeddings can replace it behind the same
-    adapter boundary.
+    without provider keys and without sending source text to a remote service.
     """
 
     dimensions: int = 96
@@ -43,64 +39,6 @@ class LocalHashingVectorAdapter:
         if norm == 0:
             return vector
         return [round(value / norm, 6) for value in vector]
-
-
-@dataclass
-class OpenAIEmbeddingAdapter:
-    """Hosted embedding adapter with an explicit provider boundary."""
-
-    api_key: str
-    model: str = "text-embedding-3-small"
-    dimensions: int | None = None
-    name: str = "openai_embeddings"
-    status: str = "available"
-
-    @classmethod
-    def from_env(cls) -> "OpenAIEmbeddingAdapter | UnavailableVectorAdapter":
-        api_key = os.environ.get("OPENAI_API_KEY")
-        if not api_key:
-            return UnavailableVectorAdapter("openai_embeddings", "OPENAI_API_KEY is not set")
-        model = os.environ.get("ONTOLOGY_OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
-        dimensions = os.environ.get("ONTOLOGY_OPENAI_EMBEDDING_DIMENSIONS")
-        return cls(api_key=api_key, model=model, dimensions=int(dimensions) if dimensions else None)
-
-    def embed(self, text: str) -> list[float]:
-        payload: dict[str, object] = {"model": self.model, "input": text}
-        if self.dimensions:
-            payload["dimensions"] = self.dimensions
-        request = urllib.request.Request(
-            "https://api.openai.com/v1/embeddings",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
-        with urllib.request.urlopen(request, timeout=30) as response:
-            body = json.loads(response.read().decode("utf-8"))
-        return [float(value) for value in body["data"][0]["embedding"]]
-
-
-@dataclass
-class UnavailableVectorAdapter:
-    name: str
-    reason: str
-    status: str = "unavailable"
-
-    def embed(self, text: str) -> list[float]:
-        raise RuntimeError(f"vector adapter unavailable: {self.name}: {self.reason}")
-
-
-def build_vector_adapter(provider: str) -> VectorAdapter:
-    if provider == "local_hashing":
-        return LocalHashingVectorAdapter()
-    if provider == "openai":
-        return OpenAIEmbeddingAdapter.from_env()
-    if provider == "auto":
-        candidate = OpenAIEmbeddingAdapter.from_env()
-        return candidate if candidate.status == "available" else LocalHashingVectorAdapter()
-    return UnavailableVectorAdapter(provider, "unknown vector provider")
 
 
 def tokenize(text: str) -> list[str]:
