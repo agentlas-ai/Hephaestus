@@ -99,6 +99,11 @@ PY
 "$root/bin/ontology" --db "$db" working-memory read --agent verifier >"$tmp/working-memory.json"
 "$root/bin/ontology" --db "$db" working-memory prune --agent verifier >"$tmp/prune.json"
 "$root/bin/ontology" --db "$db" verify >"$tmp/verify.json"
+safe_project="$tmp/safe-project"
+mkdir -p "$safe_project/.agentlas/ontology-inbox"
+printf 'Safe Project Knowledge depends on Memory Curator.\n' >"$safe_project/.agentlas/ontology-inbox/source.md"
+"$root/bin/ontology" auto "$safe_project" >"$tmp/auto.json"
+"$root/bin/ontology" sources list --project "$safe_project" >"$tmp/sources.json"
 
 python3 - "$tmp" <<'PY'
 import json
@@ -113,6 +118,8 @@ entity = json.loads((tmp / "entity.json").read_text())
 candidates = json.loads((tmp / "candidates.json").read_text())
 working = json.loads((tmp / "working-memory.json").read_text())
 verify = json.loads((tmp / "verify.json").read_text())
+auto = json.loads((tmp / "auto.json").read_text())
+sources = json.loads((tmp / "sources.json").read_text())
 
 statuses = {item["source_type"]: item["parser_status"] for item in ingest["sources"]}
 assert statuses["markdown"] == "parsed", statuses
@@ -139,6 +146,11 @@ assert candidates["candidates"], candidates
 assert working["items"], working
 assert verify["status"] == "pass", verify
 assert verify["direct_durable_memory_write_blocked"] is True, verify
+assert auto["status"] == "active", auto
+assert auto["auto_ingest_policy"] == "inbox_and_registered_sources_only", auto
+assert auto["verify"]["status"] == "pass", auto
+assert pathlib.Path(auto["db_path"]).name == "ontology-runtime.sqlite", auto
+assert sources["sources"] == [], sources
 PY
 
 echo "Ontology runtime verification passed."

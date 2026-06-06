@@ -10,6 +10,45 @@ It is a runtime module, not only a governance contract:
 - `scripts/verify-ontology-runtime.sh` runs the runtime tests and sample corpus.
 - `examples/ontology-corpus/` is a public-safe corpus used by verification.
 
+## Activation And Privacy
+
+The safe default is project-local activation. Agentlas Desktop and Agentlas
+Terminal create these paths inside the selected project folder:
+
+```text
+.agentlas/ontology-runtime.json
+.agentlas/ontology-sources.json
+.agentlas/ontology-inbox/
+.agentlas/ontology-runtime.sqlite
+```
+
+Automatic ingestion only reads:
+
+1. files placed in `.agentlas/ontology-inbox/`;
+2. paths explicitly registered in `.agentlas/ontology-sources.json`.
+
+It does not scan the user's home folder, sibling projects, Downloads, Desktop,
+or other workspaces. Company and personal material should be kept in separate
+Agentlas projects unless the user explicitly registers both in the same project.
+Private scope is excluded from default query results unless the caller asks for
+private scope.
+
+The config policy name is `inbox_and_registered_sources_only`.
+
+Terminal activation:
+
+```bash
+agentlas ontology
+agentlas ontology add /path/to/company-docs --kind company --scope private
+```
+
+Runtime-only activation for development and CI:
+
+```bash
+bin/ontology auto .
+bin/ontology sources add /path/to/company-docs --project . --kind company --scope private
+```
+
 ## Storage Model
 
 The default storage adapter is SQLite at `.agentlas/ontology-runtime.sqlite`.

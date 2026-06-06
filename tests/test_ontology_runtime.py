@@ -270,6 +270,133 @@ class OntologyRuntimeTests(unittest.TestCase):
         verify_payload = json.loads(verify.stdout)
         self.assertEqual(verify_payload["status"], "pass")
 
+    def test_auto_activation_uses_project_local_inbox_and_blocks_cross_project_mixing(self):
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1])
+        repo = Path(__file__).resolve().parents[1]
+
+        company_project = self.root / "company-project"
+        personal_project = self.root / "personal-project"
+        (company_project / ".agentlas" / "ontology-inbox").mkdir(parents=True)
+        (personal_project / ".agentlas" / "ontology-inbox").mkdir(parents=True)
+        (company_project / ".agentlas" / "ontology-inbox" / "company.md").write_text(
+            "Company Alpha Roadmap depends on Board Approval.",
+            encoding="utf-8",
+        )
+        (personal_project / ".agentlas" / "ontology-inbox" / "personal.md").write_text(
+            "Personal Garden Plan depends on Soil Delivery.",
+            encoding="utf-8",
+        )
+
+        company_auto = subprocess.run(
+            [sys.executable, "-m", "ontology", "auto", str(company_project)],
+            cwd=repo,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        personal_auto = subprocess.run(
+            [sys.executable, "-m", "ontology", "auto", str(personal_project)],
+            cwd=repo,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+
+        company_payload = json.loads(company_auto.stdout)
+        personal_payload = json.loads(personal_auto.stdout)
+        self.assertEqual(company_payload["status"], "active")
+        self.assertEqual(personal_payload["status"], "active")
+        self.assertIn("inbox_and_registered_sources_only", company_payload["auto_ingest_policy"])
+        self.assertNotEqual(company_payload["db_path"], personal_payload["db_path"])
+
+        company_query = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "ontology",
+                "--db",
+                company_payload["db_path"],
+                "query",
+                "Soil Delivery",
+            ],
+            cwd=repo,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        personal_query = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "ontology",
+                "--db",
+                personal_payload["db_path"],
+                "query",
+                "Soil Delivery",
+            ],
+            cwd=repo,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+
+        self.assertFalse(json.loads(company_query.stdout)["chunks"])
+        self.assertTrue(json.loads(personal_query.stdout)["chunks"])
+
+    def test_sources_add_registers_external_source_without_copying_it(self):
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1])
+        repo = Path(__file__).resolve().parents[1]
+        project = self.root / "registered-project"
+        source = self.root / "company-source.md"
+        source.write_text("Registered Company Manual depends on Review Board.", encoding="utf-8")
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "ontology",
+                "sources",
+                "add",
+                str(source),
+                "--project",
+                str(project),
+                "--kind",
+                "company",
+                "--scope",
+                "private",
+            ],
+            cwd=repo,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "registered")
+        self.assertEqual(payload["source"]["kind"], "company")
+        self.assertEqual(payload["source"]["scope"], "private")
+
+        copied = project / ".agentlas" / "ontology-inbox" / source.name
+        self.assertFalse(copied.exists())
+
+        listed = subprocess.run(
+            [sys.executable, "-m", "ontology", "sources", "list", "--project", str(project)],
+            cwd=repo,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        sources = json.loads(listed.stdout)["sources"]
+        self.assertEqual(len(sources), 1)
+        self.assertEqual(sources[0]["path"], str(source.resolve()))
+
 def write_text_pdf(path: Path, text: str) -> None:
     stream = f"BT /F1 24 Tf 72 720 Td ({pdf_escape(text)}) Tj ET".encode("utf-8")
     objects = [

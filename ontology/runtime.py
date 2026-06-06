@@ -211,7 +211,15 @@ class OntologyRuntime:
 
     def ingest_path(self, path: str | Path, access_scope: str = "internal", parent_source_id: str | None = None) -> dict[str, Any]:
         root = Path(path)
-        files = [root] if root.is_file() else sorted(item for item in root.rglob("*") if item.is_file() and not any(part.startswith(".") for part in item.parts))
+        if root.is_file():
+            files = [root]
+        else:
+            files = sorted(
+                item
+                for item in root.rglob("*")
+                if item.is_file()
+                and not any(part.startswith(".") for part in item.relative_to(root).parts)
+            )
         summary = {
             "db_path": str(self.db_path),
             "sources": [],

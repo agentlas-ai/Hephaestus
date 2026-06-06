@@ -123,7 +123,22 @@ After installing the CLI from Desktop Settings:
 ```bash
 agentlas list
 agentlas run agentlas-meta-agent "Package this workflow for Agentlas"
+agentlas ontology
 ```
+
+`agentlas ontology` activates a project-local knowledge vault in the current
+folder. It creates `.agentlas/ontology-inbox/`, `.agentlas/ontology-sources.json`,
+and `.agentlas/ontology-runtime.sqlite`. It never scans your home folder or
+neighboring projects. Put approved `txt`, `md`, `json`, or `csv` files in the
+inbox, or explicitly register a source:
+
+```bash
+agentlas ontology add /path/to/company-docs --kind company --scope private
+```
+
+Standalone Claude/Codex plugin installs include the public architecture and
+verification files, but the normal user activation surface for ontology sync is
+Agentlas Desktop or the `agentlas` terminal CLI.
 
 ### 2. Install agentlas-meta-agent standalone
 
@@ -207,6 +222,8 @@ https://agentlas.cloud/desktop
 ```
 
 Desktop gives you the visual Agentlas surface: local projects, agents, teams, Apps, vault references, runtime selection, built-in Core Engine Meta-Agent routing, and the `agentlas` CLI installer.
+It also shows the per-project Ontology panel with inbox, source registration,
+and the safe no-home-scan policy.
 
 ## Visual Install Guide
 
