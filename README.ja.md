@@ -4,7 +4,7 @@
   </a>
 </p>
 
-<h1 align="center">agentlas-meta-agent</h1>
+<h1 align="center">Hephaestus</h1>
 
 <p align="center">
   <strong>ラフな agent アイデアを、インストール可能な Agentlas agent/team リポジトリに変換します。</strong>
@@ -39,7 +39,7 @@
 | パス | 向いている用途 | 何を開くか |
 |---|---|---|
 | 1. Agentlas Terminal | shell から Agentlas agents を実行する | 先に Agentlas Desktop、その後 macOS Terminal / Windows PowerShell / Linux terminal |
-| 2. agentlas-meta-agent standalone | Claude Code、Codex、通常 repo に直接入れる | Claude Code、Codex、または OS terminal |
+| 2. Hephaestus standalone | Claude Code、Codex、通常 repo に直接入れる | Claude Code、Codex、または OS terminal |
 | 3. Agentlas Desktop | visual local runtime、agent/team 管理、vault、Apps | browser で download し、Agentlas Desktop app を開く |
 
 ### 1. Agentlas Terminal をインストール
@@ -95,14 +95,14 @@ agentlas list
 agentlas run agentlas-meta-agent "Package this workflow for Agentlas"
 ```
 
-### 2. agentlas-meta-agent を standalone でインストール
+### 2. Hephaestus を standalone でインストール
 
 #### Simple file install
 
 package files を入れたい project folder で macOS Terminal、Linux terminal、Windows Git Bash、または WSL を開きます。
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.1/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.2/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -110,9 +110,9 @@ scripts/public_safety_check.sh
 Windows PowerShell:
 
 ```powershell
-$zip = "$env:TEMP\agentlas-meta-agent-v0.2.1.zip"
-$extract = "$env:TEMP\agentlas-meta-agent-v0.2.1"
-Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.1.zip" -OutFile $zip
+$zip = "$env:TEMP\agentlas-meta-agent-v0.2.2.zip"
+$extract = "$env:TEMP\agentlas-meta-agent-v0.2.2"
+Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.2.zip" -OutFile $zip
 Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive $zip -DestinationPath $extract -Force
 $src = Get-ChildItem $extract -Directory | Select-Object -First 1
@@ -127,7 +127,7 @@ marketplace 登録と plugin install は別の手順です。marketplace command
 
 ```text
 /plugin marketplace add https://github.com/agentlas-ai/Hephaestus --sparse .claude-plugin claude/plugins
-/plugin install agentlas-meta-agent@agentlas-core-engine
+/plugin install hephaestus@agentlas-core-engine
 /reload-plugins
 /plugin list
 ```
@@ -136,37 +136,30 @@ marketplace 登録と plugin install は別の手順です。marketplace command
 
 ```bash
 claude plugin marketplace add https://github.com/agentlas-ai/Hephaestus --sparse .claude-plugin claude/plugins
-claude plugin install agentlas-meta-agent@agentlas-core-engine
+claude plugin install hephaestus@agentlas-core-engine
 ```
 
 期待される結果:
 
 ```text
-✓ Installed agentlas-meta-agent. Run /reload-plugins to apply.
+✓ Installed hephaestus. Run /reload-plugins to apply.
 Reloaded: 1 plugin · 0 skills · 9 agents · 0 hooks · 0 plugin MCP servers · 0 plugin LSP servers
 ```
 
 #### Codex plugin install
 
-**Codex chat の中で入力**:
-
-```text
-/plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.1
-/plugin install agentlas-meta-agent@agentlas-core-engine
-/reload-plugins
-/plugin list
-```
+Codex chat の中では `/plugin marketplace add` は使いません。Codex app では `/plugins` で installed plugins を確認し、install は OS terminal で実行します。
 
 **`codex` CLI が使える OS terminal で入力**:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.1
+codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.2
 codex plugin list
-codex plugin add agentlas-meta-agent@agentlas-core-engine
+codex plugin add hephaestus@agentlas-core-engine
 codex plugin list
 ```
 
-Codex session がすでに開いている場合は `/reload-plugins` を実行するか、新しい session を開始してください。
+Codex session がすでに開いている場合は、新しい session を開始して `/plugins` で plugin が見えることを確認してください。インストール後は `/hephaestus ontology` を実行します。
 
 ### 3. Agentlas Desktop をインストール
 
@@ -180,7 +173,7 @@ Desktop は local projects、agents、teams、Apps、vault references、runtime 
 
 ## 画像で見るインストール手順
 
-すでに Claude Code または Codex chat の中にいる場合は slash command の画像を使います。macOS Terminal、Windows PowerShell、Linux terminal、Git Bash、WSL を開いている場合は CLI の画像を使います。
+すでに Claude Code chat の中にいる場合は Claude slash command の画像を使います。Codex は先に OS terminal で install し、Codex app の中では `/plugins` で installed plugins を確認します。macOS Terminal、Windows PowerShell、Linux terminal、Git Bash、WSL を開いている場合は CLI の画像を使います。
 
 ### Claude Code chat
 
@@ -194,11 +187,11 @@ shell で `claude` command が使える場合はこちらです。
 
 ![Claude CLI install flow](assets/install-claude-cli.svg)
 
-### Codex chat
+### Codex app plugin browser
 
-Codex にそのまま入力します。
+OS terminal で `codex plugin ...` install を終えた後、Codex app で `/plugins` と入力して確認します。
 
-![Codex chat install flow](assets/install-codex-chat.svg)
+![Codex app plugin browser](assets/install-codex-chat.svg)
 
 ### Codex Desktop または IDE Extension
 
@@ -221,7 +214,7 @@ shell で `codex` command が使える場合はこちらです。
 | Agentlas Terminal を実行 | OS terminal | `agentlas list`, `agentlas run ...` |
 | Claude plugin を slash command で install | Claude Code | `/plugin marketplace add ...`, `/plugin install ...`, `/reload-plugins` |
 | Claude plugin を shell で install | OS terminal | `claude plugin marketplace add ...`, `claude plugin install ...` |
-| Codex plugin を slash command で install | Codex chat | `/plugin marketplace add ...`, `/plugin install ...`, `/reload-plugins` |
+| Installed Codex plugins を確認 | Codex app | `/plugins` |
 | Codex plugin を shell で install | OS terminal | `codex plugin marketplace add ...`, `codex plugin add ...` |
 
 ## 何を生成するか

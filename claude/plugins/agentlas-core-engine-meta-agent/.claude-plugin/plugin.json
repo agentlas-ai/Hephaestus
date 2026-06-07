@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
-  "name": "agentlas-meta-agent",
-  "version": "0.2.1",
-  "description": "Three-agent meta-agent team for creating single agents, creating multi-agent teams, and packaging existing agents into Agentlas architecture.",
+  "name": "hephaestus",
+  "version": "0.2.2",
+  "description": "Hephaestus meta-agent team for creating Agentlas agents and teams, packaging existing agents, and opening the local ontology GUI.",
   "author": {
     "name": "Agentlas",
     "email": "appbridge@appbridge.co.kr"

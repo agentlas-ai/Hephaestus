@@ -5,7 +5,7 @@
   },
   "plugins": [
     {
-      "name": "agentlas-meta-agent",
+      "name": "hephaestus",
       "source": {
         "source": "local",
         "path": "./plugins/agentlas-core-engine-meta-agent"

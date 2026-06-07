@@ -3,7 +3,7 @@ set -euo pipefail
 
 target="${1:-$PWD}"
 force="${AGENTLAS_META_OS_FORCE:-0}"
-repo_tarball="${AGENTLAS_META_OS_TARBALL_URL:-https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.1.tar.gz}"
+repo_tarball="${AGENTLAS_META_OS_TARBALL_URL:-https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.2.tar.gz}"
 
 usage() {
   cat <<'EOF'
@@ -82,5 +82,5 @@ if [[ -d "$target/bin" ]]; then
   chmod +x "$target"/bin/* 2>/dev/null || true
 fi
 
-echo "agentlas-meta-agent installed into: $target"
+echo "Hephaestus installed into: $target"
 echo "Read AGENTS.md, then run: scripts/verify-package.sh"

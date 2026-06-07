@@ -55,7 +55,7 @@ Hephaestus meta-agent request:
 $request
 
 Open Claude Code or Codex with the installed plugin, then run:
-/Hephaestus $request
+/hephaestus $request
 EOF
     ;;
   *)

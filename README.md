@@ -4,7 +4,7 @@
   </a>
 </p>
 
-<h1 align="center">agentlas-meta-agent</h1>
+<h1 align="center">Hephaestus</h1>
 
 <p align="center">
   <strong>Turn one rough agent idea into an installable Agentlas agent or team repository.</strong>
@@ -68,23 +68,50 @@ Use one of these paths on a new computer. Start with a Claude Code or Codex
 plugin install unless you only want the package files copied into a normal
 project folder.
 
+### Step 0. Fresh macOS check
+
+Claude and Codex plugin marketplace commands use `git clone`. On a fresh Mac,
+`git` requires Apple's Command Line Tools. If you see
+`xcode-select: note: No developer tools were found`, run this once:
+
+```bash
+xcode-select --install
+```
+
+Finish the Apple installer popup, open a new Terminal window, then verify:
+
+```bash
+git --version
+```
+
+After `git --version` works, rerun the Claude or Codex plugin install command.
+
 ### Option A. Claude Code plugin
 
 Open your normal OS terminal, not the Claude chat box, and run:
 
 ```bash
 claude plugin marketplace add https://github.com/agentlas-ai/Hephaestus --sparse .claude-plugin claude/plugins
-claude plugin install agentlas-meta-agent@agentlas-core-engine
+claude plugin install hephaestus@agentlas-core-engine
 ```
 
 Then open or restart Claude Code in the project you want to work on and type:
 
 ```text
 /reload-plugins
-/Hephaestus ontology
+/hephaestus ontology
 ```
 
-`/Hephaestus ontology` opens a local ontology dashboard for the current project.
+If you already installed the old `agentlas-meta-agent` plugin and Claude says
+`hephaestus` is not found, refresh the marketplace and replace the old plugin:
+
+```bash
+claude plugin marketplace update agentlas-core-engine
+claude plugin uninstall agentlas-meta-agent@agentlas-core-engine
+claude plugin install hephaestus@agentlas-core-engine
+```
+
+`/hephaestus ontology` opens a local ontology dashboard for the current project.
 It creates these files in that project only:
 
 ```text
@@ -95,14 +122,14 @@ It creates these files in that project only:
 ```
 
 It does not scan your home folder or sibling projects. Put approved company docs
-inside `.agentlas/ontology-inbox/`, then run `/Hephaestus ontology` again.
+inside `.agentlas/ontology-inbox/`, then run `/hephaestus ontology` again.
 
 To create agents or teams after install:
 
 ```text
-/Hephaestus create a research agent for SEC filing analysis
-/Hephaestus create a customer support operations team
-/Hephaestus package this existing Claude agent into Agentlas architecture
+/hephaestus create a research agent for SEC filing analysis
+/hephaestus create a customer support operations team
+/hephaestus package this existing Claude agent into Agentlas architecture
 ```
 
 Claude also supports `claude plugins ...` as an alias, but this README uses
@@ -113,19 +140,29 @@ Claude also supports `claude plugins ...` as an alias, but this README uses
 Open your normal OS terminal, not the Codex chat box, and run:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.1
-codex plugin add agentlas-meta-agent@agentlas-core-engine
+codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.2
+codex plugin add hephaestus@agentlas-core-engine
 ```
 
 Then open or restart Codex in the project you want to work on and type:
 
 ```text
-/Hephaestus ontology
+/hephaestus ontology
 ```
 
-The Codex CLI command is singular: `codex plugin`, not `codex plugins`.
-After plugin install, `/Hephaestus ontology` creates and opens the same
-project-local ontology dashboard:
+If Codex still shows `agentlas-meta-agent`, refresh the marketplace and replace
+the old plugin:
+
+```bash
+codex plugin marketplace upgrade agentlas-core-engine
+codex plugin remove agentlas-meta-agent@agentlas-core-engine
+codex plugin add hephaestus@agentlas-core-engine
+```
+
+The Codex OS-terminal CLI command is singular: `codex plugin`, not
+`codex plugins`. Inside the Codex app, the slash command for the plugin browser
+is plural: `/plugins`. After plugin install, `/hephaestus ontology` creates and
+opens the same project-local ontology dashboard:
 
 ```text
 .agentlas/ontology-gui/index.html
@@ -134,9 +171,9 @@ project-local ontology dashboard:
 To create agents or teams after install:
 
 ```text
-/Hephaestus create a self-evolving research agent
-/Hephaestus create a finance analyst team
-/Hephaestus package this existing Codex workspace into Agentlas architecture
+/hephaestus create a self-evolving research agent
+/hephaestus create a finance analyst team
+/hephaestus package this existing Codex workspace into Agentlas architecture
 ```
 
 ### Option C. Copy the files into a project
@@ -146,7 +183,7 @@ repo package files in your current project. Open macOS Terminal, Linux terminal,
 Windows Git Bash, or WSL in that project folder and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.1/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.2/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -154,9 +191,9 @@ scripts/public_safety_check.sh
 Windows PowerShell:
 
 ```powershell
-$zip = "$env:TEMP\agentlas-meta-agent-v0.2.1.zip"
-$extract = "$env:TEMP\agentlas-meta-agent-v0.2.1"
-Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.1.zip" -OutFile $zip
+$zip = "$env:TEMP\agentlas-meta-agent-v0.2.2.zip"
+$extract = "$env:TEMP\agentlas-meta-agent-v0.2.2"
+Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.2.zip" -OutFile $zip
 Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive $zip -DestinationPath $extract -Force
 $src = Get-ChildItem $extract -Directory | Select-Object -First 1
@@ -169,34 +206,33 @@ After file install, run the ontology GUI directly:
 bin/hephaestus ontology
 ```
 
-### Optional in-chat plugin install
+### Optional Claude Code in-chat plugin install
 
-Use these only when you are already inside Claude Code or Codex and want to
-install from the chat UI instead of the OS terminal.
+Use this only when you are already inside Claude Code and want to install from
+the Claude chat UI instead of the OS terminal.
 
 Claude Code chat:
 
 ```text
 /plugin marketplace add https://github.com/agentlas-ai/Hephaestus --sparse .claude-plugin claude/plugins
-/plugin install agentlas-meta-agent@agentlas-core-engine
+/plugin install hephaestus@agentlas-core-engine
 /reload-plugins
-/Hephaestus ontology
+/hephaestus ontology
 ```
 
-Codex chat:
+Codex does not accept `/plugin marketplace add` inside the app. In Codex,
+install from the OS terminal with `codex plugin ...`, then restart Codex and
+use `/plugins` only to browse or enable installed plugins. After Hephaestus is
+installed, run `/hephaestus ontology`.
 
-```text
-/plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.1
-/plugin install agentlas-meta-agent@agentlas-core-engine
-/Hephaestus ontology
-```
-
-If a chat session does not show the new command after install, restart Claude
-Code or Codex in that project.
+If a Claude chat session does not show the new command after install, restart
+Claude Code in that project.
 
 ## Visual Install Guide
 
-Use the slash-command images when you are already inside a Claude Code or Codex chat. Use the CLI images when you are in macOS Terminal, Windows PowerShell, Linux terminal, Git Bash, or WSL.
+Use the Claude slash-command image only when you are already inside Claude
+Code. For Codex, install from the OS terminal; inside the Codex app, use
+`/plugins` to browse installed plugins.
 
 ### Claude Code chat
 
@@ -210,11 +246,11 @@ Use this path when the `claude` command is available in your shell:
 
 ![Claude CLI install flow](assets/install-claude-cli.svg)
 
-### Codex chat
+### Codex app plugin browser
 
-Type these commands directly into Codex:
+Use this only after the OS-terminal `codex plugin ...` install:
 
-![Codex chat install flow](assets/install-codex-chat.svg)
+![Codex app plugin browser](assets/install-codex-chat.svg)
 
 ### Codex Desktop or IDE Extension
 
@@ -237,12 +273,12 @@ Use this path when the `codex` command is available in your shell:
 | Run Agentlas Terminal | OS terminal | `agentlas list`, `agentlas run ...` |
 | Install Claude plugin by slash command | Claude Code | `/plugin marketplace add ...`, `/plugin install ...`, `/reload-plugins` |
 | Install Claude plugin by shell | OS terminal | `claude plugin marketplace add ...`, `claude plugin install ...` |
-| Install Codex plugin by slash command | Codex chat | `/plugin marketplace add ...`, `/plugin install ...`, `/reload-plugins` |
+| Browse installed Codex plugins | Codex app | `/plugins` |
 | Install Codex plugin by shell | OS terminal | `codex plugin marketplace add ...`, `codex plugin add ...` |
 
 ## What It Builds
 
-`agentlas-meta-agent` leaves behind a repository that another runtime can inspect, install, verify, and keep improving.
+Hephaestus leaves behind a repository that another runtime can inspect, install, verify, and keep improving.
 
 | You ask for | It routes to | You get |
 |---|---|---|
@@ -353,14 +389,14 @@ Desktop and Terminal make this package useful beyond a static prompt:
 
 ## Compare
 
-| Compared with | Their strength | What `agentlas-meta-agent` adds |
+| Compared with | Their strength | What Hephaestus adds |
 |---|---|---|
 | OpenAI / Codex | Strong models and coding terminal | Portable repo contracts, `.agentlas` memory/package files, skills, schemas, runtime adapters, and public verification |
 | Claude / Claude Code | Strong reasoning and Claude-native workflows | Claude support without becoming Claude-only; Codex, Gemini, Desktop, terminal, and `AGENTS.md` stay aligned |
 | OpenClaw | Local identity and workspace agent loop | Visible role folders, Agentlas package contracts, public-safety checks, Desktop import, vault references, and install surfaces |
 | Hermes | Persona and memory-centered local agent runtime | PM Soul, Memory Tickets, sitemap/task-bias, policy/eval/QA, and skill lifecycle evidence as files |
 
-OpenAI and Claude are model/runtime surfaces. OpenClaw and Hermes are local-agent experiences. `agentlas-meta-agent` is the package layer that makes agents portable, inspectable, installable, and publishable.
+OpenAI and Claude are model/runtime surfaces. OpenClaw and Hermes are local-agent experiences. Hephaestus is the package layer that makes agents portable, inspectable, installable, and publishable.
 
 ## Use It
 
@@ -374,7 +410,7 @@ Package it for Codex, Claude Code, Gemini, and Agentlas Desktop.
 Multi-agent team:
 
 ```text
-Use agentlas-meta-agent.
+Use Hephaestus.
 Build a customer-support operations team with PM Soul, Memory Curator, Policy Gate, QA, eval, and public-safe release checks.
 ```
 

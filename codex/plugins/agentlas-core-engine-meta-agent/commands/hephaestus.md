@@ -1,10 +1,4 @@
----
-description: Run Hephaestus meta-agent or open the project ontology GUI
-argument-hint: '[ontology|meta-agent|team|single-agent|package] [details...]'
-allowed-tools: Bash, Read, Glob, Grep
----
-
-# /Hephaestus
+# /hephaestus
 
 Raw arguments:
 `$ARGUMENTS`
@@ -18,10 +12,13 @@ If the first argument is `ontology`, open the project-local ontology GUI:
 
 ```bash
 RUNNER=""
+CODEX_HOME_DIR="${CODEX_HOME:-$HOME/.codex}"
 for candidate in \
   "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/bin/hephaestus}" \
   "${CODEX_PLUGIN_ROOT:+$CODEX_PLUGIN_ROOT/bin/hephaestus}" \
   "${PLUGIN_ROOT:+$PLUGIN_ROOT/bin/hephaestus}" \
+  "$CODEX_HOME_DIR/plugins/cache/agentlas-core-engine/hephaestus/"*/bin/hephaestus \
+  "$CODEX_HOME_DIR/plugins/cache/agentlas-core-engine/agentlas-meta-agent/"*/bin/hephaestus \
   "./bin/hephaestus" \
   "./claude/plugins/agentlas-core-engine-meta-agent/bin/hephaestus" \
   "./codex/plugins/agentlas-core-engine-meta-agent/bin/hephaestus"
@@ -53,7 +50,7 @@ Meta-Agent team:
 ## Examples
 
 ```text
-/Hephaestus ontology
-/Hephaestus create a self-evolving research agent
-/Hephaestus package this existing Claude agent into Agentlas architecture
+/hephaestus ontology
+/hephaestus create a self-evolving research agent
+/hephaestus package this existing Codex workspace into Agentlas architecture
 ```

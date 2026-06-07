@@ -4,7 +4,7 @@
   </a>
 </p>
 
-<h1 align="center">agentlas-meta-agent</h1>
+<h1 align="center">Hephaestus</h1>
 
 <p align="center">
   <strong>एक अधूरा agent idea लेकर उसे installable Agentlas agent/team repository में बदलें।</strong>
@@ -39,7 +39,7 @@
 | Path | कब इस्तेमाल करें | क्या खोलना है |
 |---|---|---|
 | 1. Agentlas Terminal | shell से Agentlas agents चलाने के लिए | पहले Agentlas Desktop, फिर macOS Terminal / Windows PowerShell / Linux terminal |
-| 2. Standalone agentlas-meta-agent | Claude Code, Codex या normal repo में direct install के लिए | Claude Code, Codex या OS terminal |
+| 2. Standalone Hephaestus | Claude Code, Codex या normal repo में direct install के लिए | Claude Code, Codex या OS terminal |
 | 3. Agentlas Desktop | visual local runtime, agent/team management, vault, Apps के लिए | browser में download page, फिर Agentlas Desktop app |
 
 ### 1. Agentlas Terminal install करें
@@ -95,14 +95,14 @@ agentlas list
 agentlas run agentlas-meta-agent "Package this workflow for Agentlas"
 ```
 
-### 2. agentlas-meta-agent standalone install करें
+### 2. Hephaestus standalone install करें
 
 #### Simple file install
 
 जिस project folder में package files चाहिए, वहां macOS Terminal, Linux terminal, Windows Git Bash या WSL खोलें:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.1/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.2/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -110,9 +110,9 @@ scripts/public_safety_check.sh
 Windows PowerShell:
 
 ```powershell
-$zip = "$env:TEMP\agentlas-meta-agent-v0.2.1.zip"
-$extract = "$env:TEMP\agentlas-meta-agent-v0.2.1"
-Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.1.zip" -OutFile $zip
+$zip = "$env:TEMP\agentlas-meta-agent-v0.2.2.zip"
+$extract = "$env:TEMP\agentlas-meta-agent-v0.2.2"
+Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.2.zip" -OutFile $zip
 Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive $zip -DestinationPath $extract -Force
 $src = Get-ChildItem $extract -Directory | Select-Object -First 1
@@ -127,7 +127,7 @@ Marketplace registration और plugin installation अलग steps हैं।
 
 ```text
 /plugin marketplace add https://github.com/agentlas-ai/Hephaestus --sparse .claude-plugin claude/plugins
-/plugin install agentlas-meta-agent@agentlas-core-engine
+/plugin install hephaestus@agentlas-core-engine
 /reload-plugins
 /plugin list
 ```
@@ -136,37 +136,30 @@ Marketplace registration और plugin installation अलग steps हैं।
 
 ```bash
 claude plugin marketplace add https://github.com/agentlas-ai/Hephaestus --sparse .claude-plugin claude/plugins
-claude plugin install agentlas-meta-agent@agentlas-core-engine
+claude plugin install hephaestus@agentlas-core-engine
 ```
 
 Expected result:
 
 ```text
-✓ Installed agentlas-meta-agent. Run /reload-plugins to apply.
+✓ Installed hephaestus. Run /reload-plugins to apply.
 Reloaded: 1 plugin · 0 skills · 9 agents · 0 hooks · 0 plugin MCP servers · 0 plugin LSP servers
 ```
 
 #### Codex plugin install
 
-**Codex chat के अंदर टाइप करें**:
-
-```text
-/plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.1
-/plugin install agentlas-meta-agent@agentlas-core-engine
-/reload-plugins
-/plugin list
-```
+Codex chat के अंदर `/plugin marketplace add` इस्तेमाल न करें। Codex app में installed plugins देखने के लिए `/plugins` है; install OS terminal से करें।
 
 **`codex` CLI वाले OS terminal में टाइप करें**:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.1
+codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.2
 codex plugin list
-codex plugin add agentlas-meta-agent@agentlas-core-engine
+codex plugin add hephaestus@agentlas-core-engine
 codex plugin list
 ```
 
-अगर Codex session पहले से खुला है, तो `/reload-plugins` चलाएं या नया session शुरू करें।
+अगर Codex session पहले से खुला है, तो नया session शुरू करें और `/plugins` से plugin दिख रहा है या नहीं देखें। Install के बाद `/hephaestus ontology` चलाएं।
 
 ### 3. Agentlas Desktop install करें
 
@@ -180,7 +173,7 @@ Desktop आपको visual Agentlas surface देता है: local projects
 
 ## तस्वीरों के साथ install guide
 
-अगर आप Claude Code या Codex chat के अंदर हैं, तो slash command वाली तस्वीरें follow करें। अगर आपने macOS Terminal, Windows PowerShell, Linux terminal, Git Bash या WSL खोला है, तो CLI वाली तस्वीरें follow करें।
+अगर आप Claude Code chat के अंदर हैं, तो Claude slash command वाली तस्वीर follow करें। Codex पहले OS terminal से install करें; Codex app में `/plugins` से installed plugins देखें। अगर आपने macOS Terminal, Windows PowerShell, Linux terminal, Git Bash या WSL खोला है, तो CLI वाली तस्वीरें follow करें।
 
 ### Claude Code chat
 
@@ -194,11 +187,11 @@ Desktop आपको visual Agentlas surface देता है: local projects
 
 ![Claude CLI install flow](assets/install-claude-cli.svg)
 
-### Codex chat
+### Codex app plugin browser
 
-इन commands को सीधे Codex में type करें।
+OS terminal में `codex plugin ...` install पूरा करने के बाद Codex app में `/plugins` type करके check करें।
 
-![Codex chat install flow](assets/install-codex-chat.svg)
+![Codex app plugin browser](assets/install-codex-chat.svg)
 
 ### Codex Desktop या IDE Extension
 
@@ -221,7 +214,7 @@ Desktop आपको visual Agentlas surface देता है: local projects
 | Agentlas Terminal चलाना | OS terminal | `agentlas list`, `agentlas run ...` |
 | Claude plugin slash command से install | Claude Code | `/plugin marketplace add ...`, `/plugin install ...`, `/reload-plugins` |
 | Claude plugin shell से install | OS terminal | `claude plugin marketplace add ...`, `claude plugin install ...` |
-| Codex plugin slash command से install | Codex chat | `/plugin marketplace add ...`, `/plugin install ...`, `/reload-plugins` |
+| Installed Codex plugins देखना | Codex app | `/plugins` |
 | Codex plugin shell से install | OS terminal | `codex plugin marketplace add ...`, `codex plugin add ...` |
 
 ## यह क्या बनाता है
