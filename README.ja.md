@@ -42,7 +42,7 @@
 ```text
 このワークスペースに Hephaestus Agentlas メタエージェントをセットアップして。
 ターミナルで
-`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.9/scripts/install-all-runtimes.sh | bash`
+`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.10/scripts/install-all-runtimes.sh | bash`
 を実行し、私が使っているツール（Claude Code, Codex, Gemini CLI, Antigravity,
 Cursor）で使う正確な /hephaestus コマンドを教えて。失敗したらエラーを読んで
 直し、もう一度試して。
@@ -123,7 +123,7 @@ agentlas run agentlas-meta-agent "Package this workflow for Agentlas"
 package files を入れたい project folder で macOS Terminal、Linux terminal、Windows Git Bash、または WSL を開きます。
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.9/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.10/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -131,9 +131,9 @@ scripts/public_safety_check.sh
 Windows PowerShell:
 
 ```powershell
-$zip = "$env:TEMP\hephaestus-v0.2.9.zip"
-$extract = "$env:TEMP\hephaestus-v0.2.9"
-Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.9.zip" -OutFile $zip
+$zip = "$env:TEMP\hephaestus-v0.2.10.zip"
+$extract = "$env:TEMP\hephaestus-v0.2.10"
+Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.10.zip" -OutFile $zip
 Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive $zip -DestinationPath $extract -Force
 $src = Get-ChildItem $extract -Directory | Select-Object -First 1
@@ -174,7 +174,7 @@ Codex chat の中では `/plugin marketplace add` は使いません。Codex app
 **`codex` CLI が使える OS terminal で入力**:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.9
+codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.10
 codex plugin list
 codex plugin add hephaestus@agentlas-core-engine
 codex plugin list

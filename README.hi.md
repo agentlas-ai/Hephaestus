@@ -41,7 +41,7 @@ message उसके chat box में जैसा है वैसा paste �
 
 ```text
 इस workspace में Hephaestus Agentlas meta-agent set up करो। Terminal में
-`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.9/scripts/install-all-runtimes.sh | bash`
+`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.10/scripts/install-all-runtimes.sh | bash`
 चलाओ, फिर बताओ कि मैं जो tool इस्तेमाल कर रहा/रही हूँ (Claude Code, Codex,
 Gemini CLI, Antigravity, Cursor) उसमें सही /hephaestus command क्या है। कुछ
 fail हो तो error पढ़कर ठीक करो और दोबारा try करो।
@@ -122,7 +122,7 @@ agentlas run agentlas-meta-agent "Package this workflow for Agentlas"
 जिस project folder में package files चाहिए, वहां macOS Terminal, Linux terminal, Windows Git Bash या WSL खोलें:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.9/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.10/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -130,9 +130,9 @@ scripts/public_safety_check.sh
 Windows PowerShell:
 
 ```powershell
-$zip = "$env:TEMP\hephaestus-v0.2.9.zip"
-$extract = "$env:TEMP\hephaestus-v0.2.9"
-Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.9.zip" -OutFile $zip
+$zip = "$env:TEMP\hephaestus-v0.2.10.zip"
+$extract = "$env:TEMP\hephaestus-v0.2.10"
+Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.10.zip" -OutFile $zip
 Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive $zip -DestinationPath $extract -Force
 $src = Get-ChildItem $extract -Directory | Select-Object -First 1
@@ -173,7 +173,7 @@ Codex chat के अंदर `/plugin marketplace add` इस्तेमा�
 **`codex` CLI वाले OS terminal में टाइप करें**:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.9
+codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.10
 codex plugin list
 codex plugin add hephaestus@agentlas-core-engine
 codex plugin list

@@ -73,7 +73,7 @@ tells you the exact command to use next:
 
 ```text
 Set up the Hephaestus Agentlas meta-agent in this workspace. Run
-`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.9/scripts/install-all-runtimes.sh | bash`
+`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.10/scripts/install-all-runtimes.sh | bash`
 in the terminal, then tell me the exact /hephaestus command for the tool I am
 using (Claude Code, Codex, Gemini CLI, Antigravity, or Cursor). If anything
 fails, read the error, fix it, and retry.
@@ -117,7 +117,7 @@ common `Already added from a different source` marketplace conflict by removing
 the old `agentlas-core-engine` entry and adding it again from this repo.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.9/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.10/scripts/install-all-runtimes.sh | bash
 ```
 
 After it finishes, restart any open Claude Code, Codex, Gemini, or Antigravity
@@ -157,7 +157,7 @@ If you already installed the old `agentlas-meta-agent` plugin and Claude says
 `hephaestus` is not found, refresh the marketplace and replace the old plugin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.9/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.10/scripts/install-all-runtimes.sh | bash
 ```
 
 `/hephaestus ontology` opens a local SaaS-style ontology dashboard for the
@@ -192,7 +192,7 @@ Claude also supports `claude plugins ...` as an alias, but this README uses
 Open your normal OS terminal, not the Codex chat box, and run:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.9
+codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.10
 codex plugin add hephaestus@agentlas-core-engine
 ```
 
@@ -206,7 +206,7 @@ If Codex still shows `agentlas-meta-agent`, refresh the marketplace and replace
 the old plugin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.9/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.10/scripts/install-all-runtimes.sh | bash
 ```
 
 The Codex OS-terminal CLI command is singular: `codex plugin`, not
@@ -254,7 +254,7 @@ repo package files in your current project. Open macOS Terminal, Linux terminal,
 Windows Git Bash, or WSL in that project folder and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.9/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.10/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -262,9 +262,9 @@ scripts/public_safety_check.sh
 Windows PowerShell:
 
 ```powershell
-$zip = "$env:TEMP\hephaestus-v0.2.9.zip"
-$extract = "$env:TEMP\hephaestus-v0.2.9"
-Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.9.zip" -OutFile $zip
+$zip = "$env:TEMP\hephaestus-v0.2.10.zip"
+$extract = "$env:TEMP\hephaestus-v0.2.10"
+Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.10.zip" -OutFile $zip
 Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive $zip -DestinationPath $extract -Force
 $src = Get-ChildItem $extract -Directory | Select-Object -First 1

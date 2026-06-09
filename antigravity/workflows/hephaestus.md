@@ -61,7 +61,7 @@ Tell the user to run the one-touch installer from an OS terminal, then reopen
 the workspace in Antigravity:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.9/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.10/scripts/install-all-runtimes.sh | bash
 ```
 
 The installer registers `/hephaestus` as an Antigravity global workflow at

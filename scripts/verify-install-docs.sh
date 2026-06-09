@@ -46,7 +46,7 @@ bad_patterns=(
   '/plugin marketplace add agentlas-ai/Hephaestus'
   '/plugin install agentlas-meta-agent'
   'codex plugin install'
-  'v0\.2\.1'
+  'v0\.2\.1([^0-9]|$)'
   'v0\.1\.5'
   'Install Codex plugin by slash command'
   'Codex plugin slash'
@@ -74,7 +74,7 @@ if rg -n 'agentlas-meta-agent' README*.md claude/README.md codex/README.md \
 fi
 
 for path in README.md README.ko.md codex/README.md; do
-  rg -q 'codex plugin marketplace add agentlas-ai/Hephaestus --ref v0\.2\.9' "$path" || fail "missing Codex marketplace command in $path"
+  rg -q 'codex plugin marketplace add agentlas-ai/Hephaestus --ref v0\.2\.10' "$path" || fail "missing Codex marketplace command in $path"
   rg -q 'codex plugin add hephaestus@agentlas-core-engine' "$path" || fail "missing Codex add command in $path"
 done
 
@@ -93,12 +93,12 @@ claude = json.loads(Path("claude/plugins/agentlas-core-engine-meta-agent/.claude
 manifest = json.loads(Path("manifest.json").read_text())
 assert codex["id"] == "hephaestus", codex["id"]
 assert codex["name"] == "hephaestus", codex["name"]
-assert codex["version"] == "0.2.9", codex["version"]
+assert codex["version"] == "0.2.10", codex["version"]
 assert codex["interface"]["displayName"] == "Hephaestus", codex["interface"]["displayName"]
 assert claude["name"] == "hephaestus", claude["name"]
-assert claude["version"] == "0.2.9", claude["version"]
+assert claude["version"] == "0.2.10", claude["version"]
 assert manifest["package"] == "hephaestus", manifest["package"]
-assert manifest["version"] == "0.2.9", manifest["version"]
+assert manifest["version"] == "0.2.10", manifest["version"]
 assert manifest["entrypoints"]["claudeHephaestusCommand"].endswith("hephaestus.md")
 assert manifest["entrypoints"]["codexHephaestusCommand"].endswith("hephaestus.md")
 assert manifest["entrypoints"]["geminiExtension"].endswith("gemini-extension.json")
