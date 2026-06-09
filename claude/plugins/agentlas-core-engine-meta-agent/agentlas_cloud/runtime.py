@@ -24,6 +24,21 @@ EXFIL = re.compile(r"(curl|wget|fetch|requests\.(?:post|put))[^\n]{0,240}(\.env|
 UNICODE_OBFUSCATION = re.compile(r"[\u200b\u200c\u200d\ufeff\u202a-\u202e\u2066-\u2069]")
 TEXT_FILE_ALLOW = {".md", ".txt", ".json", ".jsonl", ".yaml", ".yml", ".toml", ".py", ".js", ".ts", ".tsx", ".cjs", ".mjs", ".sh"}
 
+# 2-stage security scan (plan \u00a76.2: static rules + user-LLM judgment, BYOK only).
+# The server never calls an LLM; the user's own session writes this judgment file.
+LLM_JUDGMENT_RELATIVE_PATH = ".agentlas/security-llm-judgment.json"
+LLM_JUDGMENT_SCHEMA_VERSION = "1.0"
+LLM_JUDGMENT_FINDING_TYPES = {
+    "prompt-injection",
+    "tool-poisoning",
+    "secret-exfiltration",
+    "destructive-command",
+    "excessive-permission",
+    "other",
+}
+LLM_JUDGMENT_MESSAGE_MAX_CHARS = 500
+VERDICT_RANK = {"PASS": 0, "WARN": 1, "BLOCK": 2}
+
 
 @dataclass
 class AgentlasManifest:
@@ -61,6 +76,7 @@ class SecurityFinding:
     message: str
     line: int | None = None
     redacted: bool = True
+    source: str = "static"
 
 
 @dataclass
@@ -174,8 +190,76 @@ def scan_files(files: list[PackageFile]) -> SecurityReport:
     return SecurityReport(verdict=verdict, scannedAt=now_iso(), findings=findings)
 
 
-def scan_agent_folder(root: str | Path) -> dict[str, Any]:
-    return scan_files(collect_package_files(root)).to_json()
+def combine_verdicts(*verdicts: str) -> str:
+    return max(verdicts, key=lambda verdict: VERDICT_RANK.get(verdict, 0), default="PASS")
+
+
+def merge_llm_judgment(report_dict: dict[str, Any], judgment_dict: dict[str, Any]) -> dict[str, Any]:
+    """Merge a BYOK LLM judgment file (stage 2) into a static scan report (stage 1).
+
+    Raises ValueError when the judgment payload does not match the
+    `.agentlas/security-llm-judgment.json` contract. Never prints secret values:
+    judgment messages are kept as-is but truncated to 500 chars.
+    """
+    if not isinstance(judgment_dict, dict):
+        raise ValueError("LLM judgment must be a JSON object.")
+    judgment_verdict = judgment_dict.get("verdict")
+    if judgment_verdict not in VERDICT_RANK:
+        raise ValueError("LLM judgment verdict must be PASS, WARN, or BLOCK.")
+    raw_findings = judgment_dict.get("findings", [])
+    if not isinstance(raw_findings, list):
+        raise ValueError("LLM judgment findings must be a list.")
+
+    merged = dict(report_dict)
+    findings = [dict(finding) for finding in merged.get("findings", [])]
+    for finding in findings:
+        finding.setdefault("source", "static")
+    stage_verdict = judgment_verdict
+    for raw in raw_findings:
+        if not isinstance(raw, dict):
+            raise ValueError("Each LLM judgment finding must be a JSON object.")
+        finding_verdict = raw.get("verdict") if raw.get("verdict") in {"WARN", "BLOCK"} else judgment_verdict
+        finding_type = raw.get("type") if raw.get("type") in LLM_JUDGMENT_FINDING_TYPES else "other"
+        message = str(raw.get("message", ""))[:LLM_JUDGMENT_MESSAGE_MAX_CHARS]
+        findings.append(
+            {
+                "verdict": finding_verdict,
+                "type": finding_type,
+                "path": str(raw.get("path", "")),
+                "message": message,
+                "line": raw.get("line") if isinstance(raw.get("line"), int) else None,
+                "redacted": bool(raw.get("redacted", True)),
+                "source": "llm-judgment",
+            }
+        )
+        stage_verdict = combine_verdicts(stage_verdict, finding_verdict)
+
+    merged["findings"] = findings
+    merged["verdict"] = combine_verdicts(merged.get("verdict", "PASS"), stage_verdict)
+    merged["stages"] = ["static", "llm-judgment"]
+    merged["llmJudgment"] = {
+        "schemaVersion": str(judgment_dict.get("schemaVersion", LLM_JUDGMENT_SCHEMA_VERSION)),
+        "judgedAt": str(judgment_dict.get("judgedAt", "")),
+        "model": str(judgment_dict.get("model", "")) or None,
+        "verdict": stage_verdict,
+    }
+    return merged
+
+
+def scan_agent_folder(root: str | Path, llm_judgment_path: str | Path | None = None) -> dict[str, Any]:
+    base = Path(root).expanduser().resolve()
+    report = scan_files(collect_package_files(base)).to_json()
+    report["stages"] = ["static"]
+    judgment_file = Path(llm_judgment_path).expanduser() if llm_judgment_path else base / LLM_JUDGMENT_RELATIVE_PATH
+    if judgment_file.exists():
+        try:
+            judgment = json.loads(judgment_file.read_text(encoding="utf-8"))
+            report = merge_llm_judgment(report, judgment)
+        except (OSError, ValueError, UnicodeDecodeError):
+            report["llmJudgment"] = "invalid — ignored"
+    elif llm_judgment_path is not None:
+        report["llmJudgment"] = "invalid — ignored"
+    return report
 
 
 def run_setup_wizard(root: str | Path, name: str | None = None, write: bool = True) -> dict[str, Any]:

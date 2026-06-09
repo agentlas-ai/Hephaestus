@@ -28,3 +28,5 @@ for runtime discovery.
 - `sitemap-task-bias`
 - `public-plugin-packaging`
 - `install-verification`
+- `agentlas-security-scan`: 2-stage security scan (static rules + BYOK LLM
+  judgment) gating Agentlas Cloud sync/publish.

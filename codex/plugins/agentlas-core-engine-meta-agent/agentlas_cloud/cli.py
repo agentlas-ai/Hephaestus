@@ -20,9 +20,11 @@ def main(argv: list[str] | None = None) -> int:
 
     security = sub.add_parser("security", help="Security commands")
     security_sub = security.add_subparsers(dest="security_command", required=True)
-    scan = security_sub.add_parser("scan", help="Scan an agent folder")
+    scan = security_sub.add_parser("scan", help="Scan an agent folder (static rules + optional BYOK LLM judgment merge)")
     scan.add_argument("folder")
     scan.add_argument("--strict", action="store_true")
+    scan.add_argument("--llm-judgment", help="Path to a security-llm-judgment.json file (default: <folder>/.agentlas/security-llm-judgment.json)")
+    scan.add_argument("--acknowledge-warn", action="store_true", help="With --strict, treat an explicitly approved WARN verdict as pass")
 
     bundle = sub.add_parser("bundle", help="Compile runtime bundle")
     bundle.add_argument("folder")
@@ -37,9 +39,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "wizard":
         return emit(run_setup_wizard(args.folder, args.name, write=not args.no_write))
     if args.command == "security" and args.security_command == "scan":
-        report = scan_agent_folder(args.folder)
+        report = scan_agent_folder(args.folder, llm_judgment_path=args.llm_judgment)
         emit(report)
-        return 1 if args.strict and report["verdict"] == "BLOCK" else 0
+        if args.strict:
+            if report["verdict"] == "BLOCK":
+                return 1
+            if report["verdict"] == "WARN" and not args.acknowledge_warn:
+                return 2
+        return 0
     if args.command == "bundle":
         return emit(compile_runtime_bundle(args.folder))
     if args.command == "read-agent-file":
