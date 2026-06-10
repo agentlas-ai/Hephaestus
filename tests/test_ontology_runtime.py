@@ -475,6 +475,131 @@ class OntologyRuntimeTests(unittest.TestCase):
         self.assertEqual(len(sources), 1)
         self.assertEqual(sources[0]["path"], str(source.resolve()))
 
+class OntologySearchUpgradeTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.db_path = self.root / "ontology.sqlite"
+        self.corpus = self.root / "corpus"
+        self.corpus.mkdir()
+        (self.corpus / "contract-ko.md").write_text(
+            "# 계약서 자동화\n\n이 문서는 계약서 자동 생성 파이프라인과 견적서 검토 절차를 설명한다.",
+            encoding="utf-8",
+        )
+        (self.corpus / "unrelated-ko.md").write_text(
+            "# 일상 기록\n\n오늘 점심 메뉴는 김치찌개였고 산책을 했다.",
+            encoding="utf-8",
+        )
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def runtime(self, **config_kwargs):
+        from ontology import OntologyRuntime, RuntimeConfig
+
+        return OntologyRuntime(RuntimeConfig(db_path=self.db_path, **config_kwargs))
+
+    def test_tokenizer_handles_cjk_input(self):
+        from ontology.embeddings import tokenize
+
+        tokens = tokenize("한글 계약서 자동 생성 견적서")
+        self.assertTrue(tokens)
+        self.assertIn("계약", tokens)
+        adapter_vector_sum = sum(abs(v) for v in self.runtime().vector_adapter.embed("계약서 자동 생성"))
+        self.assertGreater(adapter_vector_sum, 0.0)
+
+    def test_korean_query_ranks_relevant_document_first(self):
+        rt = self.runtime()
+        rt.ingest_path(self.corpus, access_scope="internal")
+        answer = rt.query("계약서 자동 생성")
+        self.assertTrue(answer["chunks"], answer)
+        self.assertIn("계약서", answer["chunks"][0]["text"])
+        texts = " ".join(chunk["text"] for chunk in answer["chunks"])
+        self.assertNotIn("김치찌개", texts)
+        self.assertEqual(answer["search"]["fusion"], "rrf")
+
+    def test_v1_database_migrates_to_trigram_and_reembeds(self):
+        rt = self.runtime()
+        rt.ingest_path(self.corpus, access_scope="internal")
+        del rt
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("DROP TABLE chunk_fts")
+            conn.execute(
+                "CREATE VIRTUAL TABLE chunk_fts USING fts5(chunk_id UNINDEXED, text, tokenize='porter')"
+            )
+            conn.execute("DELETE FROM schema_migrations WHERE version >= 2")
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (1, '2026-01-01T00:00:00Z')"
+            )
+            conn.execute("UPDATE chunks SET vector_json = '[]'")
+        rt2 = self.runtime()
+        report = rt2.verify()
+        self.assertEqual(report["status"], "pass")
+        answer = rt2.query("계약서 생성")
+        self.assertTrue(answer["chunks"], answer)
+        with sqlite3.connect(self.db_path) as conn:
+            vector = conn.execute("SELECT vector_json FROM chunks LIMIT 1").fetchone()[0]
+        self.assertTrue(json.loads(vector))
+
+    def test_query_expansion_hook_widens_recall(self):
+        calls = []
+
+        def expansion_hook(question):
+            calls.append(question)
+            return ["계약서 자동 생성"]
+
+        rt = self.runtime(query_expansion_hook=expansion_hook)
+        rt.ingest_path(self.corpus, access_scope="internal")
+        answer = rt.query("표준 약정 문서 만들기")
+        self.assertEqual(calls, ["표준 약정 문서 만들기"])
+        self.assertIn("계약서 자동 생성", answer["search"]["expanded_queries"])
+        texts = " ".join(chunk["text"] for chunk in answer["chunks"])
+        self.assertIn("계약서", texts)
+
+    def test_rerank_hook_never_receives_private_chunks(self):
+        seen_chunk_ids = []
+
+        def rerank_hook(question, candidates):
+            seen_chunk_ids.extend(item["chunk_id"] for item in candidates)
+            return [item["chunk_id"] for item in candidates]
+
+        private_doc = self.root / "private.md"
+        private_doc.write_text("비공개 계약서 단가 협상 메모.", encoding="utf-8")
+        rt = self.runtime(rerank_hook=rerank_hook)
+        rt.ingest_path(self.corpus, access_scope="internal")
+        rt.ingest_path(private_doc, access_scope="private")
+        answer = rt.query("계약서 단가", allowed_scopes=["public", "internal", "private"])
+        self.assertTrue(seen_chunk_ids, "rerank hook should run for cloud-safe chunks")
+        returned_private = [
+            chunk for chunk in answer["chunks"] if chunk["privacy_scope"] == "private"
+        ]
+        self.assertTrue(returned_private, "private chunks must still be searchable locally")
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            private_ids = {
+                row["chunk_id"]
+                for row in conn.execute("SELECT chunk_id FROM chunks WHERE privacy_scope = 'private'")
+            }
+        self.assertFalse(private_ids & set(seen_chunk_ids), "private chunk leaked to rerank hook")
+
+    def test_chunking_adds_overlap_between_windows(self):
+        from ontology import RuntimeConfig, OntologyRuntime
+
+        rt = OntologyRuntime(RuntimeConfig(db_path=self.db_path, chunk_token_limit=20, chunk_overlap_ratio=0.2))
+        long_doc = self.root / "long.md"
+        long_doc.write_text(" ".join(f"word{i}" for i in range(100)), encoding="utf-8")
+        rt.ingest_path(long_doc, access_scope="internal")
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            spans = [
+                json.loads(row["source_span_json"])
+                for row in conn.execute("SELECT source_span_json FROM chunks ORDER BY chunk_index")
+            ]
+        self.assertGreater(len(spans), 1)
+        for left, right in zip(spans, spans[1:]):
+            self.assertLess(right["token_start"], left["token_end"], "windows must overlap")
+
+
 def write_text_pdf(path: Path, text: str) -> None:
     stream = f"BT /F1 24 Tf 72 720 Td ({pdf_escape(text)}) Tj ET".encode("utf-8")
     objects = [

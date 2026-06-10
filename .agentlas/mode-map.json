@@ -1,6 +1,33 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "defaultMode": "single-agent-creator",
+  "overlays": {
+    "ontology-backed-agent": {
+      "contract": "modes/ontology-backed-agent.md",
+      "composesWith": ["single-agent-creator", "team-builder"],
+      "flag": "ontology_backed",
+      "useWhen": [
+        "knowledge search over user documents",
+        "evidence-based or citation-attached generation",
+        "document corpus dependency (HWPX, docx, pdf, xlsx, pptx)",
+        "ontology, GraphRAG, or local corpus mentioned"
+      ],
+      "mustInclude": [
+        "bin/ontology activation",
+        ".agentlas/ontology-sources.json",
+        ".agentlas/ontology-inbox/",
+        "retrieval-first workflow in agent.md",
+        "rule-based contract injection via .agentlas/contract-injection-map.json",
+        ".agentlas/injected-contracts.json",
+        "loop_policy from risk tier"
+      ],
+      "mustNotInclude": [
+        "blanket injection of all governance contracts",
+        "self-grading verifier when loop_policy is verified",
+        "private/confidential chunks routed to cloud hooks"
+      ]
+    }
+  },
   "modes": {
     "single-agent-creator": {
       "contract": "modes/single-agent-creator.md",

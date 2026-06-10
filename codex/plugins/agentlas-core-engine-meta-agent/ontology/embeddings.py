@@ -41,8 +41,22 @@ class LocalHashingVectorAdapter:
         return [round(value / norm, 6) for value in vector]
 
 
+LATIN_TOKEN_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]{1,}")
+CJK_RUN_PATTERN = re.compile(r"[぀-ヿ㐀-䶿一-鿿가-힣]+")
+
+
 def tokenize(text: str) -> list[str]:
-    return [token.lower() for token in re.findall(r"[A-Za-z0-9][A-Za-z0-9_-]{1,}", text)]
+    lowered = text.lower()
+    tokens = LATIN_TOKEN_PATTERN.findall(lowered)
+    # CJK runs have no whitespace word boundary; character bigrams keep the
+    # zero-install constraint (no morphological analyzer) while making Hangul,
+    # kana, and ideograph text searchable.
+    for run in CJK_RUN_PATTERN.findall(lowered):
+        if len(run) == 1:
+            tokens.append(run)
+        else:
+            tokens.extend(run[i : i + 2] for i in range(len(run) - 1))
+    return tokens
 
 
 def cosine_similarity(left: Iterable[float], right: Iterable[float]) -> float:

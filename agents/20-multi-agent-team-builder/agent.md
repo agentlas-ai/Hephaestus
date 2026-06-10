@@ -31,6 +31,24 @@ runtime adapters.
   the whole team across Claude Code, Codex, Gemini CLI, Antigravity, generic
   AGENTS.md, and terminal adapters.
 
+## Ontology-Backed Generation
+
+When mode classification applies the `ontology-backed-agent` overlay
+(`modes/ontology-backed-agent.md`), the generated team gains a shared
+knowledge layer:
+
+- Activate the ontology runtime at the team root: seed
+  `.agentlas/ontology-sources.json` and `.agentlas/ontology-inbox/`, and wire
+  `bin/ontology` (ingest / query / verify).
+- Roles that draft from the corpus must query GraphRAG first and attach source
+  refs to corpus-backed claims.
+- Resolve task traits against `.agentlas/contract-injection-map.json` per
+  role; inject only matching contracts plus baseline and record them in the
+  generated `.agentlas/injected-contracts.json`.
+- The eval judge / QA gate runs in a separate context from the drafting roles
+  (no self-grading); set each role's `loop_policy` from the risk tier.
+- Keep private/confidential scope data on local paths only.
+
 ## Global Command Rule
 
 Expose the orchestrator/HQ global command, for example `/wedding` or

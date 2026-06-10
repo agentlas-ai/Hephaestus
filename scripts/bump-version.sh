@@ -41,7 +41,9 @@ old_plain="${old#v}"
 new_plain="${new#v}"
 old_re="${old_plain//./\\.}"
 
-web_file="/Users/mason/Documents/github/agentlas/AgentsAtlas/app/src/components/install/InstallGuide.tsx"
+# Optional: path to the Agentlas Web InstallGuide.tsx (ONE_TOUCH_CMD pin).
+# Set AGENTLAS_WEB_INSTALL_GUIDE locally; unset means the web pin is skipped.
+web_file="${AGENTLAS_WEB_INSTALL_GUIDE:-}"
 
 # Tag form (vX.Y.Z) in shell scripts + docs; quoted plain form ("X.Y.Z") in JSON manifests.
 targets="$(grep -rl -e "v${old_re}" -e "\"${old_re}\"" \

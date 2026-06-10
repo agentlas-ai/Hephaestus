@@ -6,15 +6,23 @@ from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
-from .embeddings import LocalHashingVectorAdapter, cosine_similarity, tokenize
+from .embeddings import CJK_RUN_PATTERN, LATIN_TOKEN_PATTERN, LocalHashingVectorAdapter, cosine_similarity, tokenize
 from .parsers import ParsedRecord, SourceParserRegistry
 from .utils import clamp, content_hash, estimate_tokens, json_dumps, json_loads, normalize_name, normalized_key, stable_hash, utc_now
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 DEFAULT_DB_PATH = Path(".agentlas/ontology-runtime.sqlite")
+
+# Hybrid retrieval (A-2/A-3): Reciprocal Rank Fusion over the FTS and vector
+# rankings, computed on a bounded candidate pool instead of a full-corpus
+# Python cosine pass.
+RRF_K = 60
+RRF_MISSING_RANK = 10_000
+VECTOR_FALLBACK_SCAN_CAP = 5_000
+MIN_VECTOR_SCORE = 0.05
 
 
 class DirectDurableMemoryWriteBlocked(RuntimeError):
@@ -25,7 +33,18 @@ class DirectDurableMemoryWriteBlocked(RuntimeError):
 class RuntimeConfig:
     db_path: Path | str = DEFAULT_DB_PATH
     chunk_token_limit: int = 220
+    chunk_overlap_ratio: float = 0.15
     working_memory_ttl_seconds: int = 3600
+    # A-4: optional host-runtime LLM hooks. Both default to None so path 1
+    # (zero-cost local search) stays the baseline; a host CLI runtime
+    # (Claude Code / Codex) can inject callables without any embedding API.
+    query_expansion_hook: Callable[[str], list[str]] | None = None
+    rerank_hook: Callable[[str, list[dict[str, Any]]], list[str]] | None = None
+    # When the hooks call a local model (e.g. Ollama) the data-sovereignty
+    # gate can be relaxed; cloud hooks never see chunks outside cloud_safe_scopes.
+    hooks_run_locally: bool = False
+    cloud_safe_scopes: tuple[str, ...] = ("public", "internal")
+    rerank_candidate_limit: int = 20
 
 
 class OntologyRuntime:
@@ -34,6 +53,8 @@ class OntologyRuntime:
         self.db_path = Path(self.config.db_path)
         self.parser_registry = SourceParserRegistry()
         self.vector_adapter = LocalHashingVectorAdapter()
+        self.fts_tokenizer = "unicode61"
+        self._expansion_cache: dict[str, list[str]] = {}
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.migrate()
 
@@ -94,12 +115,6 @@ class OntologyRuntime:
                   created_at TEXT NOT NULL,
                   updated_at TEXT NOT NULL,
                   UNIQUE(source_id, chunk_index, checksum)
-                );
-
-                CREATE VIRTUAL TABLE IF NOT EXISTS chunk_fts USING fts5(
-                  chunk_id UNINDEXED,
-                  text,
-                  tokenize='porter'
                 );
 
                 CREATE TABLE IF NOT EXISTS entities (
@@ -189,13 +204,30 @@ class OntologyRuntime:
                 );
                 """
             )
+            self.fts_tokenizer = self._ensure_fts_table(conn)
+            applied = {row[0] for row in conn.execute("SELECT version FROM schema_migrations")}
+            vector_config = {"provider": self.vector_adapter.name}
+            if hasattr(self.vector_adapter, "dimensions"):
+                vector_config["dimensions"] = self.vector_adapter.dimensions
+            needs_reindex = bool(applied) and max(applied) < SCHEMA_VERSION
+            stale_vector_rows = [
+                row
+                for row in conn.execute("SELECT name, config_json FROM runtime_adapters WHERE kind = 'vector'")
+                if row["name"] != self.vector_adapter.name
+                or json_loads(row["config_json"], {}).get("dimensions") != vector_config.get("dimensions")
+            ]
+            if needs_reindex or stale_vector_rows:
+                # v1 -> v2 changed the tokenizer (CJK bigrams), and an adapter
+                # or dimension switch invalidates stored vectors either way.
+                self._reindex_chunks(conn)
+                conn.execute(
+                    "DELETE FROM runtime_adapters WHERE kind = 'vector' AND name != ?",
+                    (self.vector_adapter.name,),
+                )
             conn.execute(
                 "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)",
                 (SCHEMA_VERSION, utc_now()),
             )
-            vector_config = {"provider": "local_hashing"}
-            if hasattr(self.vector_adapter, "dimensions"):
-                vector_config["dimensions"] = self.vector_adapter.dimensions
             conn.execute(
                 """
                 INSERT OR REPLACE INTO runtime_adapters(name, kind, status, config_json, updated_at)
@@ -203,11 +235,59 @@ class OntologyRuntime:
                 """,
                 (self.vector_adapter.name, "vector", self.vector_adapter.status, json_dumps(vector_config), utc_now()),
             )
+            conn.execute(
+                "INSERT OR REPLACE INTO runtime_adapters(name, kind, status, config_json, updated_at) VALUES (?, ?, ?, ?, ?)",
+                ("chunk_fts", "fts", "available", json_dumps({"tokenizer": self.fts_tokenizer}), utc_now()),
+            )
             for name, status in self.parser_registry.adapter_statuses():
                 conn.execute(
                     "INSERT OR REPLACE INTO runtime_adapters(name, kind, status, config_json, updated_at) VALUES (?, ?, ?, ?, ?)",
                     (name, "parser", status, "{}", utc_now()),
                 )
+
+    def _ensure_fts_table(self, conn: sqlite3.Connection) -> str:
+        desired = "trigram" if self._fts_trigram_supported(conn) else "unicode61"
+        row = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'chunk_fts'"
+        ).fetchone()
+        ddl = f"CREATE VIRTUAL TABLE chunk_fts USING fts5(chunk_id UNINDEXED, text, tokenize='{desired}')"
+        if row is None:
+            conn.execute(ddl)
+            return desired
+        if f"tokenize='{desired}'" in (row["sql"] or ""):
+            return desired
+        conn.execute("DROP TABLE chunk_fts")
+        conn.execute(ddl)
+        self._rebuild_fts_rows(conn)
+        return desired
+
+    def _fts_trigram_supported(self, conn: sqlite3.Connection) -> bool:
+        try:
+            conn.execute("CREATE VIRTUAL TABLE IF NOT EXISTS _fts_probe USING fts5(x, tokenize='trigram')")
+            supported = True
+        except sqlite3.OperationalError:
+            supported = False
+        try:
+            conn.execute("DROP TABLE IF EXISTS _fts_probe")
+        except sqlite3.OperationalError:
+            pass
+        return supported
+
+    def _rebuild_fts_rows(self, conn: sqlite3.Connection) -> None:
+        conn.execute("DELETE FROM chunk_fts")
+        rows = conn.execute("SELECT chunk_id, text FROM chunks").fetchall()
+        for row in rows:
+            conn.execute("INSERT INTO chunk_fts(chunk_id, text) VALUES (?, ?)", (row["chunk_id"], row["text"]))
+
+    def _reindex_chunks(self, conn: sqlite3.Connection) -> None:
+        rows = conn.execute("SELECT chunk_id, text FROM chunks").fetchall()
+        now = utc_now()
+        for row in rows:
+            conn.execute(
+                "UPDATE chunks SET vector_json = ?, updated_at = ? WHERE chunk_id = ?",
+                (json_dumps(self.vector_adapter.embed(row["text"])), now, row["chunk_id"]),
+            )
+        self._rebuild_fts_rows(conn)
 
     def ingest_path(self, path: str | Path, access_scope: str = "internal", parent_source_id: str | None = None) -> dict[str, Any]:
         root = Path(path)
@@ -274,6 +354,13 @@ class OntologyRuntime:
             "memory_candidate_suggestions": candidates,
             "working_memory": working_memory,
             "vector_adapter": {"name": self.vector_adapter.name, "status": self.vector_adapter.status},
+            "search": {
+                "fts_tokenizer": self.fts_tokenizer,
+                "fusion": "rrf",
+                "expanded_queries": self._expansion_cache.get(question, []),
+                "rerank_hook_enabled": self.config.rerank_hook is not None,
+                "hooks_run_locally": self.config.hooks_run_locally,
+            },
         }
 
     def graph_entity(self, name: str) -> dict[str, Any]:
@@ -468,6 +555,7 @@ class OntologyRuntime:
             "direct_durable_memory_write_blocked": direct_write_blocked,
             "storage_adapter": {"name": "sqlite", "status": "available", "path": str(self.db_path)},
             "vector_adapter": {"name": self.vector_adapter.name, "status": self.vector_adapter.status},
+            "fts_adapter": {"name": "chunk_fts", "status": "available", "tokenizer": self.fts_tokenizer},
         }
 
     def backup(self, destination: str | Path) -> dict[str, Any]:
@@ -615,19 +703,26 @@ class OntologyRuntime:
 
     def _chunk_records(self, records: list[ParsedRecord]) -> list[ParsedRecord]:
         chunks: list[ParsedRecord] = []
+        limit = self.config.chunk_token_limit
+        overlap = max(0, min(int(limit * self.config.chunk_overlap_ratio), limit - 1))
+        step = limit - overlap
         for record in records:
             words = record.text.split()
             if not words:
                 continue
-            if len(words) <= self.config.chunk_token_limit:
+            if len(words) <= limit:
                 chunks.append(record)
                 continue
-            for start in range(0, len(words), self.config.chunk_token_limit):
-                part = " ".join(words[start : start + self.config.chunk_token_limit])
+            start = 0
+            while start < len(words):
+                part = " ".join(words[start : start + limit])
                 span = dict(record.span)
                 span["token_start"] = start
-                span["token_end"] = min(len(words), start + self.config.chunk_token_limit)
+                span["token_end"] = min(len(words), start + limit)
                 chunks.append(ParsedRecord(part, span, dict(record.metadata)))
+                if start + limit >= len(words):
+                    break
+                start += step
         return chunks
 
     def _write_chunk(
@@ -731,11 +826,14 @@ class OntologyRuntime:
         return entity_id, inserted
 
     def _search_chunks(self, conn: sqlite3.Connection, question: str, scopes: list[str], limit: int) -> list[dict[str, Any]]:
-        candidates: dict[str, dict[str, Any]] = {}
-        tokens = [token for token in tokenize(question) if len(token) > 2]
         scope_marks = ", ".join(["?"] * len(scopes))
-        if tokens:
-            fts_query = " OR ".join(tokens)
+        pool: dict[str, dict[str, Any]] = {}
+        vectors: dict[str, list[float]] = {}
+        fts_order: list[str] = []
+        for query_text in [question, *self._expanded_queries(question)]:
+            match_expr = self._fts_match_expression(query_text)
+            if not match_expr:
+                continue
             try:
                 rows = conn.execute(
                     f"""
@@ -747,31 +845,129 @@ class OntologyRuntime:
                     ORDER BY rank
                     LIMIT ?
                     """,
-                    (fts_query, *scopes, limit * 4),
+                    (match_expr, *scopes, limit * 10),
                 ).fetchall()
-                for row in rows:
-                    item = self._chunk_row(row)
-                    item["full_text_score"] = 1.0 / (1.0 + abs(float(row["rank"])))
-                    candidates[item["chunk_id"]] = item
             except sqlite3.OperationalError:
-                pass
+                continue
+            for row in rows:
+                chunk_id = row["chunk_id"]
+                if chunk_id in pool:
+                    continue
+                item = self._chunk_row(row)
+                item["full_text_score"] = 1.0 / (1.0 + abs(float(row["rank"])))
+                pool[chunk_id] = item
+                vectors[chunk_id] = json_loads(row["vector_json"], [])
+                fts_order.append(chunk_id)
+        if len(pool) < limit:
+            # Recall fallback for queries with no FTS hits (or tiny pools):
+            # bounded scan instead of the old unbounded full-corpus pass.
+            rows = conn.execute(
+                f"""
+                SELECT c.*, s.uri AS source_uri, s.source_type
+                FROM chunks c JOIN sources s ON s.source_id = c.source_id
+                WHERE c.privacy_scope IN ({scope_marks})
+                ORDER BY c.updated_at DESC
+                LIMIT ?
+                """,
+                (*scopes, VECTOR_FALLBACK_SCAN_CAP),
+            ).fetchall()
+            for row in rows:
+                chunk_id = row["chunk_id"]
+                if chunk_id not in pool:
+                    item = self._chunk_row(row)
+                    item["full_text_score"] = self._keyword_score(question, row["text"])
+                    pool[chunk_id] = item
+                    vectors[chunk_id] = json_loads(row["vector_json"], [])
         query_vector = self.vector_adapter.embed(question)
-        rows = conn.execute(
-            f"""
-            SELECT c.*, s.uri AS source_uri, s.source_type
-            FROM chunks c JOIN sources s ON s.source_id = c.source_id
-            WHERE c.privacy_scope IN ({scope_marks})
-            """,
-            tuple(scopes),
-        ).fetchall()
-        for row in rows:
-            item = candidates.get(row["chunk_id"], self._chunk_row(row))
-            item["vector_score"] = max(0.0, cosine_similarity(query_vector, json_loads(row["vector_json"], [])))
-            item["full_text_score"] = item.get("full_text_score", self._keyword_score(question, row["text"]))
-            item["score"] = round(item["full_text_score"] * 0.65 + item["vector_score"] * 0.35, 6)
-            if item["score"] > 0:
-                candidates[item["chunk_id"]] = item
-        return sorted(candidates.values(), key=lambda item: item["score"], reverse=True)[:limit]
+        for chunk_id, item in pool.items():
+            item["vector_score"] = max(0.0, cosine_similarity(query_vector, vectors.get(chunk_id, [])))
+        vector_order = sorted(pool, key=lambda chunk_id: pool[chunk_id]["vector_score"], reverse=True)
+        fts_rank = {chunk_id: index for index, chunk_id in enumerate(fts_order)}
+        vector_rank = {chunk_id: index for index, chunk_id in enumerate(vector_order)}
+        relevant: list[dict[str, Any]] = []
+        for chunk_id, item in pool.items():
+            if (
+                chunk_id not in fts_rank
+                and item["vector_score"] < MIN_VECTOR_SCORE
+                and item.get("full_text_score", 0.0) <= 0.0
+            ):
+                continue
+            item["score"] = round(
+                1.0 / (RRF_K + fts_rank.get(chunk_id, RRF_MISSING_RANK))
+                + 1.0 / (RRF_K + vector_rank.get(chunk_id, RRF_MISSING_RANK)),
+                6,
+            )
+            relevant.append(item)
+        ranked = sorted(relevant, key=lambda item: item["score"], reverse=True)
+        ranked = self._apply_rerank_hook(question, ranked, limit)
+        return ranked[:limit]
+
+    def _fts_match_expression(self, question: str) -> str | None:
+        terms: list[str] = []
+        for token in LATIN_TOKEN_PATTERN.findall(question.lower()):
+            if len(token) > 2:
+                terms.append(token)
+        for run in CJK_RUN_PATTERN.findall(question):
+            if len(run) >= 2:
+                terms.append(run)
+        deduped = list(dict.fromkeys(terms))
+        if not deduped:
+            return None
+        return " OR ".join(f'"{term}"' for term in deduped)
+
+    def _expanded_queries(self, question: str) -> list[str]:
+        hook = self.config.query_expansion_hook
+        if hook is None:
+            return []
+        cached = self._expansion_cache.get(question)
+        if cached is not None:
+            return cached
+        try:
+            raw = hook(question) or []
+        except Exception:
+            raw = []
+        expansions: list[str] = []
+        for value in raw:
+            text = str(value).strip()
+            if text and text != question and text not in expansions:
+                expansions.append(text)
+            if len(expansions) >= 4:
+                break
+        self._expansion_cache[question] = expansions
+        return expansions
+
+    def _apply_rerank_hook(self, question: str, ranked: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+        hook = self.config.rerank_hook
+        if hook is None or not ranked:
+            return ranked
+        window_size = max(limit, self.config.rerank_candidate_limit)
+        window = ranked[:window_size]
+        if self.config.hooks_run_locally:
+            eligible = list(window)
+        else:
+            # Data-sovereignty gate: chunk text outside cloud_safe_scopes is
+            # never handed to a cloud-backed rerank hook; those chunks keep
+            # their fused-rank positions.
+            eligible = [item for item in window if item["privacy_scope"] in self.config.cloud_safe_scopes]
+        if not eligible:
+            return ranked
+        payload = [{"chunk_id": item["chunk_id"], "text": item["text"]} for item in eligible]
+        try:
+            preferred = [chunk_id for chunk_id in (hook(question, payload) or []) if isinstance(chunk_id, str)]
+        except Exception:
+            return ranked
+        eligible_ids = {item["chunk_id"] for item in eligible}
+        order = [chunk_id for chunk_id in dict.fromkeys(preferred) if chunk_id in eligible_ids]
+        order += [item["chunk_id"] for item in eligible if item["chunk_id"] not in order]
+        by_id = {item["chunk_id"]: item for item in window}
+        reordered = iter(order)
+        merged: list[dict[str, Any]] = []
+        for item in window:
+            if item["chunk_id"] in eligible_ids:
+                merged.append(by_id[next(reordered)])
+            else:
+                merged.append(item)
+        return merged + ranked[window_size:]
 
     def _keyword_score(self, question: str, text: str) -> float:
         query_tokens = set(tokenize(question))

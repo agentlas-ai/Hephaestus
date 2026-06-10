@@ -43,6 +43,14 @@ required_files=(
   "modes/single-agent-creator.md"
   "modes/team-builder.md"
   "modes/agentlas-packager.md"
+  "modes/ontology-backed-agent.md"
+  ".agentlas/contract-injection-map.json"
+  "examples/ontology-proposal-agent/README.md"
+  "examples/ontology-proposal-agent/agent.md"
+  "examples/ontology-proposal-agent/verify.sh"
+  "examples/ontology-proposal-agent/.agentlas/injected-contracts.json"
+  "scripts/sync-adapters.sh"
+  "scripts/verify-mcp-surface.sh"
   ".agents/agentlas-core-engine-meta-agent/agent.md"
   ".agents/plugins/marketplace.json"
   ".agentlas/mode-map.json"
@@ -253,6 +261,22 @@ for mode, payload in mode_map["modes"].items():
         value = payload[key]
         if not Path(value).exists():
             raise SystemExit(f"mode {mode} references missing {key}: {value}")
+for overlay, payload in mode_map.get("overlays", {}).items():
+    if not Path(payload["contract"]).exists():
+        raise SystemExit(f"overlay {overlay} references missing contract: {payload['contract']}")
+    for base in payload.get("composesWith", []):
+        if base not in mode_map["modes"]:
+            raise SystemExit(f"overlay {overlay} composes with unknown mode: {base}")
+
+injection = json.loads(Path(".agentlas/contract-injection-map.json").read_text(encoding="utf-8"))
+contract_names = set(injection.get("baseline", []))
+for trait in injection.get("traits", {}).values():
+    contract_names.update(trait["contracts"])
+for name in sorted(contract_names):
+    tpl = Path("templates") / f"{name}.json.tpl"
+    tpl_jsonl = Path("templates") / f"{name}.jsonl.tpl"
+    if not tpl.exists() and not tpl_jsonl.exists():
+        raise SystemExit(f"contract-injection-map references unknown template: {name}")
 PY
 
 if grep -R -nE '00-meta|05-mode|10-agent-repo|20-runtime|30-memory|40-pm|50-policy|60-eval|70-sitemap|80-llm' \
@@ -264,5 +288,8 @@ fi
 scripts/verify-install-docs.sh
 scripts/verify-global-command-contract.sh
 scripts/verify-ontology-runtime.sh
+scripts/sync-adapters.sh --check
+scripts/verify-mcp-surface.sh
+examples/ontology-proposal-agent/verify.sh
 
 echo "Package verification passed."

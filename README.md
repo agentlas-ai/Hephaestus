@@ -73,7 +73,7 @@ tells you the exact command to use next:
 
 ```text
 Set up the Hephaestus Agentlas meta-agent in this workspace. Run
-`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.12/scripts/install-all-runtimes.sh | bash`
+`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.3.0/scripts/install-all-runtimes.sh | bash`
 in the terminal, then tell me the exact /hephaestus command for the tool I am
 using (Claude Code, Codex, Gemini CLI, Antigravity, or Cursor). If anything
 fails, read the error, fix it, and retry.
@@ -117,7 +117,7 @@ common `Already added from a different source` marketplace conflict by removing
 the old `agentlas-core-engine` entry and adding it again from this repo.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.12/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.3.0/scripts/install-all-runtimes.sh | bash
 ```
 
 After it finishes, restart any open Claude Code, Codex, Gemini, or Antigravity
@@ -157,7 +157,7 @@ If you already installed the old `agentlas-meta-agent` plugin and Claude says
 `hephaestus` is not found, refresh the marketplace and replace the old plugin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.12/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.3.0/scripts/install-all-runtimes.sh | bash
 ```
 
 `/hephaestus ontology` opens a local SaaS-style ontology dashboard for the
@@ -192,7 +192,7 @@ Claude also supports `claude plugins ...` as an alias, but this README uses
 Open your normal OS terminal, not the Codex chat box, and run:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.12
+codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.3.0
 codex plugin add hephaestus@agentlas-core-engine
 ```
 
@@ -206,7 +206,7 @@ If Codex still shows `agentlas-meta-agent`, refresh the marketplace and replace
 the old plugin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.12/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.3.0/scripts/install-all-runtimes.sh | bash
 ```
 
 The Codex OS-terminal CLI command is singular: `codex plugin`, not
@@ -254,7 +254,7 @@ repo package files in your current project. Open macOS Terminal, Linux terminal,
 Windows Git Bash, or WSL in that project folder and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.12/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.3.0/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -262,9 +262,9 @@ scripts/public_safety_check.sh
 Windows PowerShell:
 
 ```powershell
-$zip = "$env:TEMP\hephaestus-v0.2.12.zip"
-$extract = "$env:TEMP\hephaestus-v0.2.12"
-Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.12.zip" -OutFile $zip
+$zip = "$env:TEMP\hephaestus-v0.3.0.zip"
+$extract = "$env:TEMP\hephaestus-v0.3.0"
+Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.3.0.zip" -OutFile $zip
 Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive $zip -DestinationPath $extract -Force
 $src = Get-ChildItem $extract -Directory | Select-Object -First 1
@@ -441,12 +441,23 @@ The public core is the architecture and foldering contract. Runtime-specific fol
 | Skill lifecycle registry | Ships candidate skill metadata, empty trial ledgers, and Curator decision ledgers before first-class recall |
 | Super Ontology candidate layer | Seeds public-safe graph and memory governance files for source lineage, privacy, task coverage, causality, consensus, repair, and reflexive feedback checks |
 | Production Ontology Runtime | Ingests local sources into SQLite/FTS chunks, entities, relations, GraphRAG retrieval, Memory Curator tickets, and Agent Working Memory cache |
+| Ontology-backed agent overlay | Routes corpus-dependent requests (`ontology_backed: true`) so builders activate the runtime, wire a retrieval-first workflow, and set `loop_policy` per risk tier |
+| Rule-based contract injection | `.agentlas/contract-injection-map.json` injects only the governance contracts matching the agent's task traits instead of all 26 |
 
 The default export state is conservative. Generated skills are searchable candidate metadata, not automatically promoted runtime behavior. A local Curator must see execution evidence, sealed holdout or replay proof, rollback coverage, and workspace policy approval before a skill becomes first-class recall.
 
 ### Production Ontology Runtime
 
 For knowledge-heavy personal or company agents, Hephaestus now ships a real local-first ontology runtime under `ontology/` with the executable CLI `bin/ontology`. It turns approved files into an agent-readable source archive, chunk store, full-text index, vector index, ontology graph, GraphRAG result, Memory Curator candidate ticket, and Agent Working Memory cache.
+
+**New in v0.3.0 — multilingual search and grounded-agent wiring:**
+
+- **CJK search works.** The tokenizer now emits character bigrams for Korean/Japanese/Chinese runs and the FTS index uses the `trigram` tokenizer, so Korean corpora (제안서/계약서/견적서, HWPX) are searchable with zero install. Existing databases migrate and re-index automatically on first open.
+- **RRF hybrid ranking.** Full-text and vector rankings fuse via Reciprocal Rank Fusion instead of mixed-scale fixed weights, on a bounded candidate pool (no full-corpus Python scan).
+- **Host-LLM search hooks (optional, zero extra cost).** A host CLI runtime (Claude Code / Codex) can inject query-expansion and rerank hooks — no embedding API or key needed. Chunks scoped private/confidential are never passed to cloud hooks; the gate is enforced inside the search pipeline.
+- **Chunk overlap.** Sliding windows now overlap 15% so context is not cut at chunk boundaries.
+- **Ontology-backed agent mode.** Builders can generate retrieval-first, citation-attached agents (see `modes/ontology-backed-agent.md` and the golden-path reference in `examples/ontology-proposal-agent/`), with governance contracts injected by rule and `loop_policy` (none / self-correct / verified) derived from task risk.
+- **Adapter drift gate + MCP surface check.** `scripts/sync-adapters.sh --check` keeps runtime adapters byte-identical to the canonical core, and `scripts/verify-mcp-surface.sh` guards the `agentlas` MCP registration contract across Claude Code, Codex, Gemini, and Antigravity.
 
 The Super Ontology files under `.agentlas/` remain the safety/governance layer. They define the source-lineage, privacy, task-coverage, causal, consensus, and memory-write gates around the runtime. The runtime is the implementation layer.
 
@@ -487,7 +498,7 @@ The runtime stack is layered:
 | Layer | Role |
 |---|---|
 | Source archive and chunk store | Stores source metadata, checksum, source type, parser status, version, privacy scope, lineage, chunks, source spans, token estimates, and checksums |
-| Search index | Uses SQLite FTS5 plus local hashing vectors; no API key is needed and source text stays local |
+| Search index | SQLite FTS5 (trigram, CJK-capable) plus local hashing vectors with CJK bigram tokens, fused with RRF; optional host-LLM query expansion/rerank hooks; no API key is needed and source text stays local |
 | Ontology graph | Stores entities, aliases, relations, confidence, evidence chunks, observed/valid time fields, source lineage, and active/stale/deprecated status |
 | GraphRAG retriever | Returns text evidence and graph slices together |
 | Memory Curator bridge | Creates candidate tickets only; direct durable memory writes are blocked |

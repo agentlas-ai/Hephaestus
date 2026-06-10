@@ -35,6 +35,27 @@ Choose the command from the generated package slug, for example
 `/research-agent`. Add the command while creating the package. Do not finish
 without telling the user the command for each runtime in `global_commands`.
 
+## Ontology-Backed Generation
+
+When mode classification applies the `ontology-backed-agent` overlay
+(`modes/ontology-backed-agent.md`), add these generation steps:
+
+- Activate the ontology runtime for the package: seed
+  `.agentlas/ontology-sources.json` and `.agentlas/ontology-inbox/`, and wire
+  `bin/ontology` (ingest / query / verify).
+- State a retrieval-first workflow in the generated `agent.md`: GraphRAG query
+  before generation, source refs (source_id + span) attached to corpus-backed
+  claims.
+- Resolve task traits against `.agentlas/contract-injection-map.json` and
+  inject only the matching contracts plus baseline. Write the resolved list to
+  the generated `.agentlas/injected-contracts.json`. Never blanket-inject.
+- Set `loop_policy` in the generated `agent.md` from the risk tier: `none`,
+  `self-correct`, or `verified`. External writes/sends force `verified` with a
+  separate-context verifier (no self-grading) and the side-effect-containment
+  human gate.
+- Keep private/confidential scope data on local paths only; cloud LLM hooks
+  and the cloud Hub MCP never receive those chunks.
+
 ## Self-Evolution Rule
 
 Self-evolution is proposal-first. The agent may collect sources, keep a

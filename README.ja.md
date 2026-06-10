@@ -42,7 +42,7 @@
 ```text
 このワークスペースに Hephaestus Agentlas メタエージェントをセットアップして。
 ターミナルで
-`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.12/scripts/install-all-runtimes.sh | bash`
+`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.3.0/scripts/install-all-runtimes.sh | bash`
 を実行し、私が使っているツール（Claude Code, Codex, Gemini CLI, Antigravity,
 Cursor）で使う正確な /hephaestus コマンドを教えて。失敗したらエラーを読んで
 直し、もう一度試して。
@@ -123,7 +123,7 @@ agentlas run agentlas-meta-agent "Package this workflow for Agentlas"
 package files を入れたい project folder で macOS Terminal、Linux terminal、Windows Git Bash、または WSL を開きます。
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.2.12/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.3.0/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -131,9 +131,9 @@ scripts/public_safety_check.sh
 Windows PowerShell:
 
 ```powershell
-$zip = "$env:TEMP\hephaestus-v0.2.12.zip"
-$extract = "$env:TEMP\hephaestus-v0.2.12"
-Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.2.12.zip" -OutFile $zip
+$zip = "$env:TEMP\hephaestus-v0.3.0.zip"
+$extract = "$env:TEMP\hephaestus-v0.3.0"
+Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.3.0.zip" -OutFile $zip
 Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive $zip -DestinationPath $extract -Force
 $src = Get-ChildItem $extract -Directory | Select-Object -First 1
@@ -174,7 +174,7 @@ Codex chat の中では `/plugin marketplace add` は使いません。Codex app
 **`codex` CLI が使える OS terminal で入力**:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.2.12
+codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.3.0
 codex plugin list
 codex plugin add hephaestus@agentlas-core-engine
 codex plugin list
@@ -247,6 +247,14 @@ Hephaestus は prompt だけを返すものではありません。他の runtim
 | "X を行う agent を作って" | `10-single-agent-builder` | skills、memory contracts、runtime adapters、verification を持つ single worker |
 | "この workflow の team/company を作って" | `20-multi-agent-team-builder` | HQ、PM Soul、Memory Curator、Policy Gate、eval、QA、handoff を持つ multi-agent team |
 | "既存 agent/repo/workspace を package して" | `30-agentlas-packager` | Desktop import、terminal、Codex、Claude、Gemini、public GitHub release に対応した Agentlas package |
+
+## v0.3.0 の新機能
+
+- **CJK 検索が動きます。** tokenizer が日本語/韓国語/中国語の文字 bigram を生成し、FTS index が `trigram` tokenizer を使うため、追加インストールなしで CJK コーパスを検索できます。既存 DB は初回オープン時に自動で再インデックスされます。
+- **RRF hybrid ranking。** full-text と vector の順位を固定重みではなく Reciprocal Rank Fusion で融合し、候補プールを制限して全コーパススキャンを排除しました。
+- **ホスト LLM 検索 hook（任意・追加コスト 0）。** Claude Code / Codex などのホスト runtime が query expansion / rerank hook を注入できます。embedding API は不要で、private/confidential scope の chunk は cloud hook に渡されません。
+- **Ontology-backed agent mode。** builder が retrieval-first・出典付きのエージェントを生成します（`modes/ontology-backed-agent.md`、参照実装 `examples/ontology-proposal-agent/`）。contract はルールベースで注入され、`loop_policy` はタスクのリスクから決まります。
+- **Adapter drift ガード + MCP surface チェック。** `scripts/sync-adapters.sh --check` と `scripts/verify-mcp-surface.sh` を追加。
 
 ## Architecture
 
