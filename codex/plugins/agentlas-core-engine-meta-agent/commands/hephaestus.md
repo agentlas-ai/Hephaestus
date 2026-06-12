@@ -17,8 +17,6 @@ for candidate in \
   "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/bin/hephaestus}" \
   "${CODEX_PLUGIN_ROOT:+$CODEX_PLUGIN_ROOT/bin/hephaestus}" \
   "${PLUGIN_ROOT:+$PLUGIN_ROOT/bin/hephaestus}" \
-  "$CODEX_HOME_DIR/plugins/cache/agentlas-core-engine/hephaestus/"*/bin/hephaestus \
-  "$CODEX_HOME_DIR/plugins/cache/agentlas-core-engine/agentlas-meta-agent/"*/bin/hephaestus \
   "./bin/hephaestus" \
   "./claude/plugins/agentlas-core-engine-meta-agent/bin/hephaestus" \
   "./codex/plugins/agentlas-core-engine-meta-agent/bin/hephaestus"
@@ -28,6 +26,13 @@ do
     break
   fi
 done
+if [ -z "$RUNNER" ]; then
+  for cache in "$HOME/.claude/plugins/cache/agentlas-core-engine/hephaestus" \
+               "${CODEX_HOME:-$HOME/.codex}/plugins/cache/agentlas-core-engine/hephaestus"; do
+    newest="$(ls -d "$cache"/*/bin/hephaestus 2>/dev/null | sort -V | tail -1)"
+    if [ -n "$newest" ] && [ -x "$newest" ]; then RUNNER="$newest"; break; fi
+  done
+fi
 if [ -z "$RUNNER" ]; then
   echo "Hephaestus runtime not found. Install the plugin or run the standalone installer first." >&2
   exit 1
