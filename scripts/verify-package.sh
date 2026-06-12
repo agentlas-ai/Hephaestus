@@ -292,13 +292,12 @@ scripts/sync-adapters.sh --check
 scripts/verify-mcp-surface.sh
 examples/ontology-proposal-agent/verify.sh
 
-# Hephaestus Network 2.0 routing-card gate.
-# Warn stage for missing cards (becomes blocking once the Hub accepts
-# routingCard on register); malformed cards fail immediately.
+# Hephaestus Network 2.0 routing-card gate (block stage — the Hub now
+# requires and validates routing cards at registration).
 if [[ -f ".agentlas/routing-card.json" ]]; then
   scripts/verify-routing-cards.sh . >/dev/null || fail "malformed routing card(s) under $(pwd)"
 else
-  echo "WARN: .agentlas/routing-card.json missing — this package is excluded from Hephaestus Network auto routing (warn stage)." >&2
+  fail ".agentlas/routing-card.json missing — packages without a routing card are blocked from publishing/registration (run: hephaestus cards migrate <root> --tier local)"
 fi
 
 echo "Package verification passed."

@@ -141,6 +141,29 @@
         "paid_api": { "type": "boolean" }
       }
     },
+    "produces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": { "type": "string" },
+          "path_hint": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "consumes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": { "type": "string" },
+          "required": { "type": "boolean" }
+        }
+      }
+    },
     "benchmark_fixtures": { "type": ["string", "null"] },
     "known_failure_cases": { "type": "array", "items": { "type": "string" } },
     "locale_coverage": {

@@ -49,7 +49,7 @@ done
 ## Examples
 
 ```text
-/hephaestus-network 인스타그램 마케팅 콘텐츠 만들어줘
-/hephaestus-network review this contract for legal risks
-@Hephaestus 웨딩 사진 보정 계획 세워줘
+/hephaestus-network turn these meeting notes into a weekly report
+/hephaestus-network 이 작업에 맞는 에이전트 찾아줘
+@Hephaestus draft a launch plan for my product
 ```

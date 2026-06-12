@@ -72,6 +72,23 @@ def token_set(text: str) -> set[str]:
     return set(tokenize(text))
 
 
+def word_token_set(text: str) -> set[str]:
+    """Like token_set but without Hangul bigrams — used as the denominator
+    when computing trigger coverage so bigrams add recall, not dilution."""
+    tokens: set[str] = set()
+    for raw in TOKEN_RE.findall((text or "").lower()):
+        if HANGUL_RE.match(raw):
+            word = _strip_korean_word(raw)
+            if len(word) < 2 or word in KO_FILLERS:
+                continue
+            tokens.add(word)
+        else:
+            if len(raw) < 2 or raw in EN_FILLERS:
+                continue
+            tokens.add(raw)
+    return tokens
+
+
 def has_hangul(text: str) -> bool:
     return bool(re.search(r"[가-힣]", text or ""))
 

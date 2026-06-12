@@ -1,6 +1,6 @@
-<svg width="1600" height="1010" viewBox="0 0 1600 1010" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+<svg width="1600" height="1150" viewBox="0 0 1600 1150" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
   <title id="title">Hephaestus Network 2.0 — Local-first A2A Networking</title>
-  <desc id="desc">Runtimes call the global Hephaestus orchestrator on the local machine; a deterministic router scores standardized routing cards, executes local agents behind approval gates, keeps memory local, and falls back to the Agentlas Hub over A2A/MCP discovery only with user approval and redacted keywords.</desc>
+  <desc id="desc">Three bands: AI runtimes on top, the global local-first Hephaestus orchestrator in the middle (router, routing cards, local agents, approval gates, local memory, receipts), and the Agentlas Hub at the bottom connected only through approval-gated A2A/MCP discovery. Raw prompts and local memory never leave the machine.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L10,5 L0,10 Z" fill="#1f4e79"/>
@@ -8,158 +8,159 @@
     <marker id="arrowGold" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L10,5 L0,10 Z" fill="#9a6a13"/>
     </marker>
-    <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L10,5 L0,10 Z" fill="#a33a2e"/>
-    </marker>
     <style>
       .bg { fill: #ffffff; }
-      .paper { fill: #fbfcfe; stroke: #c8d3df; stroke-width: 1.4; }
       .layer { fill: #f4f7fb; stroke: #8aa3bd; stroke-width: 1.2; }
       .layer2 { fill: #f7faf7; stroke: #9ab58c; stroke-width: 1.2; }
       .layer3 { fill: #fffaf2; stroke: #c9a45c; stroke-width: 1.2; }
-      .box { fill: #ffffff; stroke: #1d2b3a; stroke-width: 1.4; }
       .boxBlue { fill: #eef6ff; stroke: #1f4e79; stroke-width: 1.5; }
       .boxGreen { fill: #f1f8f1; stroke: #39733c; stroke-width: 1.5; }
       .boxGold { fill: #fff8e8; stroke: #9a6a13; stroke-width: 1.5; }
       .boxRed { fill: #fdf2f0; stroke: #a33a2e; stroke-width: 1.5; }
+      .boxWhite { fill: #ffffff; stroke: #1d2b3a; stroke-width: 1.4; }
       .title { font: 700 30px "Georgia", "Times New Roman", serif; fill: #15212e; }
       .subtitle { font: 400 17px "Georgia", serif; fill: #44546a; }
-      .h { font: 700 18px "Georgia", serif; fill: #1d2b3a; }
-      .h2 { font: 700 16px "Georgia", serif; fill: #1f4e79; }
-      .t { font: 400 14px "Helvetica Neue", Arial, sans-serif; fill: #2b3a4a; }
-      .ts { font: 400 12.5px "Helvetica Neue", Arial, sans-serif; fill: #4c5d70; }
+      .h { font: 700 19px "Georgia", serif; fill: #1d2b3a; }
+      .h2 { font: 700 15.5px "Georgia", serif; fill: #1f4e79; }
+      .h2g { font: 700 15.5px "Georgia", serif; fill: #39733c; }
+      .h2r { font: 700 15.5px "Georgia", serif; fill: #a33a2e; }
+      .h2o { font: 700 15.5px "Georgia", serif; fill: #9a6a13; }
+      .t { font: 400 13.5px "Helvetica Neue", Arial, sans-serif; fill: #2b3a4a; }
+      .tc { font: 600 14.5px "Helvetica Neue", Arial, sans-serif; fill: #1d2b3a; }
+      .ts { font: 400 12px "Helvetica Neue", Arial, sans-serif; fill: #5b6c7e; }
       .mono { font: 500 13px "SF Mono", "Menlo", monospace; fill: #1f4e79; }
       .edge { stroke: #1f4e79; stroke-width: 1.6; marker-end: url(#arrow); }
-      .edgeGold { stroke: #9a6a13; stroke-width: 1.6; stroke-dasharray: 7 5; marker-end: url(#arrowGold); }
-      .edgeRed { stroke: #a33a2e; stroke-width: 1.6; stroke-dasharray: 3 4; marker-end: url(#arrowRed); }
+      .edgeGold { stroke: #9a6a13; stroke-width: 1.8; stroke-dasharray: 7 5; marker-end: url(#arrowGold); }
       .lbl { font: 600 12.5px "Helvetica Neue", Arial, sans-serif; fill: #1f4e79; }
       .lblGold { font: 600 12.5px "Helvetica Neue", Arial, sans-serif; fill: #9a6a13; }
-      .lblRed { font: 600 12.5px "Helvetica Neue", Arial, sans-serif; fill: #a33a2e; }
+      .lblRed { font: 600 13px "Helvetica Neue", Arial, sans-serif; fill: #a33a2e; }
     </style>
   </defs>
 
-  <rect class="bg" width="1600" height="1010"/>
-  <text class="title" x="60" y="58">Hephaestus Network 2.0 — Local-first A2A Networking</text>
-  <text class="subtitle" x="60" y="86">Any runtime → global orchestrator → routing cards → local agents · Agentlas Hub only as an approved fallback</text>
+  <rect class="bg" width="1600" height="1150"/>
+  <text class="title" x="60" y="56">Hephaestus Network 2.0 — Local-first A2A Networking</text>
+  <text class="subtitle" x="60" y="84">Any runtime → one global orchestrator → routing cards → local agents. The Hub is an approved fallback, never a requirement.</text>
 
-  <!-- Layer 1: runtimes -->
-  <rect class="layer" x="60" y="110" width="1480" height="120" rx="10"/>
-  <text class="h" x="84" y="140">AI Runtimes</text>
-  <text class="mono" x="84" y="162">/hephaestus-network &lt;request&gt; · @Hephaestus &lt;request&gt; · hephaestus "&lt;request&gt;"</text>
-  <g>
-    <rect class="boxBlue" x="380" y="130" width="170" height="64" rx="8"/>
-    <text class="t" x="409" y="167">Claude Code</text>
-    <rect class="boxBlue" x="570" y="130" width="150" height="64" rx="8"/>
-    <text class="t" x="617" y="167">Codex</text>
-    <rect class="boxBlue" x="740" y="130" width="160" height="64" rx="8"/>
-    <text class="t" x="775" y="167">Gemini CLI</text>
-    <rect class="boxBlue" x="920" y="130" width="160" height="64" rx="8"/>
-    <text class="t" x="952" y="167">Antigravity</text>
-    <rect class="boxBlue" x="1100" y="130" width="140" height="64" rx="8"/>
-    <text class="t" x="1140" y="167">Cursor</text>
-    <rect class="boxBlue" x="1260" y="130" width="250" height="64" rx="8"/>
-    <text class="t" x="1283" y="160">Terminal · AGENTS.md</text>
-    <text class="ts" x="1283" y="180">Gemma / Hermes-like fallbacks</text>
-  </g>
+  <!-- ───────────── Band 1 · Runtimes ───────────── -->
+  <rect class="layer" x="60" y="108" width="1480" height="138" rx="10"/>
+  <text class="h" x="84" y="136">AI Runtimes</text>
+  <text class="mono" x="240" y="136">/hephaestus-network &lt;request&gt;  ·  @Hephaestus &lt;request&gt;  ·  hephaestus "&lt;request&gt;"</text>
 
-  <line class="edge" x1="800" y1="230" x2="800" y2="276"/>
-  <text class="lbl" x="816" y="262">one shared local entry point — no per-runtime copies</text>
+  <rect class="boxBlue" x="84"   y="176" width="200" height="50" rx="8"/>
+  <text class="tc" x="135" y="207">Claude Code</text>
+  <rect class="boxBlue" x="308"  y="176" width="140" height="50" rx="8"/>
+  <text class="tc" x="354" y="207">Codex</text>
+  <rect class="boxBlue" x="472"  y="176" width="170" height="50" rx="8"/>
+  <text class="tc" x="517" y="207">Gemini CLI</text>
+  <rect class="boxBlue" x="666"  y="176" width="170" height="50" rx="8"/>
+  <text class="tc" x="709" y="207">Antigravity</text>
+  <rect class="boxBlue" x="860"  y="176" width="130" height="50" rx="8"/>
+  <text class="tc" x="901" y="207">Cursor</text>
+  <rect class="boxBlue" x="1014" y="176" width="240" height="50" rx="8"/>
+  <text class="tc" x="1060" y="207">Terminal · CLI</text>
+  <rect class="boxBlue" x="1278" y="176" width="238" height="50" rx="8"/>
+  <text class="tc" x="1296" y="200">AGENTS.md runtimes</text>
+  <text class="ts" x="1296" y="218">Gemma · Hermes-like (fallback)</text>
 
-  <!-- Layer 2: global orchestrator -->
-  <rect class="layer2" x="60" y="280" width="1110" height="610" rx="10"/>
-  <text class="h" x="84" y="312">Global Hephaestus Orchestrator — your machine</text>
-  <text class="mono" x="84" y="334">~/.agentlas/networking/ · first runtime initializes, every runtime reuses</text>
+  <line class="edge" x1="800" y1="246" x2="800" y2="288"/>
+  <text class="lbl" x="818" y="274">one shared local entry point — no per-runtime copies</text>
 
-  <!-- router -->
-  <rect class="boxBlue" x="90" y="356" width="500" height="170" rx="8"/>
-  <text class="h2" x="110" y="384">Deterministic Router (no LLM)</text>
-  <text class="t" x="110" y="410">1 explicit commands &amp; aliases</text>
-  <text class="t" x="110" y="432">2 project .agentlas/routing-overrides.json</text>
-  <text class="t" x="110" y="454">3 score routing cards (ko/en tokens, anti-triggers,</text>
-  <text class="t" x="128" y="474">breadth penalty, locale gates)</text>
-  <text class="t" x="110" y="498">4 route · clarify · hub fallback · propose new</text>
-  <text class="ts" x="110" y="518">loop guard (max hops) · stale &amp; malformed cards excluded</text>
+  <!-- ───────────── Band 2 · Global orchestrator ───────────── -->
+  <rect class="layer2" x="60" y="292" width="1480" height="470" rx="10"/>
+  <text class="h" x="84" y="322">Global Hephaestus Orchestrator — your machine</text>
+  <text class="mono" x="640" y="322">~/.agentlas/networking/ — first runtime initializes, every runtime reuses</text>
 
-  <!-- cards registry -->
-  <rect class="box" x="630" y="356" width="510" height="170" rx="8"/>
-  <text class="h2" x="650" y="384">Routing Cards — source of truth</text>
-  <text class="t" x="650" y="410">cards/{agents,teams,plugins}/*.json · registry.sqlite (cache)</text>
-  <text class="t" x="650" y="432">triggers · anti-triggers · capabilities · risk · memory behavior</text>
-  <text class="t" x="650" y="454">quality gates: draft → searchable → routing_ready → trusted</text>
-  <text class="ts" x="650" y="478">below routing_ready = never auto-routed · benchmark-gated</text>
-  <text class="ts" x="650" y="498">sources.json: explicitly registered paths only — no home scan</text>
+  <!-- Row 1 -->
+  <rect class="boxBlue" x="90" y="346" width="440" height="178" rx="8"/>
+  <text class="h2" x="110" y="374">Deterministic Router — no LLM</text>
+  <text class="t" x="110" y="400">1. explicit commands &amp; aliases</text>
+  <text class="t" x="110" y="422">2. project routing-overrides.json</text>
+  <text class="t" x="110" y="444">3. score routing cards — ko/en tokens,</text>
+  <text class="t" x="126" y="464">anti-triggers, breadth &amp; locale gates</text>
+  <text class="t" x="110" y="488">4. route · clarify · hub fallback · propose new</text>
+  <text class="ts" x="110" y="510">loop guard · stale &amp; malformed cards excluded</text>
 
-  <!-- local agents -->
-  <rect class="boxGreen" x="90" y="556" width="500" height="130" rx="8"/>
-  <text class="h2" x="110" y="584">Local Agents · Teams · Plugins</text>
-  <text class="t" x="110" y="610">Forge Free 74 · Paid 12 · plugins · user-created</text>
-  <text class="t" x="110" y="632">repackaged local agents · Hub-installed agents</text>
-  <text class="ts" x="110" y="656">every package ships .agentlas/routing-card.json</text>
+  <rect class="boxWhite" x="560" y="346" width="460" height="178" rx="8"/>
+  <text class="h2" x="580" y="374">Routing Cards — source of truth</text>
+  <text class="t" x="580" y="400">cards/*.json  ·  registry.sqlite (rebuildable cache)</text>
+  <text class="t" x="580" y="422">triggers · anti-triggers · capabilities · risk · memory</text>
+  <text class="t" x="580" y="444">draft → searchable → candidate → ready → trusted</text>
+  <text class="ts" x="580" y="468">below routing_ready: search-only, never auto-routed</text>
+  <text class="ts" x="580" y="488">sources.json — registered paths only, no home scan</text>
 
-  <!-- approval gate -->
-  <rect class="boxRed" x="630" y="556" width="510" height="130" rx="8"/>
-  <text class="h2" x="650" y="584">Approval Gates — user says yes first</text>
-  <text class="t" x="650" y="610">file_write · cloud_call · payment · publish · delete</text>
-  <text class="t" x="650" y="632">private_data_export · external_tool</text>
-  <text class="ts" x="650" y="656">grants ledger: per_call / session / project / global + TTL</text>
+  <rect class="boxGreen" x="1050" y="346" width="460" height="178" rx="8"/>
+  <text class="h2g" x="1070" y="374">Local Agents · Teams · Plugins</text>
+  <text class="t" x="1070" y="400">Forge Free 74 · Paid 12 · plugins 23</text>
+  <text class="t" x="1070" y="422">user-created · repackaged · Hub-installed</text>
+  <text class="ts" x="1070" y="446">every package ships .agentlas/routing-card.json</text>
+  <text class="ts" x="1070" y="466">registration without a routing card is blocked</text>
 
-  <!-- memory + receipts -->
-  <rect class="box" x="90" y="716" width="500" height="148" rx="8"/>
-  <text class="h2" x="110" y="744">Local Hierarchical Memory</text>
-  <text class="t" x="110" y="770">user_global → project .agentlas/ → session</text>
-  <text class="t" x="110" y="792">routing profile · structured summaries · corrections only</text>
-  <text class="ts" x="110" y="816">no raw prompts, secrets, or transcripts — ever</text>
-  <text class="ts" x="110" y="836">capability may come from the Hub; memory never leaves</text>
+  <!-- Row 2 -->
+  <rect class="boxRed" x="90" y="556" width="440" height="170" rx="8"/>
+  <text class="h2r" x="110" y="584">Approval Gates — you say yes first</text>
+  <text class="t" x="110" y="610">file_write · cloud_call · payment · publish</text>
+  <text class="t" x="110" y="632">delete · private_data_export · external_tool</text>
+  <text class="ts" x="110" y="656">grants ledger: per_call / session / project / global</text>
+  <text class="ts" x="110" y="676">nothing high-risk ever auto-runs</text>
 
-  <rect class="box" x="630" y="716" width="510" height="148" rx="8"/>
-  <text class="h2" x="650" y="744">Routing Receipts &amp; Ledgers</text>
-  <text class="t" x="650" y="770">routing-decisions.jsonl · executions.jsonl · capability-grants.jsonl</text>
-  <text class="t" x="650" y="792">normalized redacted tokens + scores + decision</text>
-  <text class="ts" x="650" y="816">benchmark gate: top-3 recall ≥ 90% · unsafe routes = 0</text>
+  <rect class="boxWhite" x="560" y="556" width="460" height="170" rx="8"/>
+  <text class="h2" x="580" y="584">Local Hierarchical Memory</text>
+  <text class="t" x="580" y="610">user_global → project .agentlas/ → session</text>
+  <text class="t" x="580" y="632">structured summaries · preferences · corrections</text>
+  <text class="ts" x="580" y="656">no raw prompts, secrets, or transcripts — ever</text>
+  <text class="ts" x="580" y="676">capability may come from the Hub; memory never leaves</text>
 
-  <!-- internal edges -->
-  <line class="edge" x1="590" y1="440" x2="630" y2="440"/>
-  <line class="edge" x1="340" y1="526" x2="340" y2="556"/>
-  <text class="lbl" x="356" y="548">route (high confidence, low risk)</text>
-  <line class="edge" x1="885" y1="526" x2="885" y2="556"/>
-  <text class="lbl" x="901" y="548">high-risk capability → ask first</text>
-  <line class="edge" x1="340" y1="686" x2="340" y2="716"/>
-  <line class="edge" x1="885" y1="686" x2="885" y2="716"/>
+  <rect class="boxWhite" x="1050" y="556" width="460" height="170" rx="8"/>
+  <text class="h2" x="1070" y="584">Routing Receipts &amp; Ledgers</text>
+  <text class="t" x="1070" y="610">routing-decisions · executions · capability-grants</text>
+  <text class="t" x="1070" y="632">redacted tokens + scores + decision, per receipt</text>
+  <text class="ts" x="1070" y="656">benchmark gate: top-3 recall ≥ 90% · unsafe routes = 0</text>
+  <text class="ts" x="1070" y="676">quality is measured, not claimed</text>
 
-  <!-- Layer 3: hub -->
-  <rect class="layer3" x="1210" y="280" width="330" height="610" rx="10"/>
-  <text class="h" x="1234" y="312">Agentlas Hub</text>
-  <text class="mono" x="1234" y="334">agentlas.cloud</text>
+  <!-- internal edges (no crossings) -->
+  <line class="edge" x1="530" y1="435" x2="560" y2="435"/>
+  <line class="edge" x1="1020" y1="435" x2="1050" y2="435"/>
+  <line class="edge" x1="310" y1="524" x2="310" y2="556"/>
+  <text class="lbl" x="326" y="546">high-risk capability → ask first</text>
+  <line class="edge" x1="1280" y1="524" x2="1280" y2="556"/>
+  <text class="lbl" x="1296" y="546">every run leaves a receipt</text>
 
-  <rect class="boxGold" x="1234" y="356" width="282" height="128" rx="8"/>
-  <text class="h2" x="1252" y="384">A2A / MCP Discovery</text>
-  <text class="t" x="1252" y="410">marketplace.search_agents</text>
-  <text class="t" x="1252" y="432">agentlas.resolve_plugins</text>
-  <text class="ts" x="1252" y="456">.well-known/agent cards (a2a-1.0-draft)</text>
+  <!-- ───────────── Gap · Hub connection (approval-gated) ───────────── -->
+  <line class="edgeGold" x1="360" y1="762" x2="360" y2="836"/>
+  <text class="lblGold" x="382" y="792">approved fallback — only redacted keywords,</text>
+  <text class="lblGold" x="382" y="810">never your raw prompt</text>
 
-  <rect class="boxGold" x="1234" y="516" width="282" height="120" rx="8"/>
-  <text class="h2" x="1252" y="544">Cloud Agents · Teams</text>
-  <text class="t" x="1252" y="570">installable packages</text>
-  <text class="t" x="1252" y="592">cloud-callable agents</text>
-  <text class="ts" x="1252" y="616">register requires a routing card</text>
+  <rect class="boxRed" x="640" y="770" width="430" height="58" rx="10"/>
+  <text class="lblRed" x="664" y="794">✗ raw prompts · local memory · secrets — blocked</text>
+  <text class="ts" x="664" y="816">export requires an explicit user approval, every time</text>
 
-  <rect class="boxGold" x="1234" y="668" width="282" height="100" rx="8"/>
-  <text class="h2" x="1252" y="696">Offline-safe</text>
-  <text class="t" x="1252" y="722">hub-search cache → local-only</text>
-  <text class="ts" x="1252" y="744">Hub down ≠ routing down</text>
+  <line class="edgeGold" x1="1180" y1="836" x2="1180" y2="762"/>
+  <text class="lblGold" x="1202" y="792">agent &amp; team candidates — installing or</text>
+  <text class="lblGold" x="1202" y="810">cloud-calling needs another approval</text>
 
-  <!-- hub edges -->
-  <line class="edgeGold" x1="1140" y1="600" x2="1234" y2="480"/>
-  <text class="lblGold" x="1155" y="566">approved fallback:</text>
-  <text class="lblGold" x="1155" y="583">redacted keywords only</text>
-  <line class="edgeGold" x1="1234" y1="560" x2="1145" y2="640"/>
-  <text class="lblGold" x="1157" y="668">candidates — install or</text>
-  <text class="lblGold" x="1157" y="685">call needs a 2nd approval</text>
+  <!-- ───────────── Band 3 · Agentlas Hub ───────────── -->
+  <rect class="layer3" x="60" y="836" width="1480" height="230" rx="10"/>
+  <text class="h" x="84" y="866">Agentlas Hub</text>
+  <text class="mono" x="240" y="866">agentlas.cloud — A2A / MCP-compatible discovery</text>
 
-  <line class="edgeRed" x1="590" y1="800" x2="1234" y2="800"/>
-  <text class="lblRed" x="700" y="792">raw prompts · local memory · secrets — blocked (explicit export approval only)</text>
-  <text class="lblRed" x="700" y="822">✗ never sent by default</text>
+  <rect class="boxGold" x="90" y="892" width="440" height="148" rx="8"/>
+  <text class="h2o" x="110" y="920">A2A / MCP Discovery</text>
+  <text class="t" x="110" y="946">marketplace.search_agents</text>
+  <text class="t" x="110" y="968">agentlas.resolve_plugins</text>
+  <text class="ts" x="110" y="992">.well-known/agent cards (a2a-1.0-draft)</text>
 
-  <text class="ts" x="60" y="950">Receipts for every decision · clarify when confidence is low · propose a new agent when nothing matches locally or on the Hub.</text>
-  <text class="ts" x="60" y="972">Quality is benchmarked, not claimed: Korean + English suites gate auto-routing (top-3 recall ≥ 90%, zero unsafe routes, malformed cards quarantined).</text>
+  <rect class="boxGold" x="560" y="892" width="460" height="148" rx="8"/>
+  <text class="h2o" x="580" y="920">Cloud Agents &amp; Teams</text>
+  <text class="t" x="580" y="946">installable packages · cloud-callable agents</text>
+  <text class="t" x="580" y="968">routing cards validated at registration</text>
+  <text class="ts" x="580" y="992">your private memory is never required to use them</text>
+
+  <rect class="boxGold" x="1050" y="892" width="460" height="148" rx="8"/>
+  <text class="h2o" x="1070" y="920">Offline-safe</text>
+  <text class="t" x="1070" y="946">hub-search cache → local-only mode</text>
+  <text class="t" x="1070" y="968">Hub down ≠ routing down</text>
+  <text class="ts" x="1070" y="992">local cards keep working with zero network</text>
+
+  <text class="ts" x="60" y="1100">Every decision writes a receipt. Low confidence asks a clarifying question. No match anywhere proposes building a new agent with /hephaestus.</text>
+  <text class="ts" x="60" y="1122">Korean + English benchmark suites gate auto-routing: top-3 recall ≥ 90%, zero unsafe routes, malformed cards quarantined individually.</text>
 </svg>

@@ -24,7 +24,7 @@ from .card_store import load_global_cards
 from .hub_fallback import search_hub
 from .memory import load_profile, profile_adjustment, redact_tokens
 from .receipts import write_receipt
-from .tokenize import has_hangul, snake_tokens, token_set, tokenize
+from .tokenize import has_hangul, snake_tokens, token_set, tokenize, word_token_set
 
 RISK_KEYWORDS: dict[str, set[str]] = {
     "payment": {"결제", "지불", "환불", "청구", "구독결제", "payment", "refund", "billing", "checkout"},
@@ -38,36 +38,74 @@ PRIVATE_TERMS = {
     "memory", "memories", "private", "secret", "secrets", "transcript", "personal",
 }
 
+CLOUD_TERMS = {"클라우드", "cloud", "허브", "hub", "외부", "온라인", "online"}
+
+# Tokens shared by >= this fraction of all cards carry no routing signal
+# (e.g. "team", "평가", "pipeline" in an agent-engineering inventory).
+COMMON_TOKEN_DF = 0.15
+
 _LINT_CACHE: dict[str, str] = {}
+_INDEX_CACHE: dict[str, dict[str, Any]] = {}
+
+
+def _card_key(card: dict[str, Any]) -> str:
+    return f"{card.get('id')}::{(card.get('integrity') or {}).get('content_hash')}::{card.get('stale')}"
 
 
 def _cached_status(card: dict[str, Any]) -> str:
-    key = f"{card.get('id')}::{(card.get('integrity') or {}).get('content_hash')}::{card.get('stale')}"
+    key = _card_key(card)
     if key not in _LINT_CACHE:
         _LINT_CACHE[key] = effective_status(card)
     return _LINT_CACHE[key]
 
 
+def _cached_index(card: dict[str, Any]) -> dict[str, Any]:
+    key = _card_key(card)
+    if key not in _INDEX_CACHE:
+        _INDEX_CACHE[key] = _card_index(card)
+    return _INDEX_CACHE[key]
+
+
+def _common_tokens(cards: list[dict[str, Any]]) -> set[str]:
+    df: dict[str, int] = {}
+    for card in cards:
+        index = _cached_index(card)
+        seen: set[str] = set(index["name"]) | set(index["capabilities"]) | set(index["summary"])
+        for trigger_tokens, _words in index["triggers"]:
+            seen |= trigger_tokens
+        for token in seen:
+            df[token] = df.get(token, 0) + 1
+    threshold = max(3, int(COMMON_TOKEN_DF * len(cards)))
+    return {token for token, count in df.items() if count >= threshold}
+
+
 def _card_index(card: dict[str, Any]) -> dict[str, Any]:
-    name_tokens = token_set(
+    # Name matching is word-level only — bigram fuzz on names triples a single
+    # shared word ("파이프라인") into a near-route score.
+    name_tokens = word_token_set(
         " ".join(
             [str(card.get("name") or ""), str(card.get("name_ko") or ""), " ".join(card.get("aliases") or [])]
         )
     )
     tail = str(card.get("id") or "").split("/")[-1]
     name_tokens |= snake_tokens(tail)
+    # Each trigger keeps (all tokens incl. bigrams, word count). Bigrams add
+    # fuzzy recall to the numerator; the denominator stays word-based so
+    # Korean coverage is not diluted by its own bigrams.
     triggers = []
     for entry in card.get("trigger_examples") or []:
         if isinstance(entry, dict) and entry.get("text"):
             tokens = token_set(str(entry["text"]))
+            words = word_token_set(str(entry["text"]))
             if tokens:
-                triggers.append(tokens)
+                triggers.append((tokens, words))
     antis = []
     for entry in card.get("anti_triggers") or []:
         if isinstance(entry, dict) and entry.get("text"):
             tokens = token_set(str(entry["text"]))
+            words = word_token_set(str(entry["text"]))
             if tokens:
-                antis.append(tokens)
+                antis.append((tokens, max(1, len(words))))
     capability_tokens: set[str] = set()
     for capability in card.get("capabilities") or []:
         capability_tokens |= snake_tokens(str(capability))
@@ -81,50 +119,70 @@ def _card_index(card: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _score_card(card: dict[str, Any], query_tokens: set[str], profile: dict[str, Any], query_is_korean: bool, t_high: float) -> tuple[float, list[str]]:
-    index = _card_index(card)
+def _score_card(
+    card: dict[str, Any],
+    query_tokens: set[str],
+    profile: dict[str, Any],
+    query_is_korean: bool,
+    t_high: float,
+    common: set[str] | None = None,
+) -> tuple[float, list[str]]:
+    index = _cached_index(card)
+    common = common or set()
+    distinctive = query_tokens - common
     reasons: list[str] = []
     score = 0.0
 
-    name_hits = len(query_tokens & index["name"])
+    # Only distinctive tokens (rare across the card inventory) carry signal in
+    # name/capability/summary matching — a token like "team" or "평가" that
+    # appears on dozens of cards must not accumulate into a route.
+    name_hits = len(distinctive & index["name"])
     if name_hits == 1:
-        # A single shared name token (often a generic word like "team") is a
-        # weak signal — keep it below the clarify threshold on its own.
         score += 1.5
         reasons.append("name match x1 (weak)")
     elif name_hits:
         score += min(3.0 * name_hits, 9.0)
         reasons.append(f"name match x{name_hits}")
 
-    # A trigger only scores when the overlap is substantive: at least two
-    # shared tokens, or at least half the trigger covered. A single generic
-    # shared word ("plan", "콘텐츠") must not accumulate into a route.
-    ratios = sorted(
-        (
-            len(query_tokens & trigger) / max(1, len(trigger))
-            for trigger in index["triggers"]
-            if len(query_tokens & trigger) >= 2 or len(query_tokens & trigger) / max(1, len(trigger)) >= 0.5
-        ),
-        reverse=True,
-    )
-    if ratios and ratios[0] > 0:
-        score += 8.0 * ratios[0]
-        if len(ratios) > 1 and ratios[1] > 0:
-            score += 4.0 * ratios[1]
-        reasons.append(f"trigger overlap {ratios[0]:.2f}")
+    # Trigger scoring: substantive overlap only (two shared tokens or half the
+    # trigger covered). Overlap made of inventory-common tokens is damped to
+    # 40% — unless the query nearly restates the trigger verbatim (ratio >=
+    # 0.9), which is a strong signal even with common words.
+    # Eligibility counts WHOLE WORDS only — a single shared word inflated by
+    # its own bigrams ("파이프라인" → 5 tokens) must not qualify a trigger.
+    # Bigrams still contribute to the coverage ratio once a trigger qualifies.
+    weighted: list[float] = []
+    for trigger_tokens, trigger_word_set in index["triggers"]:
+        shared = query_tokens & trigger_tokens
+        shared_words = query_tokens & trigger_word_set
+        word_count = max(1, len(trigger_word_set))
+        ratio = min(1.0, len(shared) / word_count)
+        if len(shared_words) < 2:
+            continue
+        distinct_fraction = len(shared - common) / len(shared) if shared else 0.0
+        damp = 1.0 if ratio >= 0.9 else (0.4 + 0.6 * distinct_fraction)
+        weighted.append(ratio * damp)
+    weighted.sort(reverse=True)
+    if weighted and weighted[0] > 0:
+        score += 10.0 * weighted[0]
+        if len(weighted) > 1 and weighted[1] > 0:
+            score += 5.0 * weighted[1]
+        reasons.append(f"trigger overlap {weighted[0]:.2f}")
 
-    capability_hits = len(query_tokens & index["capabilities"])
+    capability_hits = len(distinctive & index["capabilities"])
     if capability_hits:
-        score += min(2.0 * capability_hits, 6.0)
+        score += min(2.0 * capability_hits, 4.0)
         reasons.append(f"capability match x{capability_hits}")
 
-    summary_hits = len(query_tokens & index["summary"])
+    summary_hits = len(distinctive & index["summary"])
     if summary_hits:
-        score += min(1.0 * summary_hits, 3.0)
+        score += min(1.0 * summary_hits, 2.0)
 
     anti_penalty = 0.0
-    for anti in index["antis"]:
-        if len(query_tokens & anti) / max(1, len(anti)) >= 0.6:
+    for anti_tokens, anti_words in index["antis"]:
+        shared = query_tokens & anti_tokens
+        ratio = min(1.0, len(shared) / anti_words)
+        if (len(shared - common) >= 1 and ratio >= 0.6) or len(shared - common) >= 3:
             anti_penalty -= 8.0
     if anti_penalty:
         anti_penalty = max(anti_penalty, -16.0)
@@ -282,10 +340,47 @@ def route_request(
         }
         return finish(result, [selected], ["explicit_match"])
 
+    # Short, generic creation requests ("새 에이전트 만들어줘") belong to the
+    # meta-agent creator — deterministic intent rule, ahead of card scoring.
+    create_words = {"만들", "생성", "새로", "create", "build", "make"}
+    agent_words = {"에이전트", "agent", "팀", "team", "플러그인", "plugin"}
+    lowered_query = query.lower()
+    query_words = word_token_set(query)
+    if (
+        len(query_words) <= 3
+        and any(word in lowered_query for word in create_words)
+        and (query_words & agent_words or "에이전트" in lowered_query)
+    ):
+        creator = next(
+            (
+                card
+                for card in usable
+                if "create_single_agent" in (card.get("capabilities") or [])
+                or "/hephaestus" in (card.get("aliases") or [])
+            ),
+            None,
+        )
+        if creator is not None:
+            selected = _selected_payload(creator, 98.0)
+            approvals = required_approvals(creator)
+            return finish(
+                {
+                    "action": "route",
+                    "selected": selected,
+                    "approval_request": build_approval_request(approvals, str(creator.get("id")), "card declares high-risk capabilities")
+                    if approvals
+                    else None,
+                    "reasons": ["creation intent → meta-agent creator"],
+                },
+                [selected],
+                ["creation_intent"],
+            )
+
     profile = load_profile(base)
+    common = _common_tokens(usable)
     scored: list[tuple[float, list[str], dict[str, Any]]] = []
     for card in usable:
-        score, reasons = _score_card(card, query_tokens, profile, locale == "ko", t_high)
+        score, reasons = _score_card(card, query_tokens, profile, locale == "ko", t_high, common=common)
         if score > 0:
             scored.append((score, reasons, card))
     scored.sort(key=lambda item: item[0], reverse=True)
@@ -304,9 +399,12 @@ def route_request(
     risk_hits = _risk_hits(query)
     privacy = _privacy_hit(query)
 
-    # Private data + export/publish intent is never routable, no matter how
-    # well a local card matches: it requires an explicit export approval first.
-    if privacy and ({"private_data_export", "publish"} & set(risk_hits)):
+    # Private data + an outbound destination (export verb or cloud/hub/online
+    # target) is never routable — explicit export approval comes first.
+    # Publish intent alone stays routable behind its approval gate: sanitizing
+    # private material BEFORE publishing is a legitimate local task.
+    cloud_intent = any(term in query.lower() for term in CLOUD_TERMS)
+    if privacy and ("private_data_export" in risk_hits or cloud_intent):
         return finish(
             {
                 "action": "refuse",

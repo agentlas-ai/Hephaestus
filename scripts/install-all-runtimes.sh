@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-version="${HEPHAESTUS_REF:-v0.4.0}"
+version="${HEPHAESTUS_REF:-v0.4.1}"
 repo="${HEPHAESTUS_REPO:-agentlas-ai/Hephaestus}"
 github_url="${HEPHAESTUS_GITHUB_URL:-https://github.com/$repo}"
 marketplace_name="${HEPHAESTUS_MARKETPLACE:-agentlas-core-engine}"
@@ -312,14 +312,28 @@ PY
 # install/upgrade (idempotent; indexes only registered paths, never the home
 # folder).
 bootstrap_networking() {
-  if ! have python3; then
-    warn "python3 not found; skipped Hephaestus Network init."
+  local py=""
+  if have python3; then
+    py="python3"
+  elif have python; then
+    py="python"
+  else
+    warn "python3 not found; skipped Hephaestus Network init. Install Python 3.9+ and run: hephaestus network init"
     return 0
   fi
-  ensure_downloaded_source || return 1
+  if ! ensure_downloaded_source; then
+    warn "Hephaestus Network init skipped: could not download the source archive (curl/tar). Run later: hephaestus network init"
+    return 0
+  fi
   log "== Hephaestus Network (global routing structure) =="
-  PYTHONPATH="$source_dir${PYTHONPATH:+:$PYTHONPATH}" python3 -m agentlas_cloud network init >/dev/null || return 1
-  PYTHONPATH="$source_dir${PYTHONPATH:+:$PYTHONPATH}" python3 -m agentlas_cloud network reindex >/dev/null || true
+  local init_output
+  if ! init_output="$(PYTHONPATH="$source_dir${PYTHONPATH:+:$PYTHONPATH}" "$py" -m agentlas_cloud network init 2>&1)"; then
+    warn "Hephaestus Network init failed. Error was:"
+    printf '%s\n' "$init_output" | tail -5 >&2
+    warn "Retry manually: PYTHONPATH=<hephaestus-source> $py -m agentlas_cloud network init"
+    return 1
+  fi
+  PYTHONPATH="$source_dir${PYTHONPATH:+:$PYTHONPATH}" "$py" -m agentlas_cloud network reindex >/dev/null 2>&1 || true
   log "Initialized ~/.agentlas/networking (cards, policies, ledgers, local memory map)."
 }
 

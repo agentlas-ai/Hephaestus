@@ -45,10 +45,10 @@
 ひとつのコマンドで、すべてのランタイムから、すべてローカルで:
 
 ```text
-/hephaestus-network 인스타그램 마케팅 콘텐츠 만들어줘
-/hephaestus-network review this contract for legal risks
-@Hephaestus plan a wedding photo shoot          # runtimes without slash commands
-hephaestus "summarize this research corpus"      # terminal
+/hephaestus-network 会議メモを週次レポートにまとめて
+/hephaestus-network 新製品のローンチ計画を下書きして
+@Hephaestus このフォルダの文書を整理して要約して   # スラッシュコマンド非対応ランタイム
+hephaestus "このタスクに合うエージェントを探して"   # ターミナル
 ```
 
 - **ルーティングカード。** すべての agent、team、plugin は、標準化された
@@ -84,7 +84,7 @@ hephaestus "summarize this research corpus"      # terminal
 ```text
 このワークスペースに Hephaestus Agentlas メタエージェントをセットアップして。
 ターミナルで
-`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.4.0/scripts/install-all-runtimes.sh | bash`
+`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.4.1/scripts/install-all-runtimes.sh | bash`
 を実行し、私が使っているツール（Claude Code, Codex, Gemini CLI, Antigravity,
 Cursor）で使う正確な /hephaestus コマンドを教えて。失敗したらエラーを読んで
 直し、もう一度試して。
@@ -165,7 +165,7 @@ agentlas run agentlas-meta-agent "Package this workflow for Agentlas"
 package files を入れたい project folder で macOS Terminal、Linux terminal、Windows Git Bash、または WSL を開きます。
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.4.0/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.4.1/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -173,9 +173,9 @@ scripts/public_safety_check.sh
 Windows PowerShell:
 
 ```powershell
-$zip = "$env:TEMP\hephaestus-v0.4.0.zip"
-$extract = "$env:TEMP\hephaestus-v0.4.0"
-Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.4.0.zip" -OutFile $zip
+$zip = "$env:TEMP\hephaestus-v0.4.1.zip"
+$extract = "$env:TEMP\hephaestus-v0.4.1"
+Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.4.1.zip" -OutFile $zip
 Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive $zip -DestinationPath $extract -Force
 $src = Get-ChildItem $extract -Directory | Select-Object -First 1
@@ -216,7 +216,7 @@ Codex chat の中では `/plugin marketplace add` は使いません。Codex app
 **`codex` CLI が使える OS terminal で入力**:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.4.0
+codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.4.1
 codex plugin list
 codex plugin add hephaestus@agentlas-core-engine
 codex plugin list
@@ -290,7 +290,7 @@ Hephaestus は prompt だけを返すものではありません。他の runtim
 | "この workflow の team/company を作って" | `20-multi-agent-team-builder` | HQ、PM Soul、Memory Curator、Policy Gate、eval、QA、handoff を持つ multi-agent team |
 | "既存 agent/repo/workspace を package して" | `30-agentlas-packager` | Desktop import、terminal、Codex、Claude、Gemini、public GitHub release に対応した Agentlas package |
 
-## v0.4.0 の新機能
+## v0.4.1 の新機能
 
 - **CJK 検索が動きます。** tokenizer が日本語/韓国語/中国語の文字 bigram を生成し、FTS index が `trigram` tokenizer を使うため、追加インストールなしで CJK コーパスを検索できます。既存 DB は初回オープン時に自動で再インデックスされます。
 - **RRF hybrid ranking。** full-text と vector の順位を固定重みではなく Reciprocal Rank Fusion で融合し、候補プールを制限して全コーパススキャンを排除しました。

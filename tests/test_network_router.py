@@ -71,8 +71,8 @@ def test_similar_cards_force_clarify(tmp_path):
     twin = make_ready_card(
         tmp_path,
         "insta-twin",
-        triggers_ko=["인스타그램 마케팅 콘텐츠 만들어줘", "인스타 릴스 캠페인"],
-        triggers_en=["create instagram marketing content", "instagram reels campaign", "instagram post ideas"],
+        triggers_ko=["인스타그램 마케팅 콘텐츠 만들어줘", "인스타 릴스 캠페인 기획해줘"],
+        triggers_en=["create instagram marketing content", "plan an instagram reels campaign", "instagram growth plan"],
         antis=["legal contract review", "ios deploy", "database design"],
         capabilities=["plan_instagram_content", "write_marketing_captions"],
     )

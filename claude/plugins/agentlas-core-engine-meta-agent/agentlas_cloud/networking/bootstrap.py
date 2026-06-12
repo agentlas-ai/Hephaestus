@@ -11,13 +11,27 @@ The user's home folder itself is never accepted as a source.
 
 from __future__ import annotations
 
-import fcntl
 import json
 import os
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+try:  # POSIX only — Windows runtimes fall back to best-effort, lock-free writes.
+    import fcntl
+
+    def _lock(handle) -> None:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+
+    def _unlock(handle) -> None:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+except ImportError:  # pragma: no cover
+    def _lock(handle) -> None:
+        return None
+
+    def _unlock(handle) -> None:
+        return None
 
 SCHEMA_VERSION = "2.0"
 
@@ -80,13 +94,13 @@ def append_jsonl(path: Path, record: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     line = json.dumps(record, ensure_ascii=False, sort_keys=True)
     with open(path, "a", encoding="utf-8") as handle:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        _lock(handle)
         try:
             handle.write(line + "\n")
             handle.flush()
             os.fsync(handle.fileno())
         finally:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            _unlock(handle)
 
 
 def read_jsonl(path: Path, limit: int | None = None) -> list[dict[str, Any]]:
@@ -216,7 +230,7 @@ def init_networking(home: Path | str | None = None) -> dict[str, Any]:
     base.mkdir(parents=True, exist_ok=True)
     lock_path = base / ".init.lock"
     with open(lock_path, "w", encoding="utf-8") as lock:
-        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        _lock(lock)
         try:
             created: list[str] = []
             existing: list[str] = []
@@ -265,7 +279,7 @@ def init_networking(home: Path | str | None = None) -> dict[str, Any]:
                 "migrated_from": migrated_from,
             }
         finally:
-            fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+            _unlock(lock)
 
 
 def _forbidden_source(path: Path) -> str | None:
