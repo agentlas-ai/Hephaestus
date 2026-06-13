@@ -76,6 +76,14 @@
 
 One command, every runtime, all local:
 
+<p align="center">
+  <img src="assets/hephaestus-network-mcp-demo.gif" alt="Hephaestus Network calls Hub MCP agents and returns a traceable summary">
+</p>
+
+<p align="center">
+  <sub>One prompt. Hub MCP agents only. Hephaestus shows which public agents it called, why, and what they decided.</sub>
+</p>
+
 ```text
 /hephaestus-network turn these meeting notes into a weekly report
 /hephaestus-network draft a launch plan for my product
