@@ -234,19 +234,29 @@ def _prepare_results(
     recommendation_intent: bool = False,
 ) -> list[dict[str, Any]]:
     local_terms = local_terms or set()
-    ranked = sorted(
-        results,
-        key=lambda item: (
-            _combined_score(item, query_tokens, local_terms, recommendation_intent),
-            _result_score(item, query_tokens),
-            _local_context_score(item, local_terms, query_tokens),
-            1 if item.get("routingReady") else 0,
-            1 if item.get("callable") else 0,
-            int(item.get("verifiedInvocations") or 0),
-            int(item.get("installCount") or 0),
-        ),
-        reverse=True,
-    )
+    # Client re-rank by query relevance with local inventory as a weak
+    # tiebreaker. The Hub's order is preserved as the final, stable tiebreaker
+    # (enumerate index) so that when the client has no stronger signal it does
+    # not churn the Hub's sophisticated ranking. Relevance (_combined_score) is
+    # specificity-aware via the Hub fields it reads, so this corrects a clearly
+    # off-query top result without inverting an already-good Hub order.
+    ranked = [
+        item
+        for _index, item in sorted(
+            enumerate(results),
+            key=lambda pair: (
+                _combined_score(pair[1], query_tokens, local_terms, recommendation_intent),
+                _result_score(pair[1], query_tokens),
+                _local_context_score(pair[1], local_terms, query_tokens),
+                1 if pair[1].get("routingReady") else 0,
+                1 if pair[1].get("callable") else 0,
+                int(pair[1].get("verifiedInvocations") or 0),
+                int(pair[1].get("installCount") or 0),
+                -pair[0],
+            ),
+            reverse=True,
+        )
+    ]
     deduped: list[dict[str, Any]] = []
     seen_slugs: set[str] = set()
     seen_signatures: set[str] = set()

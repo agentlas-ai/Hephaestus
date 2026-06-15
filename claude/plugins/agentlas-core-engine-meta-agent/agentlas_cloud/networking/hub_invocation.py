@@ -68,15 +68,53 @@ def invoke_hub_agent(
 
     try:
         bundle_response = call_hub_tool("agentlas.get_runtime_bundle", {"slug": selected_slug, "version": version}, home=base)
-        bundle = bundle_response.get("bundle") or {}
+        bundle = bundle_response.get("bundle") if isinstance(bundle_response.get("bundle"), dict) else None
+        if bundle is None:
+            return _record(
+                base,
+                {
+                    "action": "hub_invoke",
+                    "status": "bundle_unavailable",
+                    "slug": selected_slug,
+                    "request_hash": _request_hash(request),
+                    "routing_receipt_id": (hub_decision or {}).get("receipt_id"),
+                    "detail": _bundle_failure_detail(bundle_response),
+                    "hub_response": _bundle_response_summary(bundle_response),
+                    "local_slug_audit": local,
+                },
+            )
+        entry = bundle.get("entry") if isinstance(bundle.get("entry"), dict) else {}
+        package_hash = bundle.get("packageHash") or (bundle_response.get("version") or {}).get("current")
+        missing = _missing_runtime_bundle_fields(bundle, entry, package_hash)
+        if missing:
+            return _record(
+                base,
+                {
+                    "action": "hub_invoke",
+                    "status": "bundle_unavailable",
+                    "slug": selected_slug,
+                    "request_hash": _request_hash(request),
+                    "routing_receipt_id": (hub_decision or {}).get("receipt_id"),
+                    "detail": "Hub returned an incomplete runtime bundle.",
+                    "missing_fields": missing,
+                    "hub_response": _bundle_response_summary(bundle_response),
+                    "local_slug_audit": local,
+                },
+            )
         needs = _derive_plugin_needs(bundle)
         plugin_resolution = (
             call_hub_tool("agentlas.resolve_plugins", {"needs": needs, "localInventory": local_inventory or []}, home=base)
             if needs
             else {"skipped": "no plugin needs detected"}
         )
+        # Every borrowed Hub agent gets its OWN persistent local memory store, so
+        # it can reference what it learned on prior runs. Default to a per-agent
+        # path under the networking home when the caller does not pin one.
+        resolved_memory_root = (
+            Path(memory_root).expanduser() if memory_root else _default_memory_root(base, selected_slug)
+        )
         memory = _touch_agentlas_memory(
-            memory_root=Path(memory_root).expanduser() if memory_root else None,
+            memory_root=resolved_memory_root,
             slug=selected_slug,
             request=request,
             routing_receipt_id=(hub_decision or {}).get("receipt_id"),
@@ -97,23 +135,32 @@ def invoke_hub_agent(
         )
 
     execution_id = uuid.uuid4().hex[:16]
-    entry = bundle.get("entry") or {}
+    agent_id = _hub_agent_id(selected_slug)
+    grounding = _grounding_directive(
+        agent_id=agent_id,
+        memory_root=resolved_memory_root,
+        project_dir=Path(project_dir),
+        request=request,
+    )
     output = {
         "mode": "byom_runtime_bundle",
         "status": "bundle_ready",
         "agent": selected_slug,
+        "agent_id": agent_id,
         "agent_name": selected.get("nameEn") or selected.get("name"),
-        "package_hash": bundle.get("packageHash") or (bundle_response.get("version") or {}).get("current"),
+        "package_hash": package_hash,
         "entry_path": entry.get("path"),
         "entry_excerpt": _compact(entry.get("content") or "", 700),
         "prompt_summary": _compact(request, 260),
-        "next_step": "Caller runtime executes the returned entry instructions with its own model; Agentlas Hub itself does not run an LLM completion.",
+        "grounding": grounding,
+        "next_step": "Caller runtime executes the returned entry instructions with its own model; Agentlas Hub itself does not run an LLM completion. Follow `grounding.directive` to decide whether to consult this agent's local memory and the super ontology — do so only when the task needs grounding.",
     }
     record = {
         "action": "hub_invoke",
         "status": "prepared",
         "execution_id": execution_id,
         "slug": selected_slug,
+        "agent_id": agent_id,
         "kind": selected.get("kind"),
         "callable": bool(selected.get("callable", selected.get("kind") == "cloud-callable")),
         "request_hash": _request_hash(request),
@@ -185,6 +232,38 @@ def _derive_plugin_needs(bundle: dict[str, Any]) -> list[str]:
         if keyword in content:
             needs.add(keyword.replace(" ", ""))
     return sorted(needs)
+
+
+def _missing_runtime_bundle_fields(bundle: dict[str, Any], entry: dict[str, Any], package_hash: str | None) -> list[str]:
+    missing: list[str] = []
+    if not package_hash:
+        missing.append("packageHash")
+    if not entry.get("path"):
+        missing.append("entry.path")
+    if not entry.get("content"):
+        missing.append("entry.content")
+    if not isinstance(bundle.get("toolPermissions"), dict):
+        missing.append("toolPermissions")
+    return missing
+
+
+def _bundle_failure_detail(response: dict[str, Any]) -> str:
+    error = response.get("error")
+    status = response.get("status")
+    message = response.get("message")
+    missing = response.get("missingFields")
+    parts = [str(part) for part in (error, status, message) if part]
+    if missing:
+        parts.append(f"missingFields={missing}")
+    return "; ".join(parts) or "Hub returned no runtime bundle."
+
+
+def _bundle_response_summary(response: dict[str, Any]) -> dict[str, Any]:
+    summary: dict[str, Any] = {}
+    for key in ("error", "status", "message", "missingFields", "nextAction", "version"):
+        if key in response:
+            summary[key] = response[key]
+    return summary
 
 
 def _touch_agentlas_memory(
@@ -314,6 +393,67 @@ def _request_hash(request: str) -> str:
 
 def _norm_slug(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+
+
+def _hub_agent_id(slug: str) -> str:
+    # Stable per-agent id that also keys this borrowed agent's ontology working
+    # memory, so memory persists across invocations of the same Hub agent.
+    return f"hub:{_norm_slug(slug)}"
+
+
+def _default_memory_root(home: Path, slug: str) -> Path:
+    return home / "hub-agents" / _norm_slug(slug) / "memory"
+
+
+def _ontology_db_path(project_dir: Path) -> Path:
+    # The project-local "super ontology" the Hephaestus runtime ingests into.
+    return project_dir / ".agentlas" / "ontology-runtime.sqlite"
+
+
+def _grounding_directive(
+    *,
+    agent_id: str,
+    memory_root: Path,
+    project_dir: Path,
+    request: str,
+) -> dict[str, Any]:
+    """Tell the executing runtime HOW (and WHEN) to ground a borrowed agent.
+
+    The borrowed agent must reference its own local memory and the super
+    ontology ONLY when the task needs grounding (brand facts, prior decisions,
+    domain knowledge) — never unconditionally. Retrieval is relevance-gated
+    (ontology query returns nothing for unrelated tasks), and this directive
+    makes the host LLM the judge of whether to consult at all.
+    """
+
+    ontology_db = _ontology_db_path(project_dir)
+    return {
+        "agent_id": agent_id,
+        "memory_root": str(memory_root),
+        "ontology_db": str(ontology_db),
+        "policy": "selective",
+        "directive": (
+            "Decide if this task needs grounding (brand facts, prior decisions, domain context). "
+            "If yes: (1) read this borrowed agent's local memory under memory_root "
+            "(project-soul-memory.md, invocation-ledger.jsonl); (2) query the super ontology with "
+            "`ontology_query` below. If the task is trivial or self-contained, skip both. "
+            "Do not load all memory/ontology unconditionally — consult only when relevant."
+        ),
+        "commands": {
+            "ontology_query": (
+                f"python3 -m ontology query {_shell_quote(_compact(request, 160))} "
+                f"--agent {agent_id} --db {_shell_quote(str(ontology_db))}"
+            ),
+            "memory_read": f"cat {_shell_quote(str(memory_root / 'project-soul-memory.md'))}",
+            "working_memory_read": f"python3 -m ontology working-memory read --agent {agent_id} --db {_shell_quote(str(ontology_db))}",
+        },
+    }
+
+
+def _shell_quote(value: str) -> str:
+    if re.fullmatch(r"[A-Za-z0-9_./:@-]+", value or ""):
+        return value
+    return "'" + (value or "").replace("'", "'\\''") + "'"
 
 
 def _compact(value: str, limit: int) -> str:

@@ -61,6 +61,70 @@ def test_hub_invocation_fetches_bundle_and_updates_memory(tmp_path, monkeypatch)
     ]
 
 
+def test_hub_invocation_does_not_prepare_invalid_bundle(tmp_path, monkeypatch):
+    home = tmp_path / "networking"
+    init_networking(home)
+    calls = []
+
+    def fake_call(name, arguments=None, home=None, timeout=15):
+        calls.append((name, arguments or {}))
+        if name == "agentlas.get_runtime_bundle":
+            return {
+                "error": "manifest_invalid",
+                "status": "Needs setup",
+                "message": "agentlas.json is missing required fields.",
+                "missingFields": ["packageHash"],
+            }
+        raise AssertionError(name)
+
+    monkeypatch.setattr("agentlas_cloud.networking.hub_invocation.call_hub_tool", fake_call)
+
+    result = invoke_hub_agent(
+        "Run a Hub task.",
+        slug="broken-hub-agent",
+        hub_decision={
+            "action": "hub_candidates",
+            "receipt_id": "route123",
+            "hub": {"results": [{"slug": "broken-hub-agent", "kind": "cloud-callable", "callable": True}]},
+        },
+        memory_root=tmp_path / "agentlas-memory",
+        home=home,
+    )
+
+    assert result["status"] == "bundle_unavailable"
+    assert result["slug"] == "broken-hub-agent"
+    assert result["hub_response"]["error"] == "manifest_invalid"
+    assert "packageHash" in result["detail"]
+    assert [name for name, _ in calls] == ["agentlas.get_runtime_bundle"]
+    assert not (tmp_path / "agentlas-memory").exists()
+
+
+def test_hub_invocation_does_not_prepare_incomplete_bundle(tmp_path, monkeypatch):
+    home = tmp_path / "networking"
+    init_networking(home)
+
+    def fake_call(name, arguments=None, home=None, timeout=15):
+        if name == "agentlas.get_runtime_bundle":
+            return {"bundle": {"agent": arguments["slug"], "entry": {"path": "AGENTS.md", "content": ""}}}
+        raise AssertionError(name)
+
+    monkeypatch.setattr("agentlas_cloud.networking.hub_invocation.call_hub_tool", fake_call)
+
+    result = invoke_hub_agent(
+        "Run a Hub task.",
+        slug="incomplete-hub-agent",
+        hub_decision={
+            "action": "hub_candidates",
+            "receipt_id": "route123",
+            "hub": {"results": [{"slug": "incomplete-hub-agent", "kind": "cloud-callable", "callable": True}]},
+        },
+        home=home,
+    )
+
+    assert result["status"] == "bundle_unavailable"
+    assert result["missing_fields"] == ["packageHash", "entry.content", "toolPermissions"]
+
+
 def test_hub_invocation_blocks_paid_overlap(tmp_path):
     home = tmp_path / "networking"
     init_networking(home)

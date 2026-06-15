@@ -439,22 +439,75 @@ def route_request(
 
     top_score = auto_eligible[0][0] if auto_eligible else 0.0
     second_score = auto_eligible[1][0] if len(auto_eligible) > 1 else 0.0
+    confident_local = bool(
+        auto_eligible
+        and top_score >= t_high
+        and ((top_score - second_score) >= margin or second_score <= top_score * 0.7)
+    )
 
-    # Route when confident: clear absolute score, and either a clear margin or
-    # a second candidate that is mere noise relative to the winner.
-    if auto_eligible and top_score >= t_high and (
-        (top_score - second_score) >= margin or second_score <= top_score * 0.7
-    ):
+    # Multi-routing (Network 2.0): normal mode is local-first BUT also consults
+    # the Hub so a better Hub agent for a not-installed capability is surfaced
+    # next to local candidates — instead of clarifying on weak local matches or
+    # missing the Hub entirely. The Hub call uses only redacted keywords, is TTL
+    # cached, and is skipped for an overwhelmingly confident local route to keep
+    # the common path cheap. Toggle with policy `multi_route` (default on).
+    multi_route = bool(policy.get("multi_route", True))
+    overwhelming_local = confident_local and top_score >= max(t_high * 1.5, t_high + margin + 2.0)
+    hub: dict[str, Any] | None = None
+    if use_hub and not (overwhelming_local and not multi_route):
+        if multi_route or not confident_local:
+            hub = search_hub(hub_query_tokens, home=base, approved=True)
+    hub_ok = bool(hub and hub.get("status") == "ok" and hub.get("results"))
+    hub_clarify = bool(hub and hub.get("status") == "clarify")
+
+    # Confident local match → route locally (local-first wins), but attach Hub
+    # alternatives when present so the caller can still pick a better Hub agent.
+    if confident_local:
         top_card = auto_eligible[0][2]
         selected = _selected_payload(top_card, top_score)
-        result = {
+        result: dict[str, Any] = {
             "action": "route",
             "selected": selected,
             "candidates": candidates,
             "reasons": auto_eligible[0][1],
         }
-        return finish(result, candidates, ["confident_local_match"])
+        chain_note = ["confident_local_match"]
+        if hub_ok:
+            result["hub"] = hub
+            result["hub_alternatives"] = hub.get("results")
+            chain_note.append("multi_route_hub_alternatives")
+        return finish(result, candidates, chain_note)
 
+    # Not confident locally → multi-route: merge Hub candidates with local ones.
+    if hub_clarify:
+        return finish(
+            {
+                "action": "clarify",
+                "selected": None,
+                "candidates": candidates,
+                "hub": hub,
+                "suggestions": hub.get("suggestions") or (candidates + suggestions),
+                "clarify_question": hub.get("questionKo") or hub.get("question"),
+                "reasons": ["hub_low_confidence"],
+            },
+            candidates,
+            ["multi_route", "hub_clarify"],
+        )
+    if hub_ok:
+        return finish(
+            {
+                "action": "hub_candidates",
+                "selected": None,
+                "hub": hub,
+                "candidates": candidates,
+                "suggestions": (candidates + suggestions) or suggestions,
+                "reasons": ["multi_route_local_plus_hub"],
+            },
+            candidates,
+            ["multi_route", "hub_results_found"],
+        )
+
+    # Hub offline/empty (or disabled) → fall back to local-only behavior.
     if auto_eligible and top_score >= t_low:
         names = ", ".join(str(item["id"]) for item in candidates)
         question = (
@@ -468,42 +521,18 @@ def route_request(
             ["clarify_threshold"],
         )
 
-    # No usable local match → Hub fallback, then propose-new.
-    if use_hub:
-        hub = search_hub(hub_query_tokens, home=base, approved=True)
-        if hub.get("status") == "clarify":
-            return finish(
-                {
-                    "action": "clarify",
-                    "selected": None,
-                    "hub": hub,
-                    "suggestions": hub.get("suggestions") or suggestions,
-                    "clarify_question": hub.get("questionKo") or hub.get("question"),
-                    "reasons": ["hub_low_confidence"],
-                },
-                [],
-                ["hub_fallback", "hub_clarify"],
-            )
-        if hub.get("status") == "ok" and hub.get("results"):
-            return finish(
-                {
-                    "action": "hub_candidates",
-                    "selected": None,
-                    "hub": hub,
-                    "suggestions": suggestions,
-                    "reasons": ["hub_results_found"],
-                },
-                [],
-                ["hub_fallback"],
-            )
-        return finish(
-            {"action": "propose_new", "selected": None, "hub": hub, "suggestions": suggestions, "reasons": ["no local match; hub unavailable or empty — propose building a new agent via /hephaestus"]},
-            [],
-            ["propose_new"],
-        )
-
     return finish(
-        {"action": "propose_new", "selected": None, "suggestions": suggestions, "reasons": ["no auto-eligible local match (hub disabled)"]},
+        {
+            "action": "propose_new",
+            "selected": None,
+            **({"hub": hub} if hub is not None else {}),
+            "suggestions": suggestions,
+            "reasons": [
+                "no local match; hub unavailable or empty — propose building a new agent via /hephaestus"
+                if use_hub
+                else "no auto-eligible local match (hub disabled)"
+            ],
+        },
         [],
-        ["local_only_no_match"],
+        ["propose_new"] if use_hub else ["local_only_no_match"],
     )

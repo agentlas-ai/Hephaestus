@@ -1111,6 +1111,12 @@ class OntologyRuntime:
                     "importance": 0.75,
                 }
             ]
+        # Nothing relevant was retrieved for this query — do not fabricate a
+        # working-memory item from an empty result set (was an IndexError on
+        # chunks[0]). An agent only caches memory when retrieval found something,
+        # which is what makes ontology grounding selective rather than constant.
+        if not chunks:
+            return []
         return [
             {
                 "memory_item": f"GraphRAG chunk for query '{question}': {chunks[0]['text'][:180]}",
