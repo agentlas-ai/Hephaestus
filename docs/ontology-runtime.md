@@ -111,10 +111,16 @@ Supported local parsers:
 | images and OCR formats | parsed through macOS Vision OCR or Tesseract when available |
 | `.hwp` binary | parsed through `hwp5txt` when available |
 
+Parser code shipped in this package must be owned adapter code or thin wrappers
+around explicit local system tools. External parser projects are not vendored
+into the public runtime. New office-format support should be implemented as a
+first-party adapter with focused fixtures and verification gates.
+
 Registered adapter boundaries do not fake success:
 
 | Case | Runtime status |
 |---|---|
+| `.xls` / `.hml` before a first-party adapter exists | `unsupported_pending_adapter` |
 | `.pdf` without `pdftotext` | `unsupported_pending_adapter` with the missing parser reason |
 | `.hwp` binary without `hwp5txt` | `unsupported_pending_adapter` with the missing parser reason |
 | image OCR without macOS Vision or Tesseract | `unsupported_pending_adapter` with the missing OCR engine reason |

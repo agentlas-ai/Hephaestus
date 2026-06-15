@@ -42,8 +42,8 @@ class PluginDiscoveryTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_scan_finds_project_and_home_plugins_and_dedupes(self):
-        write_plugin(self.project / "claude" / "plugins", ".claude-plugin", "korean-docs", description="Korean document reading and writing")
-        write_plugin(self.project / "codex" / "plugins", ".codex-plugin", "korean-docs", description="Korean document reading and writing")
+        write_plugin(self.project / "claude" / "plugins", ".claude-plugin", "document-helper", description="Document reading and writing")
+        write_plugin(self.project / "codex" / "plugins", ".codex-plugin", "document-helper", description="Document reading and writing")
         write_plugin(self.home / ".claude" / "plugins", ".claude-plugin", "home-only-plugin")
         write_registry(
             self.project / ".claude-plugin" / "marketplace.json",
@@ -51,23 +51,23 @@ class PluginDiscoveryTests(unittest.TestCase):
         )
         result = plugin_discovery.scan_local_plugins(self.project)
         names = {plugin["name"] for plugin in result["plugins"]}
-        self.assertEqual(names, {"korean-docs", "home-only-plugin", "hephaestus"})
-        korean = next(plugin for plugin in result["plugins"] if plugin["name"] == "korean-docs")
-        self.assertEqual(len(korean["locations"]), 2)
+        self.assertEqual(names, {"document-helper", "home-only-plugin", "hephaestus"})
+        document_helper = next(plugin for plugin in result["plugins"] if plugin["name"] == "document-helper")
+        self.assertEqual(len(document_helper["locations"]), 2)
 
     def test_resolve_local_only_when_hub_skipped(self):
-        write_plugin(self.project / "claude" / "plugins", ".claude-plugin", "korean-docs", description="한글 문서 HWP HWPX parsing")
-        result = plugin_discovery.resolve_plugins("korean-docs", self.project, use_hub=False)
+        write_plugin(self.project / "claude" / "plugins", ".claude-plugin", "document-helper", description="document parsing")
+        result = plugin_discovery.resolve_plugins("document-helper", self.project, use_hub=False)
         self.assertEqual(result["hub"]["status"], "skipped")
         self.assertEqual(result["local"]["count"], 1)
         self.assertFalse(result["unresolved"])
 
     def test_resolve_merges_hub_matches_and_marks_already_local(self):
-        write_plugin(self.project / "claude" / "plugins", ".claude-plugin", "korean-docs", description="한글 문서")
+        write_plugin(self.project / "claude" / "plugins", ".claude-plugin", "document-helper", description="document parsing")
         hub_payload = {
             "count": 2,
             "plugins": [
-                {"slug": "korean-docs", "name": "Korean Docs", "family": "agentlas-public", "category": "productivity", "taglineKo": "한글 문서", "auth": "none", "installCli": "npx agentlas@latest plugin add korean-docs", "manifestHref": "/api/plugins/korean-docs"},
+                {"slug": "document-helper", "name": "Document Helper", "family": "agentlas-public", "category": "productivity", "taglineKo": "문서 도구", "auth": "none", "installCli": "npx agentlas@latest plugin add document-helper", "manifestHref": "/api/plugins/document-helper"},
                 {"slug": "slack", "name": "Slack", "family": "third-party", "category": "communication", "taglineKo": "슬랙", "auth": "oauth", "installCli": "npx agentlas@latest plugin add slack", "manifestHref": "/api/plugins/slack"},
             ],
         }
@@ -75,11 +75,11 @@ class PluginDiscoveryTests(unittest.TestCase):
         fake_response.__enter__ = lambda *args: fake_response
         fake_response.__exit__ = lambda *args: None
         with mock.patch.object(plugin_discovery.urllib.request, "urlopen", return_value=fake_response):
-            result = plugin_discovery.resolve_plugins("한글 문서", self.project)
+            result = plugin_discovery.resolve_plugins("document parsing", self.project)
         self.assertEqual(result["hub"]["status"], "ok")
         already_local_slugs = [plugin["slug"] for plugin in result["hub"]["already_local"]]
         installable_slugs = [plugin["slug"] for plugin in result["hub"]["installable"]]
-        self.assertEqual(already_local_slugs, ["korean-docs"])
+        self.assertEqual(already_local_slugs, ["document-helper"])
         self.assertEqual(installable_slugs, ["slack"])
         self.assertEqual(
             result["hub"]["installable"][0]["manifest_url"],
@@ -87,13 +87,13 @@ class PluginDiscoveryTests(unittest.TestCase):
         )
 
     def test_hub_unreachable_falls_back_to_local(self):
-        write_plugin(self.project / "claude" / "plugins", ".claude-plugin", "korean-docs", description="한글 문서")
+        write_plugin(self.project / "claude" / "plugins", ".claude-plugin", "document-helper", description="document parsing")
         with mock.patch.object(
             plugin_discovery.urllib.request,
             "urlopen",
             side_effect=urllib.error.URLError("offline"),
         ):
-            result = plugin_discovery.resolve_plugins("한글 문서", self.project)
+            result = plugin_discovery.resolve_plugins("document parsing", self.project)
         self.assertEqual(result["hub"]["status"], "unreachable")
         self.assertEqual(result["local"]["count"], 1)
         self.assertFalse(result["unresolved"])
