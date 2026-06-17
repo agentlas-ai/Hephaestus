@@ -249,6 +249,81 @@ def _selected_payload(card: dict[str, Any], score: float) -> dict[str, Any]:
     }
 
 
+def _load_ao_context(project_dir: Path | str) -> dict[str, Any]:
+    """Load AO graph only when it is available and valid enough to use."""
+
+    from ..agent_graph import validate_graph
+
+    context = validate_graph(project_dir)
+    return {
+        "valid": bool(context.get("valid", False)),
+        "node_index": context.get("node_index", {}),
+        "grammar": context.get("grammar", {}),
+        "agent_count": context.get("counts", {}).get("agents", 0),
+        "errors": context.get("errors", []),
+        "warnings": context.get("warnings", []),
+    }
+
+
+def _filter_candidates_by_ao(
+    cards: list[dict[str, Any]],
+    project_dir: Path | str,
+    caller_id: str | None = None,
+    relation: str = "routes_to",
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    from ..agent_graph import edge_is_blocked, explain_edge_gate
+
+    ao = _load_ao_context(project_dir)
+    if not ao.get("node_index"):
+        return cards, {"status": "missing"}
+
+    node_index: dict[str, dict[str, Any]] = ao["node_index"]  # type: ignore[assignment]
+    mapped = {str(card.get("id")) for card in cards if str(card.get("id") or "") in node_index}
+    if not mapped:
+        return cards, {"status": "available_but_unmapped", "available": ao["agent_count"]}
+
+    candidates = [card for card in cards if str(card.get("id") or "") in mapped]
+    blocked_targets: list[str] = []
+    blocked_by_axiom: list[str] = []
+    blocked_edge_samples: list[dict[str, Any]] = []
+    if caller_id:
+        filtered: list[dict[str, Any]] = []
+        blocked = 0
+        for card in candidates:
+            edge = {"from": str(caller_id), "to": str(card.get("id") or ""), "relation": relation, "kind": relation}
+            if edge_is_blocked(edge=edge, node_index=node_index, grammar=ao.get("grammar", None)):
+                blocked += 1
+                blocked_targets.append(str(card.get("id") or ""))
+                gate = explain_edge_gate(edge=edge, node_index=node_index, grammar=ao.get("grammar", None))
+                blocked_by_axiom.extend(gate.get("blocked_by") or [])
+                blocked_by_axiom.extend(
+                    [
+                        f"requirement_violation: {violation.get('message')}"
+                        for violation in (gate.get("requirement_violations") or [])
+                        if isinstance(violation, dict) and violation.get("message")
+                    ]
+                )
+                blocked_edge_samples.append({"from": str(edge.get("from")), "to": str(edge.get("to")), "relation": str(edge.get("relation"))})
+                continue
+            filtered.append(card)
+        candidates = filtered
+        return candidates, {
+            "status": "caller_filtered",
+            "mapped": len(candidates),
+            "blocked": blocked,
+            "caller_id": str(caller_id),
+            "blocked_targets": blocked_targets,
+            "blocked_by_axiom": blocked_by_axiom,
+            "blocked_edges": blocked_edge_samples,
+        }
+
+    return candidates, {
+        "status": "mapped_only",
+        "mapped": len(candidates),
+        "available": ao["agent_count"],
+    }
+
+
 def route_request(
     query: str,
     home: Path | str | None = None,
@@ -260,6 +335,7 @@ def route_request(
     hop_count: int = 0,
     router_chain: list[str] | None = None,
     scope: str = "network",
+    caller_id: str | None = None,
 ) -> dict[str, Any]:
     # Three-scope command model (docs/hephaestus-network-2.0.md):
     #   scope="cloud"   → /hephaestus-cloud: search ONLY the signed-in user's
@@ -293,7 +369,17 @@ def route_request(
             return search_hub(query_tokens, home=base, approved=True, scope="cloud")
         return search_hub(query_tokens, home=base, approved=True)
 
-    def finish(result: dict[str, Any], candidates: list[dict[str, Any]], reasons: list[str]) -> dict[str, Any]:
+    def finish(
+        result: dict[str, Any],
+        candidates: list[dict[str, Any]],
+        reasons: list[str],
+        *,
+        match_reason: str | None = None,
+        graph_path: list[dict[str, Any]] | None = None,
+        allowed_by: list[str] | None = None,
+        blocked_by_axiom: list[str] | None = None,
+        fallback_scope: str | None = None,
+    ) -> dict[str, Any]:
         receipt_id = write_receipt(
             action=result["action"],
             query_tokens=sorted(query_tokens),
@@ -304,11 +390,21 @@ def route_request(
             runtime=runtime,
             hop_count=hop_count,
             router_chain=chain,
+            match_reason=match_reason,
+            graph_path=graph_path,
+            allowed_by=allowed_by,
+            blocked_by_axiom=blocked_by_axiom,
+            fallback_scope=fallback_scope,
             home=base,
         )
         result["receipt_id"] = receipt_id
         result["locale"] = locale
         result["query_tokens"] = sorted(query_tokens)
+        result["match_reason"] = match_reason
+        result["graph_path"] = graph_path or []
+        result["allowed_by"] = allowed_by or []
+        result["blocked_by_axiom"] = blocked_by_axiom or []
+        result["fallback_scope"] = fallback_scope
         return result
 
     if hop_count > max_hops:
@@ -316,6 +412,11 @@ def route_request(
             {"action": "refuse", "selected": None, "reasons": [f"router loop detected (hop_count={hop_count} > {max_hops})"]},
             [],
             ["loop_guard"],
+            match_reason="loop_guard",
+            graph_path=[],
+            allowed_by=["loop_guard"],
+            blocked_by_axiom=[],
+            fallback_scope=None,
         )
 
     if hub_only:
@@ -341,6 +442,11 @@ def route_request(
                     },
                     [],
                     [scope_tag, "hub_clarify"],
+                    match_reason=f"{scope_tag}_hub_clarify",
+                    graph_path=[],
+                    allowed_by=["hub_search", scope_tag],
+                    blocked_by_axiom=[],
+                    fallback_scope=None,
                 )
             if hub.get("status") == "ok" and hub.get("results"):
                 return finish(
@@ -356,22 +462,59 @@ def route_request(
                     },
                     [],
                     [scope_tag, "hub_results_found"],
+                    match_reason=f"{scope_tag}_hub_results",
+                    graph_path=[],
+                    allowed_by=["hub_results", scope_tag],
+                    blocked_by_axiom=[],
+                    fallback_scope=None,
                 )
             return finish(
                 {"action": "propose_new", "selected": None, "candidates": [], "hub": hub, "scope": scope, "suggestions": [], "local_routing": "skipped", "reasons": [f"{scope_tag}_no_match_or_unavailable"]},
                 [],
                 [scope_tag, "propose_new"],
+                match_reason=f"{scope_tag}_no_match_or_unavailable",
+                graph_path=[],
+                allowed_by=["hub_search", scope_tag],
+                blocked_by_axiom=[],
+                fallback_scope="hub_no_match",
             )
         return finish(
             {"action": "propose_new", "selected": None, "candidates": [], "scope": scope, "suggestions": [], "local_routing": "skipped", "reasons": [f"{scope_tag}_requested_but_hub_disabled"]},
             [],
             [f"{scope_tag}_hub_disabled"],
+            match_reason="hub_disabled",
+            graph_path=[],
+            allowed_by=["hub_disabled"],
+            blocked_by_axiom=[],
+            fallback_scope="hub_disabled",
         )
 
     cards, quarantined = load_global_cards(base)
     cards_by_id = {str(card.get("id")): card for card in cards}
     statuses = {str(card.get("id")): _cached_status(card) for card in cards}
     usable = [card for card in cards if statuses[str(card.get("id"))] not in ("quarantined", "stale")]
+    ao_filter_report: dict[str, Any] = {}
+    usable, ao_filter_report = _filter_candidates_by_ao(usable, project, caller_id=caller_id)
+    ao_allowed_by: list[str] = []
+    ao_blocked_by_axiom: list[str] = []
+    ao_fallback_scope: str | None = None
+    if ao_filter_report.get("status") == "mapped_only":
+        chain.append("ao:mapped-only")
+        ao_allowed_by = ["agent_ontology_graph"]
+    elif ao_filter_report.get("status") == "caller_filtered":
+        chain.append("ao:caller-gated")
+        ao_allowed_by = ["agent_ontology_graph", "caller_gate"]
+        blocked = ao_filter_report.get("blocked_by_axiom") or []
+        ao_blocked_by_axiom = list(dict.fromkeys([str(item) for item in blocked if isinstance(item, str)]))
+        ao_fallback_scope = "local_graph_and_caller_gate"
+    elif ao_filter_report.get("status") == "missing":
+        chain.append("ao:missing")
+        ao_allowed_by = ["local_keyword_match"]
+        ao_fallback_scope = "ontology_missing"
+    elif ao_filter_report.get("status") == "available_but_unmapped":
+        chain.append("ao:unmapped-fallback")
+        ao_allowed_by = ["local_keyword_match"]
+        ao_fallback_scope = "ontology_unmapped_fallback"
 
     explicit = _explicit_match(query, usable)
     if explicit is None:
@@ -385,7 +528,16 @@ def route_request(
             "selected": selected,
             "reasons": ["explicit command/alias or project override match"],
         }
-        return finish(result, [selected], ["explicit_match"])
+        return finish(
+            result,
+            [selected],
+            ["explicit_match"],
+            match_reason="explicit_match",
+            graph_path=[],
+            allowed_by=ao_allowed_by or ["explicit_match"],
+            blocked_by_axiom=ao_blocked_by_axiom,
+            fallback_scope=ao_fallback_scope,
+        )
 
     # Short, generic creation requests ("새 에이전트 만들어줘") belong to the
     # meta-agent creator — deterministic intent rule, ahead of card scoring.
@@ -417,6 +569,11 @@ def route_request(
                 },
                 [selected],
                 ["creation_intent"],
+                match_reason="creation_intent",
+                graph_path=[],
+                allowed_by=ao_allowed_by or ["creation_intent"],
+                blocked_by_axiom=ao_blocked_by_axiom,
+                fallback_scope=ao_fallback_scope,
             )
 
     profile = load_profile(base)
@@ -452,7 +609,7 @@ def route_request(
     # routing_ready card with the right artifact contract is a candidate.
     ready_cards = [card for card in usable if statuses[str(card.get("id"))] in ("routing_ready", "trusted")]
     score_by_id = {str(item[2].get("id")): item[0] for item in auto_eligible}
-    plan = plan_pipeline(query, ready_cards, lambda card: score_by_id.get(str(card.get("id")), 0.0))
+    plan = plan_pipeline(query, ready_cards, lambda card: score_by_id.get(str(card.get("id")), 0.0), project_dir=project)
     if plan is not None:
         stage_candidates = []
         for stage in plan["stages"]:
@@ -462,6 +619,11 @@ def route_request(
             {"action": "pipeline", "selected": None, **plan, "reasons": ["plan-anchored composite request → multi-team pipeline plan"]},
             stage_candidates,
             ["pipeline_plan"],
+            match_reason=plan.get("match_reason"),
+            graph_path=plan.get("graph_path"),
+            allowed_by=plan.get("allowed_by") or ["pipeline_plan"],
+            blocked_by_axiom=plan.get("blocked_by_axiom", []),
+            fallback_scope=None,
         )
 
     top_score = auto_eligible[0][0] if auto_eligible else 0.0
@@ -503,7 +665,18 @@ def route_request(
             result["hub"] = hub
             result["hub_alternatives"] = hub.get("results")
             chain_note.append("multi_route_hub_alternatives")
-        return finish(result, candidates, chain_note)
+        if ao_filter_report.get("status") == "caller_filtered":
+            chain_note.append("ao:caller-gated")
+        return finish(
+            result,
+            candidates,
+            chain_note,
+            match_reason="local_confident",
+            graph_path=[],
+            allowed_by=(ao_allowed_by or ["local_keyword_score"]) + ["route_confident_threshold"],
+            blocked_by_axiom=ao_blocked_by_axiom,
+            fallback_scope=ao_fallback_scope,
+        )
 
     # Not confident locally → multi-route: merge Hub candidates with local ones.
     if hub_clarify:
@@ -519,6 +692,11 @@ def route_request(
             },
             candidates,
             ["multi_route", "hub_clarify"],
+            match_reason="hub_clarify",
+            graph_path=[],
+            allowed_by=(ao_allowed_by or ["hub_low_confidence"]) + ["local_score"],
+            blocked_by_axiom=ao_blocked_by_axiom,
+            fallback_scope="local_hub_low_confidence",
         )
     if hub_ok:
         return finish(
@@ -532,6 +710,11 @@ def route_request(
             },
             candidates,
             ["multi_route", "hub_results_found"],
+            match_reason="multi_route_hub_results",
+            graph_path=[],
+            allowed_by=(ao_allowed_by or ["hub_results"]) + ["local_score"],
+            blocked_by_axiom=ao_blocked_by_axiom,
+            fallback_scope=None,
         )
 
     # Hub offline/empty (or disabled) → fall back to local-only behavior.
@@ -546,6 +729,11 @@ def route_request(
             {"action": "clarify", "selected": None, "candidates": candidates, "suggestions": suggestions, "clarify_question": question, "reasons": ["low_confidence_margin"]},
             candidates,
             ["clarify_threshold"],
+            match_reason="low_confidence_threshold",
+            graph_path=[],
+            allowed_by=(ao_allowed_by or ["local_score"]) + ["low_confidence"],
+            blocked_by_axiom=ao_blocked_by_axiom,
+            fallback_scope="local_low_confidence",
         )
 
     return finish(
@@ -562,4 +750,9 @@ def route_request(
         },
         [],
         ["propose_new"] if use_hub else ["local_only_no_match"],
+        match_reason="no_local_match",
+        graph_path=[],
+        allowed_by=ao_allowed_by or ["no_local_match"],
+        blocked_by_axiom=ao_blocked_by_axiom,
+        fallback_scope=ao_fallback_scope or ("hub_available" if use_hub else "hub_disabled"),
     )

@@ -128,6 +128,28 @@ hephaestus "find the right agent for this task"               # terminal
   Codex, Hephaestus Network routing, and Hephaestus Stormbreaker on the same
   task fixtures.
 
+### A2A Agent Card Boundary
+
+The A2A upgrade is the external agent interoperability boundary. It does more
+than find a Hub result: it imports, exports, and gates agent-to-agent cards
+without leaking local project state.
+
+```bash
+agentlas-cloud ao a2a import ./agent-card.json .
+agentlas-cloud ao a2a export . --agent local/10-builder
+agentlas-cloud route "run the release check" --caller local/orchestrator .
+```
+
+- **Import is a proposal.** External A2A `AgentCard` files become
+  `ExternalAgent` proposals plus capability alignment edges only. Import never
+  grants `can_invoke`, rejects malformed JSON, and caps untrusted skill lists.
+- **Export is whitelist-only.** Internal agents are projected to
+  `/.well-known/agent-card.json` from public fields. Private paths, local
+  memory behavior, raw routing-card text, and policy rationale are redacted.
+- **Invocation is caller-gated.** The CLI `route --caller` flag and MCP
+  `hephaestus_route.caller_id` input thread the caller into the route gate, so
+  blocked agent-to-agent calls stay blocked before a route is selected.
+
 Details: [docs/hephaestus-network-2.0.md](docs/hephaestus-network-2.0.md) ·
 runtime support matrix: [docs/runtime-fallback-adapters.md](docs/runtime-fallback-adapters.md) ·
 Stormbreaker protocol: [docs/robustness-protocol.md](docs/robustness-protocol.md)
@@ -151,10 +173,7 @@ Current public-safe evaluation signal:
 
 Stormbreaker also preserved the operational ladder across `6/6` process-aware
 metric variants, beat native on `9/9` paired local task units, and beat the
-Network baseline on `8/9` paired local task units. The strict 30-task
-SWE-bench Lite pilot is kept as the honesty boundary: native resolved `22/30`,
-baseline `21/30`, and Stormbreaker `21/30`, so Hephaestus does not claim public
-benchmark superiority from that pilot.
+Network baseline on `8/9` paired local task units.
 
 The v2 loop is:
 
@@ -201,7 +220,7 @@ tells you the exact command to use next:
 
 ```text
 Set up the Hephaestus Agentlas meta-agent in this workspace. Run
-`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.0/scripts/install-all-runtimes.sh | bash`
+`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.1/scripts/install-all-runtimes.sh | bash`
 in the terminal, then tell me the exact /hephaestus command for the tool I am
 using (Claude Code, Codex, Gemini CLI, Antigravity, or Cursor). If anything
 fails, read the error, fix it, and retry.
@@ -248,7 +267,7 @@ OpenCode, OpenClaw, and Hermes Agent surfaces. It also fixes the common
 old `agentlas-core-engine` entry and adding it again from this repo.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.0/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.1/scripts/install-all-runtimes.sh | bash
 ```
 
 After it finishes, restart any open AI apps. Then use:
@@ -292,7 +311,7 @@ If you already installed the old `agentlas-meta-agent` plugin and Claude says
 `hephaestus` is not found, refresh the marketplace and replace the old plugin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.0/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.1/scripts/install-all-runtimes.sh | bash
 ```
 
 `/hephaestus ontology` opens a local SaaS-style ontology dashboard for the
@@ -327,7 +346,7 @@ Claude also supports `claude plugins ...` as an alias, but this README uses
 Open your normal OS terminal, not the Codex chat box, and run:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.7.0
+codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.7.1
 codex plugin add hephaestus@agentlas-core-engine
 ```
 
@@ -341,7 +360,7 @@ If Codex still shows `agentlas-meta-agent`, refresh the marketplace and replace
 the old plugin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.0/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.1/scripts/install-all-runtimes.sh | bash
 ```
 
 The Codex OS-terminal CLI command is singular: `codex plugin`, not
@@ -389,7 +408,7 @@ repo package files in your current project. Open macOS Terminal, Linux terminal,
 Windows Git Bash, or WSL in that project folder and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.0/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.1/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -397,9 +416,9 @@ scripts/public_safety_check.sh
 Windows PowerShell:
 
 ```powershell
-$zip = "$env:TEMP\hephaestus-v0.7.0.zip"
-$extract = "$env:TEMP\hephaestus-v0.7.0"
-Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.7.0.zip" -OutFile $zip
+$zip = "$env:TEMP\hephaestus-v0.7.1.zip"
+$extract = "$env:TEMP\hephaestus-v0.7.1"
+Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.7.1.zip" -OutFile $zip
 Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive $zip -DestinationPath $extract -Force
 $src = Get-ChildItem $extract -Directory | Select-Object -First 1
@@ -579,7 +598,7 @@ The public core is the architecture and foldering contract. Runtime-specific fol
 | Global command registry | Adds `.agentlas/global-commands.json`, runtime command files, and the final `global_commands` handoff |
 | `.agentlas` auto-activation | Lets local runtimes seed project memory, sitemap/task-bias, Memory Tickets, and vault references |
 | Skill lifecycle registry | Ships candidate skill metadata, empty trial ledgers, and Curator decision ledgers before first-class recall |
-| Super Ontology candidate layer | Seeds public-safe graph and memory governance files for source lineage, privacy, task coverage, causality, consensus, repair, and reflexive feedback checks |
+| Super Ontology candidate layer | Seeds public-safe graph and memory governance files for source lineage, privacy, task coverage, causality, consensus, repair, and reflexive feedback checks (currently in active development) |
 | Production Ontology Runtime | Ingests local sources into SQLite/FTS chunks, entities, relations, GraphRAG retrieval, Memory Curator tickets, and Agent Working Memory cache |
 | Ontology-backed agent overlay | Routes corpus-dependent requests (`ontology_backed: true`) so builders activate the runtime, wire a retrieval-first workflow, and set `loop_policy` per risk tier |
 | Rule-based contract injection | `.agentlas/contract-injection-map.json` injects only the governance contracts matching the agent's task traits instead of all 26 |
@@ -607,7 +626,7 @@ For knowledge-heavy personal or company agents, Hephaestus now ships a real loca
 - **Ontology-backed agent mode.** Builders can generate retrieval-first, citation-attached agents (see `modes/ontology-backed-agent.md` and the golden-path reference in `examples/ontology-proposal-agent/`), with governance contracts injected by rule and `loop_policy` (none / self-correct / verified) derived from task risk.
 - **Adapter drift gate + MCP surface check.** `scripts/sync-adapters.sh --check` keeps runtime adapters byte-identical to the canonical core, and `scripts/verify-mcp-surface.sh` guards the `agentlas` MCP registration contract across Claude Code, Codex, Gemini, and Antigravity.
 
-The Super Ontology files under `.agentlas/` remain the safety/governance layer. They define the source-lineage, privacy, task-coverage, causal, consensus, and memory-write gates around the runtime. The runtime is the implementation layer.
+The Super Ontology files under `.agentlas/` are currently in active development as the safety/governance layer. They define the source-lineage, privacy, task-coverage, causal, consensus, and memory-write gates around the runtime. The runtime is the implementation layer.
 
 In Agentlas Terminal and Desktop, the same runtime is exposed as
 `agentlas ontology`; in plugin-hosted tools, use `/hephaestus ontology`.

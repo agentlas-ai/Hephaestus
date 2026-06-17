@@ -11,8 +11,7 @@ and easier to recover after context loss or a failed verification pass.
 
 The strongest current claim is operational robustness, not raw benchmark
 correctness. Local scorecards show Stormbreaker leading native Codex and a
-baseline Hephaestus Network arm on process-aware robustness metrics, while the
-strict 30-task SWE-bench Lite pilot does not show public benchmark superiority.
+baseline Hephaestus Network arm on process-aware robustness metrics.
 
 ## Research Sources
 
@@ -36,9 +35,29 @@ research notes:
 - SWE-agent / Agent-Computer Interface
   (<https://arxiv.org/abs/2405.15793>): agent-computer interface design
   matters; agents need stable navigation, edit, diff, and test surfaces.
+- Localize-then-repair pipelines (<https://arxiv.org/abs/2407.01489>): a fixed
+  localize -> repair -> validate ordering, with reproduction and regression
+  tests as the final verification phase rather than self-report.
+- AST-grounded context retrieval (<https://arxiv.org/abs/2404.05427>): an
+  iterative structured code-search loop grounds each edit in a real code
+  observation before any patch.
+- Observation-grounded action loops (<https://arxiv.org/abs/2210.03629>): every
+  plan revision is tied to a fresh external observation, which reduces
+  hallucinated or assumed steps.
+- Plan-then-solve decomposition (<https://arxiv.org/abs/2305.04091>): enumerate
+  every requirement up front, then execute, to defend against silently skipped
+  steps.
+- Repo-scale change-impact planning (<https://arxiv.org/abs/2309.12499>):
+  analyze the dependent sites a change forces so multi-file edits do not skip
+  required locations.
+- Resume-journal harnesses: a durable, plan-anchored progress state plus history
+  rehydration lets a fresh context continue a long task without restarting; and
+  health is proven by executing a probe (pass / broken / missing), not by a
+  presence check.
 
 These are used as engineering precedents, not as private system prompts or
-vendor behavior clones.
+vendor behavior clones. Patterns are borrowed as structure and capability only,
+never as another project's name, branding, or authorship.
 
 ## Protocol State
 
@@ -63,31 +82,79 @@ Every substantial task should move through these states:
    - This is not private-oracle leakage; it is a reusable checklist built from
      observed failure modes.
 
-4. `verifier_first_plan`
-   - Produce a short staged plan for risky or multi-file work.
+4. `research_probe`
+   - Read-only research before planning. No mutations during this state.
+   - Two evidence streams: (i) codebase localization — narrow from file to
+     class/function to the exact edit-site, grounded in grep/AST observations,
+     not assumption; (ii) external research — fetch docs, specs, or issue
+     context when the task needs facts the repo does not contain.
+   - Output is a research artifact: every intended plan item must cite at least
+     one concrete observation (a file:line, a search hit, a fetched doc). No
+     plan step without an observation.
+   - Tier gate: lightweight for `low`/`medium`; mandatory external research for
+     `high`.
+
+5. `verifier_first_plan`
+   - Produce a short staged plan for risky or multi-file work, consuming the
+     `research_probe` artifact: each plan item is anchored to a localized
+     edit-site and cites an observation.
+   - Enumerate every requirement from `issue_contract` up front so the plan
+     provably covers the whole task; for multi-file work, list the dependent
+     sites a change forces (change-impact) so none is silently skipped.
    - Define the verification command, expected artifact, and final exit gate
      before implementation begins.
 
-5. `evidence_loop`
+6. `persistence_directive`
+   - Proceed continuously through the remaining plan items until every
+     contracted requirement is satisfied or a declared Bounded Retry cap is hit.
+   - Do not yield at the first sign of uncertainty — research or deduce the most
+     reasonable in-scope next step and continue.
+   - Do not interrupt the active task for side-quests (version checks, unrelated
+     cleanup, optional polish). Record them as follow-ups in the
+     `outcome_ledger`; never raise the same reminder twice.
+   - The run may end only at `final_gate` or a reported Bounded Retry cap —
+     never merely because output grew long or a context window is near its
+     limit.
+
+7. `evidence_loop`
    - Execute one bounded change batch at a time.
    - After each failure, record the failing evidence, change one hypothesis, and
      retry within a declared cap.
    - Tests are evidence, not the whole definition of done.
 
-6. `review_gate`
+8. `review_gate`
    - Check scope drift, destructive changes, unrelated file edits, secret
      exposure, and unsupported claims.
+   - Run an adversarial plan-vs-implementation check (ideally fresh-context,
+     seeing only the diff and the plan/criteria): is every contracted
+     requirement implemented, every listed edge class tested, nothing
+     out-of-scope changed?
    - For high-risk work, run a reviewer path or independent verification script.
 
-7. `outcome_ledger`
-   - Record final evidence, failed attempts, unresolved risks, and follow-up
-     gates in a short durable note or result row.
-   - Make continuation after context loss possible.
+9. `outcome_ledger`
+   - Maintain a live, plan-anchored resume journal, updated after each
+     `evidence_loop` batch — not only at the end. Each requirement / plan item
+     carries `status: pending | in_progress | passing | blocked` plus its
+     verifying evidence (command + artifact). Task "done" = every item
+     `passing`.
+   - On nearing a context limit, compact into the journal preserving decisions,
+     open items, and the next non-`passing` item, then continue. A fresh context
+     rehydrates by reading the journal plus recent history and resuming the
+     highest-priority non-`passing` item. State lives outside the context
+     window — this is the anti-cutoff mechanism.
+   - Record failed attempts, unresolved risks, and follow-up gates so
+     continuation after context loss is possible.
 
-8. `final_gate`
+10. `final_gate`
    - Do not finish unless required checks passed, blockers are empty or clearly
      reported, artifacts exist, and the final answer separates verified facts
      from remaining risk.
+   - An artifact existing is not proof it works: execute the verifier and
+     classify pass / broken / missing — do not assert from presence. Prefer
+     reproduction plus regression checks passing over self-report; self-critique
+     is the fallback gate only when no executable verifier exists.
+   - For multi-file work, confirm the plan's change-impact list was fully
+     addressed — no required site silently skipped.
 
 ## Risk Tiers
 
@@ -100,7 +167,10 @@ Every substantial task should move through these states:
 ## Bounded Retry
 
 Robustness is not infinite looping. A failed verification may retry only when
-there is new evidence and a narrower hypothesis.
+there is new evidence and a narrower hypothesis. The `persistence_directive`
+pushes the run forward through the plan toward completion, but it never
+overrides these caps: persistence means not abandoning the task mid-plan, not
+retrying a failed verification beyond its cap.
 
 Default caps:
 

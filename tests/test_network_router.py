@@ -30,12 +30,37 @@ def setup_home(tmp_path):
     return home
 
 
+def _assert_routing_evidence_fields(result: dict) -> None:
+    assert isinstance(result.get("match_reason"), str)
+    assert isinstance(result.get("graph_path"), list)
+    assert isinstance(result.get("allowed_by"), list)
+    assert isinstance(result.get("blocked_by_axiom"), list)
+    assert "fallback_scope" in result
+    assert result.get("receipt_id")
+
+
+def _write_minimal_ao_graph(project, agents):
+    ontology = project / ".agentlas" / "agent-ontology"
+    ontology.mkdir(parents=True)
+    (ontology / "agents.jsonl").write_text(
+        "\n".join(json.dumps(agent, ensure_ascii=False) for agent in agents) + "\n",
+        encoding="utf-8",
+    )
+    (ontology / "artifacts.jsonl").write_text("", encoding="utf-8")
+    (ontology / "edges.jsonl").write_text("", encoding="utf-8")
+    (ontology / "capabilities.json").write_text(
+        json.dumps({"capabilities": ["run_regression_tests"]}, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
 def test_routes_to_best_card(tmp_path):
     home = setup_home(tmp_path)
     result = route_request("인스타그램 마케팅 콘텐츠 만들어줘", home=home, use_hub=False)
     assert result["action"] == "route"
     assert result["selected"]["id"] == "local/insta-team"
     assert result["receipt_id"]
+    _assert_routing_evidence_fields(result)
     ledger = (home / "ledgers" / "routing-decisions.jsonl").read_text(encoding="utf-8")
     assert "insta-team" in ledger
     assert "만들어줘" not in ledger  # raw prompt is never persisted verbatim
@@ -171,6 +196,50 @@ def test_loop_guard_refuses(tmp_path):
     result = route_request("인스타그램 콘텐츠", home=home, use_hub=False, hop_count=3)
     assert result["action"] == "refuse"
     assert "loop" in result["reasons"][0]
+    _assert_routing_evidence_fields(result)
+    assert result["match_reason"] == "loop_guard"
+    assert result["allowed_by"] == ["loop_guard"]
+    assert result["graph_path"] == []
+    assert result["blocked_by_axiom"] == []
+
+
+def test_ao_caller_gate_removes_all_blocked_candidates(tmp_path):
+    home = tmp_path / "networking"
+    init_networking(home)
+    target = make_ready_card(
+        tmp_path,
+        "target-agent",
+        triggers_ko=["회귀 테스트 실행", "품질 검증"],
+        triggers_en=["run regression tests", "verify the build", "qa pass"],
+        antis=["instagram content", "legal contract", "payment"],
+        capabilities=["run_regression_tests"],
+    )
+    save_card(home, target)
+
+    project = tmp_path / "project"
+    _write_minimal_ao_graph(
+        project,
+        [
+            {"id": "local/caller-agent", "type": "Specialist", "name": "Caller"},
+            {"id": "local/target-agent", "type": "Specialist", "name": "Target"},
+        ],
+    )
+
+    result = route_request(
+        "run regression tests",
+        home=home,
+        project_dir=project,
+        use_hub=False,
+        caller_id="local/caller-agent",
+    )
+
+    assert result["action"] == "propose_new"
+    assert result["selected"] is None
+    assert not result.get("candidates")
+    assert result["fallback_scope"] == "local_graph_and_caller_gate"
+    assert result["blocked_by_axiom"] == [
+        "deny rule matched: local/caller-agent -> routes_to -> local/target-agent"
+    ]
 
 
 def test_hub_fallback_searches_without_approval_gate(tmp_path, monkeypatch):
@@ -210,6 +279,9 @@ def test_hub_only_skips_strong_local_match(tmp_path, monkeypatch):
     assert result.get("approval_request") is None
     assert result["hub"]["results"][0]["slug"] == "hub-instagram-agent"
     assert result["reasons"] == ["hub_only_results_found"]
+    _assert_routing_evidence_fields(result)
+    assert result["match_reason"] == "hub_only_hub_results"
+    assert result["graph_path"] == []
 
 
 def test_hub_only_uses_whole_word_query_tokens(tmp_path, monkeypatch):

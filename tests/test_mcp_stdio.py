@@ -26,7 +26,7 @@ def test_initialize_and_tools_list(monkeypatch, tmp_path):
     init = responses[0]["result"]
     assert init["protocolVersion"] == "2025-06-18"
     assert init["serverInfo"]["name"] == "hephaestus-network"
-    assert init["serverInfo"]["version"] == "0.7.0"
+    assert init["serverInfo"]["version"] == "0.7.1"
     tools = responses[1]["result"]["tools"]
     tool_names = {tool["name"] for tool in tools}
     assert tool_names == {
@@ -39,6 +39,8 @@ def test_initialize_and_tools_list(monkeypatch, tmp_path):
     }
     route_tool = next(tool for tool in tools if tool["name"] == "hephaestus_route")
     assert "hub_only" in route_tool["inputSchema"]["properties"]
+    assert "caller_id" in route_tool["inputSchema"]["properties"]
+    assert "caller" in route_tool["inputSchema"]["properties"]
     invoke_tool = next(tool for tool in tools if tool["name"] == "hephaestus_hub_invoke")
     assert "memory_root" in invoke_tool["inputSchema"]["properties"]
     auth_tool = next(tool for tool in tools if tool["name"] == "agentlas_authenticate")
@@ -68,6 +70,52 @@ def test_tools_call_status_and_route(monkeypatch, tmp_path):
     decision = json.loads(responses[1]["result"]["content"][0]["text"])
     assert decision["action"] in {"route", "clarify", "pipeline", "hub_fallback", "hub_candidates", "propose_new", "refuse"}
     assert decision["receipt_id"]
+
+
+def test_route_tool_threads_caller_id_to_ao_gate(monkeypatch, tmp_path):
+    calls = {}
+
+    def fake_route_request(request, **kwargs):
+        calls["request"] = request
+        calls["kwargs"] = kwargs
+        return {
+            "action": "propose_new",
+            "receipt_id": "route123",
+            "selected": None,
+            "match_reason": "test",
+            "graph_path": [],
+            "allowed_by": [],
+            "blocked_by_axiom": [],
+            "fallback_scope": "test",
+        }
+
+    monkeypatch.setattr("agentlas_cloud.networking.route_request", fake_route_request)
+    responses = run_session(
+        [
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": "hephaestus_route",
+                    "arguments": {
+                        "request": "run regression tests",
+                        "project_dir": "/tmp/project",
+                        "caller_id": "local/caller-agent",
+                    },
+                },
+            }
+        ],
+        monkeypatch,
+        tmp_path,
+    )
+
+    decision = json.loads(responses[0]["result"]["content"][0]["text"])
+    assert decision["receipt_id"] == "route123"
+    assert calls["request"] == "run regression tests"
+    assert calls["kwargs"]["caller_id"] == "local/caller-agent"
+    assert calls["kwargs"]["project_dir"] == "/tmp/project"
+    assert calls["kwargs"]["runtime"] == "mcp"
 
 
 def test_unknown_tool_and_method(monkeypatch, tmp_path):

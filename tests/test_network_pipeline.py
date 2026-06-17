@@ -74,6 +74,10 @@ def test_route_returns_pipeline_plan(tmp_path):
     assert kinds == ["prd", "codebase_change", "qa_report"]
     assert result["handoff_dir"].startswith(".agentlas/pipeline/")
     assert result["receipt_id"]
+    assert result["match_reason"].startswith("pipeline_")
+    assert isinstance(result.get("graph_path"), list)
+    assert isinstance(result.get("allowed_by"), list) and result["allowed_by"]
+    assert result["blocked_by_axiom"] == []
 
 
 def test_single_intent_is_not_decomposed(tmp_path):

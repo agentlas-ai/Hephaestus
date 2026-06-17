@@ -26,6 +26,11 @@ def write_receipt(
     runtime: str | None = None,
     hop_count: int = 0,
     router_chain: list[str] | None = None,
+    match_reason: str | None = None,
+    graph_path: list[dict[str, Any]] | None = None,
+    allowed_by: list[str] | None = None,
+    blocked_by_axiom: list[str] | None = None,
+    fallback_scope: str | None = None,
     home: Path | str | None = None,
 ) -> str:
     base = Path(home) if home else networking_home()
@@ -44,6 +49,11 @@ def write_receipt(
         "reasons": reasons,
         "hop_count": hop_count,
         "router_chain": router_chain or ["hephaestus-network"],
+        "match_reason": match_reason,
+        "graph_path": graph_path or [],
+        "allowed_by": allowed_by or [],
+        "blocked_by_axiom": blocked_by_axiom or [],
+        "fallback_scope": fallback_scope,
     }
     append_jsonl(base / "ledgers" / "routing-decisions.jsonl", record)
     return receipt_id

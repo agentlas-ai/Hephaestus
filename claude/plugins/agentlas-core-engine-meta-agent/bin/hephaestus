@@ -57,7 +57,10 @@ Usage:
   bin/hephaestus network add-source <path> | remove-source <path>
   bin/hephaestus network grant <capability> --target <id> [--scope ...]
   bin/hephaestus cards lint [path] | cards migrate <root> --tier free|paid|plugin|local
-  bin/hephaestus route "<request>" [--project <dir>] [--no-hub] [--approve-hub] [--hub-only] [--scope network|cloud]
+  bin/hephaestus ao lint [dir] | ao graph [--agent <agent>] [dir] | ao query "<query>" [dir]
+  bin/hephaestus ao plan <from> <to> [--max-depth N] [dir]
+  bin/hephaestus ao diff [dir] | ao migrate [dir] [--no-write] [--overwrite]
+	  bin/hephaestus route "<request>" [--project <dir>] [--no-hub] [--approve-hub] [--hub-only] [--scope network|cloud] [--caller <agent-id>]
   bin/hephaestus cloud "<request>" [--project <dir>] [--no-hub]   # search ONLY my own cloud packages (보관함)
   bin/hephaestus mcp serve              # stdio MCP server (hephaestus_route tool)
   bin/hephaestus "<request>"            # shorthand for route (local + cloud + Hub)
@@ -151,7 +154,7 @@ Open Claude Code or Codex with the installed plugin, then run:
 /hephaestus $request
 EOF
     ;;
-	  network|cards|route|mcp)
+	  network|cards|ao|route|mcp)
 	    run_python_module agentlas_cloud "$command" "$@"
 	    ;;
 	  cloud)

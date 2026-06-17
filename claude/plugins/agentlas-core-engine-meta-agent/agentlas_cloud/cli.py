@@ -93,6 +93,46 @@ def main(argv: list[str] | None = None) -> int:
     cards_migrate.add_argument("--overwrite", action="store_true")
     cards_migrate.add_argument("--no-global", action="store_true", help="Write package-local cards only")
 
+    ao = sub.add_parser("ao", help="Agent Ontology commands")
+    ao_sub = ao.add_subparsers(dest="ao_command", required=True)
+    ao_lint = ao_sub.add_parser("lint", help="Validate AO graph and grammar")
+    ao_lint.add_argument("project", nargs="?", default=".")
+    ao_migrate = ao_sub.add_parser("migrate", help="Build/rebuild canonical AO JSONL graph")
+    ao_migrate.add_argument("project", nargs="?", default=".")
+    ao_migrate.add_argument("--no-write", action="store_true", help="Dry-run only (do not write JSONL)")
+    ao_migrate.add_argument("--overwrite", action="store_true", help="Overwrite existing AO directory")
+    ao_graph = ao_sub.add_parser("graph", help="Print AO graph summary")
+    ao_graph.add_argument("project", nargs="?", default=".")
+    ao_graph.add_argument("--agent", default=None, help="Optional agent id filter")
+    ao_query = ao_sub.add_parser("query", help="Run AO queries over the graph")
+    ao_query.add_argument("query")
+    ao_query.add_argument("project", nargs="?", default=".")
+    ao_query.add_argument("--max", type=int, default=100, help="Unused placeholder for future pagination")
+    ao_plan = ao_sub.add_parser("plan", help="Find AO path between two agents")
+    ao_plan.add_argument("start", help="Source agent id")
+    ao_plan.add_argument("target", help="Target agent id")
+    ao_plan.add_argument("project", nargs="?", default=".")
+    ao_plan.add_argument("--max-depth", type=int, default=5, help="Search depth")
+    ao_plan.add_argument("--relation", default=None, help="Optional relation filter")
+    ao_plan.add_argument("--allow-blocked", action="store_true", help="Allow paths through blocked edges")
+    ao_diff = ao_sub.add_parser("diff", help="Diff AO graph against migration output")
+    ao_diff.add_argument("project", nargs="?", default=".")
+    ao_reach = ao_sub.add_parser("reachable", help="Alias for plan path lookup")
+    ao_reach.add_argument("start")
+    ao_reach.add_argument("target")
+    ao_reach.add_argument("project", nargs="?", default=".")
+    ao_reach.add_argument("--max-depth", type=int, default=6)
+    ao_reach.add_argument("--relation", default=None)
+    ao_reach.add_argument("--allow-blocked", action="store_true")
+    ao_a2a = ao_sub.add_parser("a2a", help="A2A Agent Card import/export boundary")
+    ao_a2a_sub = ao_a2a.add_subparsers(dest="a2a_command", required=True)
+    ao_a2a_import = ao_a2a_sub.add_parser("import", help="Import an external A2A AgentCard (proposes aligned_with; never can_invoke)")
+    ao_a2a_import.add_argument("card", help="Path to an A2A AgentCard JSON file")
+    ao_a2a_import.add_argument("project", nargs="?", default=".")
+    ao_a2a_export = ao_a2a_sub.add_parser("export", help="Export an internal agent as an A2A AgentCard")
+    ao_a2a_export.add_argument("project", nargs="?", default=".")
+    ao_a2a_export.add_argument("--agent", default=None, help="Agent id to export (default: local meta-agent)")
+
     route = sub.add_parser("route", help="Route a natural-language request to a local agent/team/plugin")
     route.add_argument("query")
     route.add_argument("--project", default=".")
@@ -105,6 +145,11 @@ def main(argv: list[str] | None = None) -> int:
         choices=["network", "cloud"],
         default="network",
         help="network = public Hub marketplace; cloud = the signed-in owner's OWN cloud packages (보관함). cloud implies --hub-only (/hephaestus-cloud).",
+    )
+    route.add_argument(
+        "--caller",
+        default=None,
+        help="Caller agent id for AO deny/require gating (agent-to-agent calls supply this; omit for top-level user routing).",
     )
 
     mcp = sub.add_parser("mcp", help="MCP integration")
@@ -258,8 +303,79 @@ def main(argv: list[str] | None = None) -> int:
                 hub_approved=args.approve_hub,
                 hub_only=args.hub_only,
                 scope=args.scope,
+                caller_id=getattr(args, "caller", None),
             )
         )
+    if args.command == "ao":
+        from .agent_graph import (
+            describe_graph,
+            diff_ontology,
+            load_graph,
+            execute_query,
+            migrate_ontology,
+            plan_path,
+            validate_graph,
+        )
+        if args.ao_command == "lint":
+            result = validate_graph(args.project)
+            emit(result)
+            # Non-zero exit on invalid graph so CI / commit gates actually block.
+            return 0 if result.get("valid") else 1
+        if args.ao_command == "migrate":
+            return emit(
+                migrate_ontology(
+                    project_root=args.project,
+                    write=not args.no_write,
+                    overwrite=args.overwrite,
+                )
+            )
+        if args.ao_command == "graph":
+            graph = describe_graph(args.project)
+            if args.agent:
+                on_disk = load_graph(args.project)
+                agents = [agent for agent in on_disk.get("graph", {}).get("agents", []) if str(agent.get("id")) == args.agent]
+                graph = {
+                    "path": graph["path"],
+                    "agent": agents[0] if agents else None,
+                    "counts": {"agents": len(agents), "edges": 0, "artifacts": 0, "capabilities": 0},
+                    "found": bool(agents),
+                }
+            return emit(graph)
+        if args.ao_command == "query":
+            return emit(execute_query(args.query, project_root=args.project))
+        if args.ao_command in {"plan", "reachable"}:
+            return emit(
+                plan_path(
+                    project_root=args.project,
+                    start=args.start,
+                    target=args.target,
+                    max_depth=args.max_depth,
+                    relation=args.relation,
+                    allow_blocked=args.allow_blocked,
+                )
+            )
+        if args.ao_command == "diff":
+            result = diff_ontology(args.project)
+            emit(result)
+            # Non-zero exit on drift so `ao diff` can gate CI (plan §12).
+            return 0 if result.get("status") == "clean" else 1
+        if args.ao_command == "a2a":
+            from .agent_graph import export_agent_card, import_agent_card
+
+            if args.a2a_command == "import":
+                try:
+                    card = json.loads(Path(args.card).read_text(encoding="utf-8"))
+                except OSError as exc:
+                    return emit({"status": "error", "error": f"cannot read card file: {exc}"}) or 2
+                except json.JSONDecodeError as exc:
+                    return emit({"status": "error", "error": f"invalid JSON in card file: {exc}"}) or 2
+                if not isinstance(card, dict):
+                    return emit({"status": "error", "error": "agent card must be a JSON object"}) or 2
+                return emit(import_agent_card(card, project_root=args.project))
+            if args.a2a_command == "export":
+                return emit(export_agent_card(project_root=args.project, agent_id=args.agent))
+            return emit({"status": "error", "message": f"unknown a2a command: {args.a2a_command}"}) or 2
+        return emit({"status": "error", "message": f"unknown ao command: {args.ao_command}"}) or 2
     parser.error("unhandled command")
     return 2
 

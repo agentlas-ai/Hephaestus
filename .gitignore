@@ -25,7 +25,10 @@ credentials/*
 .agentlas/ontology-runtime.sqlite*
 .agentlas/field-test/
 .agentlas/field-test-report.*
+.agentlas/agent-ontology/
 .ontology-runtime/
+output/
+docs/agent-os-redesign.md
 .codex/
 .claude/settings.local.json
 .claude/settings.*.local.json
