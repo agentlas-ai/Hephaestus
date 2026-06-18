@@ -4,6 +4,15 @@
 
 No unreleased changes yet.
 
+## v0.7.8 - 2026-06-18
+
+- Restored Super Ontology candidate-only sync invariants for consensus
+  coordination and capability delegation authority: both remain AO
+  runtime-enforced seed contracts, but public seeds cannot self-promote into
+  runtime authority.
+- `agentlas-architecture-sync` now passes again across public core, Web,
+  Desktop/terminal, AppBridge, and Super Ontology candidate checks.
+
 ## v0.7.7 - 2026-06-18
 
 - Added multilingual intent expansion for `/hephaestus-search`, so broad

@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "kind": "agentlas-super-ontology-capability-delegation-authority",
   "state": "runtime_enforced",
-  "runtimePromotionAllowed": true,
+  "runtimePromotionAllowed": false,
   "defaultDecision": "capability_evidence_required_before_graph_memory_public_training_tool_route_scheduled_permission_financial_release_customer_or_physical_authority",
   "principalTypes": [
     "human_user",

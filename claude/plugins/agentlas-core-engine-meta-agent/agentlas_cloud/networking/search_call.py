@@ -65,6 +65,7 @@ def search_agents(
         home=base,
     )
     return {
+        "schema": "hephaestus.search.v1",
         "action": "agent_search",
         "query": query,
         "project_dir": str(project_dir),
@@ -100,6 +101,7 @@ def call_agents(
     refs = parse_agent_refs(agents)
     if not refs:
         return {
+            "schema": "hephaestus.call.v1",
             "action": "agent_call",
             "status": "error",
             "error": "no agent refs provided",
@@ -155,6 +157,7 @@ def call_agents(
         home=base,
     )
     return {
+        "schema": "hephaestus.call.v1",
         "action": "agent_call",
         "status": "prepared" if statuses == {"prepared"} else "partial" if "prepared" in statuses else "failed",
         "context": context,

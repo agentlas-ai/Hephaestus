@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "kind": "agentlas-super-ontology-consensus-coordination",
   "state": "runtime_enforced",
-  "runtimePromotionAllowed": true,
+  "runtimePromotionAllowed": false,
   "defaultDecision": "treat_agent_agreement_as_candidate_signal_not_write_authority",
   "coordinationTopologies": [
     "independent_parallel",
