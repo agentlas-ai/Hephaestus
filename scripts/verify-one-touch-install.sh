@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo="${HEPHAESTUS_REPO:-https://github.com/agentlas-ai/Hephaestus}"
 codex_repo="${HEPHAESTUS_CODEX_REPO:-agentlas-ai/Hephaestus}"
-version="${HEPHAESTUS_VERSION:-v0.7.4}"
+version="${HEPHAESTUS_VERSION:-v0.7.5}"
 keep="${HEPHAESTUS_KEEP_SMOKE_DIR:-0}"
 
 fail() {
@@ -54,6 +54,14 @@ echo
 echo "3/7 Claude plugin installed by one-touch script"
 HOME="$shell_home" claude plugin list | tee "$tmp/claude-plugin-list.txt"
 rg -q 'hephaestus@agentlas-core-engine' "$tmp/claude-plugin-list.txt" || fail "Claude plugin list does not show Hephaestus"
+HOME="$shell_home" claude plugin details hephaestus@agentlas-core-engine | tee "$tmp/claude-plugin-details.txt"
+rg -q 'Skills \(3\).*hephaestus-build.*hephaestus-cloud.*hephaestus-network' "$tmp/claude-plugin-details.txt" || fail "Claude details should show exactly three Hephaestus skills"
+if rg -n '0-7-4|mode-classification|agentlas-auto-activation|team-builder-packaging|Skills \(6\)' "$tmp/claude-plugin-details.txt"; then
+  fail "Claude details still show stale or duplicate Hephaestus skills"
+fi
+if find "$shell_home/.claude/plugins/cache/agentlas-core-engine/hephaestus" -path '*/skills/*/SKILL.md' -print -quit | rg -q .; then
+  fail "Claude plugin cache should not contain duplicate SKILL.md entries"
+fi
 echo "PASS Claude install"
 echo
 
@@ -66,7 +74,10 @@ echo
 echo "5/7 Gemini extension and command installed by one-touch script"
 HOME="$shell_home" gemini extensions list 2>&1 | tee "$tmp/gemini-extensions-list.txt"
 rg -q 'hephaestus' "$tmp/gemini-extensions-list.txt" || fail "Gemini extension list does not show Hephaestus"
-[[ -f "$shell_home/.gemini/commands/hephaestus.toml" ]] || fail "Gemini fallback command was not installed"
+[[ -f "$shell_home/.gemini/commands/hephaestus-build.toml" ]] || fail "Gemini build fallback command was not installed"
+[[ -f "$shell_home/.gemini/commands/hephaestus-network.toml" ]] || fail "Gemini network fallback command was not installed"
+[[ -f "$shell_home/.gemini/commands/hephaestus-cloud.toml" ]] || fail "Gemini cloud fallback command was not installed"
+[[ ! -f "$shell_home/.gemini/commands/hephaestus.toml" ]] || fail "Legacy Gemini /hephaestus command should be pruned"
 echo "PASS Gemini install"
 echo
 
@@ -74,7 +85,11 @@ echo "6/7 First-run Agentlas sign-in surface"
 runtime_runner="$shell_home/.agentlas/runtime/current/bin/hephaestus"
 [[ -x "$runtime_runner" ]] || fail "runtime runner is not executable: $runtime_runner"
 rg -q 'auth ensure --timeout' "$shell_home/.agents/skills/hephaestus-network/SKILL.md" || fail "universal skill does not auto-trigger Agentlas sign-in"
+rg -q 'auth ensure --timeout' "$shell_home/.agents/skills/hephaestus-cloud/SKILL.md" || fail "universal cloud skill does not auto-trigger Agentlas sign-in"
 rg -q 'auth ensure --timeout' "$codex_home/prompts/hephaestus-network.md" || fail "Codex prompt does not auto-trigger Agentlas sign-in"
+[[ -f "$codex_home/prompts/hephaestus-build.md" ]] || fail "Codex build prompt was not installed"
+[[ -f "$codex_home/prompts/hephaestus-cloud.md" ]] || fail "Codex cloud prompt was not installed"
+[[ ! -f "$codex_home/prompts/hephaestus.md" ]] || fail "Legacy Codex /prompts:hephaestus prompt should be pruned"
 HOME="$shell_home" "$runtime_runner" auth status | tee "$tmp/auth-status.json"
 python3 - "$tmp/auth-status.json" <<'PY'
 import json
@@ -133,10 +148,10 @@ echo "PASS ontology GUI"
 echo
 
 echo "Expected in-app commands after install"
-echo "Claude Code: /reload-plugins"
-echo "Claude/Codex: /hephaestus ontology"
+echo "Claude Code: /reload-plugins, then /hephaestus-build, /hephaestus-network, /hephaestus-cloud"
+echo "Codex: /prompts:hephaestus-build, /prompts:hephaestus-network, /prompts:hephaestus-cloud"
 echo "Codex plugin browser: /plugins"
-echo "Gemini CLI: /extensions list, /commands list, /hephaestus"
+echo "Gemini CLI: /extensions list, /commands list, then /hephaestus-build, /hephaestus-network, /hephaestus-cloud"
 echo
 
 if [[ "$keep" == "1" ]]; then

@@ -30,8 +30,12 @@ scan_files=(
   codex/plugins/agentlas-core-engine-meta-agent/.codex-plugin/plugin.json
   claude/plugins/agentlas-core-engine-meta-agent/.claude-plugin/plugin.json
   gemini/extension/gemini-extension.json
-  gemini/extension/commands/hephaestus.toml
-  .gemini/commands/hephaestus.toml
+  gemini/extension/commands/hephaestus-build.toml
+  gemini/extension/commands/hephaestus-network.toml
+  gemini/extension/commands/hephaestus-cloud.toml
+  .gemini/commands/hephaestus-build.toml
+  .gemini/commands/hephaestus-network.toml
+  .gemini/commands/hephaestus-cloud.toml
   manifest.json
   scripts/install.sh
   scripts/install-all-runtimes.sh
@@ -102,17 +106,26 @@ assert codex["id"] == "hephaestus", codex["id"]
 assert codex["name"] == "hephaestus", codex["name"]
 expected_version = manifest["version"]
 assert codex["version"] == expected_version, codex["version"]
+assert codex["skills"] == "skills", codex["skills"]
 assert codex["interface"]["displayName"] == "Hephaestus", codex["interface"]["displayName"]
 assert claude["name"] == "hephaestus", claude["name"]
 assert claude["version"] == expected_version, claude["version"]
+assert "skills" not in claude, claude.get("skills")
 assert manifest["package"] == "hephaestus", manifest["package"]
 
-assert manifest["entrypoints"]["claudeHephaestusCommand"].endswith("hephaestus.md")
-assert manifest["entrypoints"]["codexHephaestusCommand"].endswith("hephaestus.md")
+assert manifest["entrypoints"]["claudeHephaestusBuildCommand"].endswith("hephaestus-build.md")
+assert manifest["entrypoints"]["claudeHephaestusNetworkCommand"].endswith("hephaestus-network.md")
+assert manifest["entrypoints"]["claudeHephaestusCloudCommand"].endswith("hephaestus-cloud.md")
+assert manifest["entrypoints"]["codexHephaestusBuildPrompt"].endswith("hephaestus-build.md")
+assert manifest["entrypoints"]["codexHephaestusNetworkPrompt"].endswith("hephaestus-network.md")
+assert manifest["entrypoints"]["codexHephaestusCloudPrompt"].endswith("hephaestus-cloud.md")
 assert manifest["entrypoints"]["geminiExtension"].endswith("gemini-extension.json")
-assert manifest["entrypoints"]["geminiHephaestusCommand"].endswith("hephaestus.toml")
-assert manifest["entrypoints"]["antigravityWorkflow"].endswith("antigravity/workflows/hephaestus.md")
-assert manifest["entrypoints"]["antigravityProjectWorkflow"].endswith(".agents/workflows/hephaestus.md")
+assert manifest["entrypoints"]["geminiHephaestusBuildCommand"].endswith("hephaestus-build.toml")
+assert manifest["entrypoints"]["geminiHephaestusNetworkCommand"].endswith("hephaestus-network.toml")
+assert manifest["entrypoints"]["geminiHephaestusCloudCommand"].endswith("hephaestus-cloud.toml")
+assert manifest["entrypoints"]["antigravityBuildWorkflow"].endswith("antigravity/workflows/hephaestus-build.md")
+assert manifest["entrypoints"]["antigravityNetworkWorkflow"].endswith("antigravity/workflows/hephaestus-network.md")
+assert manifest["entrypoints"]["antigravityCloudWorkflow"].endswith("antigravity/workflows/hephaestus-cloud.md")
 assert manifest["entrypoints"]["globalCommands"].endswith("global-commands.json")
 
 for path in [

@@ -25,7 +25,7 @@ def test_build_subcommands_point_to_hephaestus_build() -> None:
     for command in ("hephaestus-build", "build", "meta-agent"):
         output = _run(command, "create a customer support agent")
         assert "/hephaestus-build create a customer support agent" in output
-        assert "Legacy alias:" in output
+        assert "Legacy alias:" not in output
 
 
 def test_standalone_build_wrapper_points_to_hephaestus_build() -> None:

@@ -67,7 +67,6 @@ Usage:
   bin/hephaestus hephaests-network "<request>"      # accepted typo alias
   bin/hephaestus cloud "<request>" [--project <dir>] [--no-hub]   # search ONLY my own cloud packages (보관함)
   bin/hephaestus mcp serve              # stdio MCP server (hephaestus_route tool)
-  bin/hephaestus "<request>"            # legacy shorthand for route (local + cloud + Hub)
 
 Examples:
   bin/hephaestus ontology
@@ -156,9 +155,6 @@ $request
 
 Open Claude Code or Codex with the installed plugin, then run:
 /hephaestus-build $request
-
-Legacy alias:
-/hephaestus $request
 EOF
     ;;
 	  network|cards|ao|route|mcp)

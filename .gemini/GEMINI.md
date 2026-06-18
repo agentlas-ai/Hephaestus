@@ -9,5 +9,6 @@ local project continuity is part of the output.
 
 Gemini CLI command files live in the packaged `gemini/extension/commands/`
 folder, with optional fallback user commands under `.gemini/commands/`. This
-package exposes `/hephaestus`; generated packages must expose their own command
-and report it in `global_commands`.
+package exposes `/hephaestus-build`, `/hephaestus-network`, and
+`/hephaestus-cloud`; generated packages must expose their own command and
+report it in `global_commands`.

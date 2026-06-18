@@ -1,3 +1,9 @@
+---
+description: Use signed-in owner-scoped Agentlas Cloud packages through Hephaestus.
+argument-hint: '<request>'
+allowed-tools: Bash, Read, Glob, Grep
+---
+
 # /hephaestus-cloud
 
 Search **only the signed-in user's own Agentlas cloud packages** (보관함) and

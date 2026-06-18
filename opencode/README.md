@@ -4,11 +4,11 @@ OpenCode reads three Hephaestus surfaces — all installed by
 `scripts/install-all-runtimes.sh`:
 
 1. **Commands** — `commands/*.md` here are copied to
-   `~/.config/opencode/commands/`, giving `/hephaestus` and
-   `/hephaestus-network` in the OpenCode TUI.
-2. **Skill** — OpenCode natively loads `~/.agents/skills/hephaestus-network/`
-   (installed from the canonical `skills/hephaestus-network/`), so routing also
-   triggers implicitly via the `skill` tool.
+   `~/.config/opencode/commands/`, giving `/hephaestus-build`,
+   `/hephaestus-network`, and `/hephaestus-cloud` in the OpenCode TUI.
+2. **Skills** — OpenCode natively loads `~/.agents/skills/hephaestus-network/`
+   and `~/.agents/skills/hephaestus-cloud/`, so routing also triggers
+   implicitly via the `skill` tool.
 3. **MCP** — for tool-level access (works with any model, including local
    Ollama models), register the stdio server in `opencode.json`:
 
@@ -28,7 +28,8 @@ Manual install without the one-touch script:
 
 ```bash
 mkdir -p ~/.config/opencode/commands
-cp opencode/commands/*.md ~/.config/opencode/commands/
+cp opencode/commands/hephaestus-build.md opencode/commands/hephaestus-network.md opencode/commands/hephaestus-cloud.md ~/.config/opencode/commands/
 mkdir -p ~/.agents/skills
 cp -R skills/hephaestus-network ~/.agents/skills/
+cp -R skills/hephaestus-cloud ~/.agents/skills/
 ```

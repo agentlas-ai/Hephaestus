@@ -4,12 +4,22 @@
 
 No unreleased changes yet.
 
-## v0.7.4 - 2026-06-18
+## v0.7.5 - 2026-06-18
 
 - Moved the README first-run path to the top: copy-paste install prompt first,
   then the three commands, then example prompts.
 - Updated the Agentlas web Hephaestus landing hero so the first visible product
   explanation is the three-command model: create, borrow, share.
+- Pruned stale visible command surfaces from fresh installs and updates:
+  `/hephaestus` and `/prompts:hephaestus` are no longer installed as chat
+  autocomplete entries.
+- Locked the Claude connector to command-only exposure: exactly
+  `hephaestus-build`, `hephaestus-network`, and `hephaestus-cloud`. This
+  prevents broad root-folder scans from showing version folders such as
+  `0-7-4`, and prevents duplicate command+skill entries for the same names.
+- Tightened the installer to clear stale Claude/Codex plugin caches before
+  reinstalling, so older internal skills such as `mode-classification` or
+  `team-builder-packaging` stop appearing after a refresh and app restart.
 
 ## v0.7.3 - 2026-06-18
 

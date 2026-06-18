@@ -14,8 +14,7 @@ it.
 - A three-command user surface: `/hephaestus-build` for creation and repair,
   `/hephaestus-network` for borrowing public Hub agents into temporary task
   forces, and `/hephaestus-cloud` for using agents saved or shared through the
-  signed-in user's Agentlas Cloud. The older `/hephaestus` command remains as a
-  build alias.
+  signed-in user's Agentlas Cloud.
 - A global, local-only structure at `~/.agentlas/networking/`:
   `cards/` (routing cards), `policies/`, `memory/` (routing preferences only),
   `ledgers/` (routing receipts, executions, capability grants), `cache/`,

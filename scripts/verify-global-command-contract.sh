@@ -15,35 +15,46 @@ required_files=(
   "schemas/global-commands.schema.json"
   "templates/global-commands.json.tpl"
   "templates/antigravity-workflow.md.tpl"
-  ".claude/commands/hephaestus.md"
   ".claude/commands/hephaestus-build.md"
-  "codex/prompts/hephaestus.md"
-  "codex/prompts/hephaestus-build.md"
-  "gemini/extension/commands/hephaestus.toml"
-  "gemini/extension/commands/hephaestus-build.toml"
-  ".gemini/commands/hephaestus.toml"
-  ".gemini/commands/hephaestus-build.toml"
-  "gemini/extension/gemini-extension.json"
-  "antigravity/workflows/hephaestus.md"
-  "antigravity/workflows/hephaestus-build.md"
-  ".agents/workflows/hephaestus.md"
-  ".agents/workflows/hephaestus-build.md"
-  "AGENTS.md"
   ".claude/commands/hephaestus-network.md"
-  "claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus-network.md"
+  ".claude/commands/hephaestus-cloud.md"
+  "codex/prompts/hephaestus-build.md"
   "codex/prompts/hephaestus-network.md"
-  "codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-network/SKILL.md"
+  "codex/prompts/hephaestus-cloud.md"
+  "gemini/extension/commands/hephaestus-build.toml"
   "gemini/extension/commands/hephaestus-network.toml"
+  "gemini/extension/commands/hephaestus-cloud.toml"
+  ".gemini/commands/hephaestus-build.toml"
   ".gemini/commands/hephaestus-network.toml"
+  ".gemini/commands/hephaestus-cloud.toml"
+  "gemini/extension/gemini-extension.json"
+  "antigravity/workflows/hephaestus-build.md"
   "antigravity/workflows/hephaestus-network.md"
+  "antigravity/workflows/hephaestus-cloud.md"
+  ".agents/workflows/hephaestus-build.md"
   ".agents/workflows/hephaestus-network.md"
+  ".agents/workflows/hephaestus-cloud.md"
+  "AGENTS.md"
+  "claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus-network.md"
+  "claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus-cloud.md"
+  "codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-build/SKILL.md"
+  "codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-network/SKILL.md"
+  "codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-cloud/SKILL.md"
   "skills/hephaestus-network/SKILL.md"
+  "skills/hephaestus-cloud/SKILL.md"
   ".agents/skills/hephaestus-network/SKILL.md"
+  ".agents/skills/hephaestus-cloud/SKILL.md"
   "cursor/rules/hephaestus.mdc"
+  "cursor/plugin/commands/hephaestus-build.md"
   "cursor/plugin/commands/hephaestus-network.md"
+  "cursor/plugin/commands/hephaestus-cloud.md"
+  "opencode/commands/hephaestus-build.md"
   "opencode/commands/hephaestus-network.md"
+  "opencode/commands/hephaestus-cloud.md"
   "openclaw/skills/hephaestus-network/SKILL.md"
+  "openclaw/skills/hephaestus-cloud/SKILL.md"
   "hermes/skills/hephaestus-network/SKILL.md"
+  "hermes/skills/hephaestus-cloud/SKILL.md"
   "bin/hephaestus-build"
   "bin/hephaests-network"
   "agentlas_cloud/mcp_stdio.py"
@@ -67,8 +78,7 @@ command = registry.get("canonicalCommand")
 if not re.fullmatch(r"/[a-z0-9][a-z0-9-]*(?::[a-z0-9][a-z0-9-]*)?", command or ""):
     raise SystemExit(f"invalid canonicalCommand: {command!r}")
 
-# A runtime may expose several commands (e.g. /hephaestus and
-# /hephaestus-network); validate the canonical one per runtime.
+# A runtime may expose several commands; validate the canonical one per runtime.
 commands = {}
 for item in registry.get("commands", []):
     commands.setdefault(item["runtime"], item)
@@ -96,7 +106,6 @@ terminal_aliases = {
     if item.get("runtime") == "agentlas-terminal"
 }
 for alias_command, adapter in {
-    "Hephaestus": "bin/hephaestus",
     "Hephaestus-build": "bin/hephaestus-build",
     "hephaestus-build": "bin/hephaestus-build",
     "hephaests-network": "bin/hephaests-network",
@@ -173,7 +182,7 @@ require_pattern agents/30-agentlas-packager/agent.md 'Antigravity'
 require_pattern modes/single-agent-creator.md 'Antigravity'
 require_pattern modes/team-builder.md 'Antigravity'
 require_pattern modes/agentlas-packager.md 'Antigravity'
-require_pattern codex/plugins/agentlas-core-engine-meta-agent/skills/agentlas-core-engine-meta-agent/SKILL.md 'global_commands'
-require_pattern claude/plugins/agentlas-core-engine-meta-agent/SKILL.md 'global_commands'
+require_pattern codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-build/SKILL.md 'global_commands'
+require_pattern claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus-build.md 'global_commands'
 
 echo "Global command contract verification passed."

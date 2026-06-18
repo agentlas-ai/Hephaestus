@@ -17,9 +17,8 @@ Use Hephaestus as the Agentlas builder surface:
 - repair generated Agentlas command files
 - open `ontology` as the Knowledge/Memory panel
 
-This command is the clearer build-focused name for the older `/hephaestus`
-command. Keep `/hephaestus` working for compatibility, but prefer
-`/hephaestus-build` in new user-facing docs.
+Expose this as the only public build command, next to `/hephaestus-network`
+and `/hephaestus-cloud`. Do not advertise internal support skills as commands.
 
 ## Route
 

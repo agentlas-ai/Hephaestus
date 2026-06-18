@@ -1,3 +1,9 @@
+---
+description: Borrow public Agentlas Hub agents through Hephaestus Network.
+argument-hint: '<request>'
+allowed-tools: Bash, Read, Glob, Grep
+---
+
 # /hephaestus-network
 
 Route a natural-language request through the Hephaestus Network local-first

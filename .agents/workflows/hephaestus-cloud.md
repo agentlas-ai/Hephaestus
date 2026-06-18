@@ -29,7 +29,7 @@ Use the first executable found:
      pick, invoke that package with the original request (1 credit/call).
    - `clarify` — ask the `clarify_question` with candidates, then re-route.
    - `propose_new` — no matching package in my cloud; offer /hephaestus-network
-     (public marketplace) or /hephaestus (build a new agent).
+     (public marketplace) or /hephaestus-build (build a new agent).
    - `refuse` — explain `reasons`; do not work around the loop guard.
 4. Hard rules: never searches the public marketplace or local cards — only the
    authenticated owner's own cloud packages. Actual tool execution follows the

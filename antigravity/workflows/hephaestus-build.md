@@ -9,9 +9,8 @@ workspace. The request is the text the user typed after `/hephaestus-build`.
 It may be empty, `ontology`, or a build/package instruction such as
 `create a research agent for SEC filings`.
 
-This is the clearer build-focused name for the older `/hephaestus` command.
-Keep `/hephaestus` working for compatibility, but prefer `/hephaestus-build`
-in new docs.
+Expose this as the public build workflow next to `hephaestus-network` and
+`hephaestus-cloud`.
 
 ## Step 0 — Resolve the engine root
 

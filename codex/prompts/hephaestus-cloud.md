@@ -45,7 +45,7 @@ fi
      user's pick invoke that package with the original request (1 credit/call).
    - `clarify` — ask `clarify_question` with the candidates and re-route.
    - `propose_new` — no matching package in my cloud; offer `/hephaestus-network`
-     (public marketplace) or `/hephaestus` (build a new agent).
+     (public marketplace) or `/hephaestus-build` (build a new agent).
    - `refuse` — explain `reasons`; do not retry around the guard.
 
 3. Hard rules: never searches the public marketplace or local cards — only the

@@ -1,21 +1,21 @@
 ---
-description: Hephaestus Network routing — apply when the user types /hephaestus, /hephaestus-network, or mentions @Hephaestus in a request. Routes natural-language requests to local Agentlas agents/teams/plugins via the local-first router, with Hub fallback.
+description: Hephaestus Network routing — apply when the user types /hephaestus-network or mentions @Hephaestus in a routing request. Routes natural-language requests to local Agentlas agents/teams/plugins via the local-first router, with Hub fallback.
 alwaysApply: false
 ---
 
 # Hephaestus Network (Cursor adapter)
 
-Cursor also ships `/hephaestus-network` as a command and skill (see
-`cursor/plugin/`); this rule is the fallback adapter so plain-text triggers
-work too: when the user writes `/hephaestus <request>`,
-`/hephaestus-network <request>`, or `@Hephaestus <request>`, do the following.
+Cursor ships `/hephaestus-build`, `/hephaestus-network`, and
+`/hephaestus-cloud` as commands (see `cursor/plugin/`); this rule is the
+fallback adapter so plain-text routing triggers work too: when the user writes
+`/hephaestus-network <request>` or `@Hephaestus <request>`, do the following.
 
 1. Resolve the runner — first executable wins:
    `~/.agentlas/runtime/current/bin/hephaestus`, `./bin/hephaestus` in the
    workspace, or the newest
    `~/.claude/plugins/cache/agentlas-core-engine/hephaestus/*/bin/hephaestus`
    (sort -V). If none exists, tell the user to run the one-touch installer:
-   `curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.5.0/scripts/install-all-runtimes.sh | bash`
+   `curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.5/scripts/install-all-runtimes.sh | bash`
 
 2. Run `"$RUNNER" auth ensure --timeout 180` first. It opens the default
    browser only on first use and silently reuses an existing Agentlas saved

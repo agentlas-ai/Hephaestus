@@ -69,7 +69,7 @@ AI install Hephaestus and tell you which command surface is active in that tool.
 
 ```text
 Install Hephaestus Agentlas for this workspace. Run:
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.4/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.5/scripts/install-all-runtimes.sh | bash
 
 After it finishes, tell me the three commands I should use:
 1. create/build agents
@@ -88,8 +88,8 @@ Codex, Gemini CLI, Antigravity, and Cursor registration status.
 | Borrow | `/hephaestus-network` | `/hephaestus-network split this launch plan into research, copy, QA, and release agents` |
 | Share | `/hephaestus-cloud` | `/hephaestus-cloud use my saved finance analyst agent to review this report` |
 
-Old `/hephaestus` still works as a build alias, but new docs and installs use
-the three clearer names above.
+Fresh installs and updates prune the old visible `/hephaestus` chat command so
+new users see the three-command surface above.
 
 Hephaestus is the open core engine that makes Agentlas behave like an agent
 operating system instead of a one-off prompt generator. It gives developers
@@ -153,8 +153,7 @@ One command, every runtime, all local:
 - **Three plain commands.** Use `/hephaestus-build` to create or repair agents,
   `/hephaestus-network` to borrow public Hub agents into a temporary task
   force, and `/hephaestus-cloud` to use agents you saved or shared through
-  Agentlas Cloud. The older `/hephaestus` still works as a build alias. The
-  lower-level `ao`, `network`, `cards`, and `mcp` commands stay available for
+  Agentlas Cloud. The lower-level `ao`, `network`, `cards`, and `mcp` commands stay available for
   automation and debugging.
 - **Temporary task forces.** Composite `/hephaestus-network` requests are
   decomposed only when needed, then returned as a Hub/local TF plan with
@@ -265,14 +264,15 @@ tells you the exact command to use next:
 
 ```text
 Set up the Hephaestus Agentlas meta-agent in this workspace. Run
-`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.4/scripts/install-all-runtimes.sh | bash`
-in the terminal, then tell me the exact /hephaestus command for the tool I am
+`curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.5/scripts/install-all-runtimes.sh | bash`
+in the terminal, then tell me the exact three-command surface for the tool I am
 using (Claude Code, Codex, Gemini CLI, Antigravity, or Cursor). If anything
 fails, read the error, fix it, and retry.
 ```
 
-When it finishes, type `/hephaestus` in your tool. Prefer to run the commands
-yourself? Use the terminal **Quickstart** below.
+When it finishes, use `/hephaestus-build`, `/hephaestus-network`, or
+`/hephaestus-cloud` in your tool. Prefer to run the commands yourself? Use the
+terminal **Quickstart** below.
 
 ---
 
@@ -312,7 +312,7 @@ OpenCode, OpenClaw, and Hermes Agent surfaces. It also fixes the common
 old `agentlas-core-engine` entry and adding it again from this repo.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.4/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.5/scripts/install-all-runtimes.sh | bash
 ```
 
 After it finishes, restart any open AI apps. Then use:
@@ -349,17 +349,17 @@ Then open or restart Claude Code in the project you want to work on and type:
 
 ```text
 /reload-plugins
-/hephaestus ontology
+/hephaestus-build ontology
 ```
 
 If you already installed the old `agentlas-meta-agent` plugin and Claude says
 `hephaestus` is not found, refresh the marketplace and replace the old plugin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.4/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.5/scripts/install-all-runtimes.sh | bash
 ```
 
-`/hephaestus ontology` is now the Knowledge/Memory panel, not the main Agent OS
+`/hephaestus-build ontology` is now the Knowledge/Memory panel, not the main Agent OS
 surface. Use it when you want to inspect project sources, memory candidates,
 and reusable playbook material that routed agents may later reference. The
 dashboard has a left navigation rail, an Obsidian-style knowledge graph, source
@@ -374,7 +374,7 @@ commands. It creates these files in that project only:
 ```
 
 It does not scan your home folder or sibling projects. Put approved company docs
-inside `.agentlas/ontology-inbox/`, then run `/hephaestus ontology` again to
+inside `.agentlas/ontology-inbox/`, then run `/hephaestus-build ontology` again to
 refresh the dashboard.
 
 To create agents or teams after install:
@@ -393,26 +393,26 @@ Claude also supports `claude plugins ...` as an alias, but this README uses
 Open your normal OS terminal, not the Codex chat box, and run:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.7.4
+codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.7.5
 codex plugin add hephaestus@agentlas-core-engine
 ```
 
 Then open or restart Codex in the project you want to work on and type:
 
 ```text
-/hephaestus ontology
+/prompts:hephaestus-build ontology
 ```
 
-If Codex still shows `agentlas-meta-agent`, refresh the marketplace and replace
-the old plugin:
+If Codex still shows `agentlas-meta-agent` or internal support names like
+`mode-classification`, refresh the marketplace and replace the old plugin:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.4/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.5/scripts/install-all-runtimes.sh | bash
 ```
 
 The Codex OS-terminal CLI command is singular: `codex plugin`, not
 `codex plugins`. Inside the Codex app, the slash command for the plugin browser
-is plural: `/plugins`. After plugin install, `/hephaestus ontology` creates and
+is plural: `/plugins`. After plugin install, `/prompts:hephaestus-build ontology` creates and
 opens the same project-local dashboard with graph, sources, query, memory queue,
 and command views:
 
@@ -455,7 +455,7 @@ repo package files in your current project. Open macOS Terminal, Linux terminal,
 Windows Git Bash, or WSL in that project folder and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.4/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.5/scripts/install.sh | bash
 scripts/verify-package.sh
 scripts/public_safety_check.sh
 ```
@@ -463,9 +463,9 @@ scripts/public_safety_check.sh
 Windows PowerShell:
 
 ```powershell
-$zip = "$env:TEMP\hephaestus-v0.7.4.zip"
-$extract = "$env:TEMP\hephaestus-v0.7.4"
-Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.7.4.zip" -OutFile $zip
+$zip = "$env:TEMP\hephaestus-v0.7.5.zip"
+$extract = "$env:TEMP\hephaestus-v0.7.5"
+Invoke-WebRequest "https://github.com/agentlas-ai/Hephaestus/archive/refs/tags/v0.7.5.zip" -OutFile $zip
 Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive $zip -DestinationPath $extract -Force
 $src = Get-ChildItem $extract -Directory | Select-Object -First 1
@@ -489,13 +489,13 @@ Claude Code chat:
 /plugin marketplace add https://github.com/agentlas-ai/Hephaestus --sparse .claude-plugin claude/plugins
 /plugin install hephaestus@agentlas-core-engine
 /reload-plugins
-/hephaestus ontology
+/hephaestus-build ontology
 ```
 
 Codex does not accept `/plugin marketplace add` inside the app. In Codex,
 install from the OS terminal with `codex plugin ...`, then restart Codex and
 use `/plugins` only to browse or enable installed plugins. After Hephaestus is
-installed, run `/hephaestus ontology`.
+installed, run `/prompts:hephaestus-build ontology`.
 
 If a Claude chat window does not show the new command after install, restart
 Claude Code in that project.
@@ -565,8 +565,8 @@ and Gemini CLI from the extension manifest. No separate MCP setup needed.
 
 `/hephaestus-build` is for **creating** agents. `/hephaestus-network` is for
 **borrowing** public Hub agents. `/hephaestus-cloud` is for **sharing/using**
-agents in your own Agentlas Cloud. The old `/hephaestus` command still works as
-a build alias.
+agents in your own Agentlas Cloud. Fresh chat installs no longer expose the old
+general `/hephaestus` command as a visible command.
 
 ### 2. MCP tools are used in plain language, not commands
 
@@ -678,7 +678,8 @@ For knowledge-heavy personal or company agents, Hephaestus now ships a real loca
 The Super Ontology files under `.agentlas/` are currently in active development as the safety/governance layer. They define the source-lineage, privacy, task-coverage, causal, consensus, and memory-write gates around the runtime. The runtime is the implementation layer.
 
 In Agentlas Terminal and Desktop, the same runtime is exposed as
-`agentlas ontology`; in plugin-hosted tools, use `/hephaestus ontology`.
+`agentlas ontology`; in plugin-hosted tools, use `/hephaestus-build ontology`
+or Codex `/prompts:hephaestus-build ontology`.
 The runtime never scans your home folder or sibling projects; it only ingests
 explicit approved paths, registered sources, and project-local inbox files.
 

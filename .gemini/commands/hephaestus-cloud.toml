@@ -22,7 +22,7 @@ searches local + my cloud + Hub together.
      user's pick, invoke that package with the original request (1 credit/call).
    - action "clarify": ask the `clarify_question` with the candidates.
    - action "propose_new": no matching package in my cloud; offer
-     /hephaestus-network (public marketplace) or /hephaestus (build a new agent).
+     /hephaestus-network (public marketplace) or /hephaestus-build (build a new agent).
    - action "refuse": explain the reasons (for example, loop guard).
 
 3. Hard rules: never searches the public marketplace or local cards — only the

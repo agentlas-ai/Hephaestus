@@ -12,7 +12,7 @@ git --version
 One-command install or update for Claude, Codex, and Gemini:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.4/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.5/scripts/install-all-runtimes.sh | bash
 ```
 
 ```bash
@@ -24,13 +24,13 @@ Then open or restart Claude Code in the project and type:
 
 ```text
 /reload-plugins
-/hephaestus ontology
+/hephaestus-build ontology
 ```
 
 If an older install still points at `agentlas-meta-agent`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.4/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.5/scripts/install-all-runtimes.sh | bash
 ```
 
 That command creates and opens:
@@ -44,6 +44,8 @@ Use the same slash command for builder work:
 ```text
 /hephaestus-build create a research agent for SEC filing analysis
 /hephaestus-build package this existing Claude agent into Agentlas architecture
+/hephaestus-network split this launch into research, copy, QA, and release agents
+/hephaestus-cloud use my saved analyst agent
 ```
 
 After generation, the final handoff must include `global_commands` for the

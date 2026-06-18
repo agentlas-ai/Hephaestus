@@ -7,4 +7,5 @@ single-agent-builder, multi-agent-team-builder, or agentlas-packager, execute
 the meta-agent procedure, and include `global_commands` for the created agent
 or team in the final response.
 
-This is the clearer build-focused name for the older `/hephaestus` command.
+Expose this as the public build command next to `/hephaestus-network` and
+`/hephaestus-cloud`.

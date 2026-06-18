@@ -174,31 +174,35 @@ required_files=(
   "agentlas_cloud/runtime.py"
   "CLAUDE.md"
   "GEMINI.md"
-  "gemini/extension/commands/hephaestus.toml"
+  "gemini/extension/commands/hephaestus-build.toml"
+  "gemini/extension/commands/hephaestus-network.toml"
+  "gemini/extension/commands/hephaestus-cloud.toml"
   ".claude-plugin/marketplace.json"
-  ".claude/commands/hephaestus.md"
+  ".claude/commands/hephaestus-build.md"
+  ".claude/commands/hephaestus-network.md"
+  ".claude/commands/hephaestus-cloud.md"
   ".claude/commands/meta-agent.md"
   ".claude/agents/agentlas-core-engine-meta-agent.md"
   ".claude/skills/agentlas-core-engine-meta-agent/SKILL.md"
   "claude/.claude-plugin/marketplace.json"
   "claude/plugins/agentlas-core-engine-meta-agent/.claude-plugin/plugin.json"
-  "claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus.md"
+  "claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus-build.md"
+  "claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus-network.md"
+  "claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus-cloud.md"
   "claude/plugins/agentlas-core-engine-meta-agent/bin/hephaestus"
   "claude/plugins/agentlas-core-engine-meta-agent/agentlas_cloud/__main__.py"
   "claude/plugins/agentlas-core-engine-meta-agent/agentlas_cloud/cli.py"
   "claude/plugins/agentlas-core-engine-meta-agent/agentlas_cloud/runtime.py"
   "claude/plugins/agentlas-core-engine-meta-agent/ontology/cli.py"
   "claude/plugins/agentlas-core-engine-meta-agent/ontology/runtime.py"
-  "claude/plugins/agentlas-core-engine-meta-agent/SKILL.md"
-  "claude/plugins/agentlas-core-engine-meta-agent/skills/mode-classification/SKILL.md"
-  "claude/plugins/agentlas-core-engine-meta-agent/skills/clarify-question-loop/SKILL.md"
-  "claude/plugins/agentlas-core-engine-meta-agent/skills/agentlas-auto-activation/SKILL.md"
-  "claude/plugins/agentlas-core-engine-meta-agent/skills/skill-lifecycle-promotion/SKILL.md"
   ".gemini/GEMINI.md"
-  ".gemini/commands/hephaestus.toml"
+  ".gemini/commands/hephaestus-build.toml"
+  ".gemini/commands/hephaestus-network.toml"
+  ".gemini/commands/hephaestus-cloud.toml"
   "codex/plugins/agentlas-core-engine-meta-agent/.codex-plugin/plugin.json"
-  "codex/prompts/hephaestus.md"
+  "codex/prompts/hephaestus-build.md"
   "codex/prompts/hephaestus-network.md"
+  "codex/prompts/hephaestus-cloud.md"
   "codex/plugins/agentlas-core-engine-meta-agent/bin/hephaestus"
   "codex/plugins/agentlas-core-engine-meta-agent/agentlas_cloud/__main__.py"
   "codex/plugins/agentlas-core-engine-meta-agent/agentlas_cloud/cli.py"
@@ -206,26 +210,29 @@ required_files=(
   "codex/plugins/agentlas-core-engine-meta-agent/ontology/cli.py"
   "codex/plugins/agentlas-core-engine-meta-agent/ontology/runtime.py"
   "codex/.agents/plugins/marketplace.json"
-  "codex/plugins/agentlas-core-engine-meta-agent/skills/agentlas-core-engine-meta-agent/SKILL.md"
-  "codex/plugins/agentlas-core-engine-meta-agent/skills/mode-classification/SKILL.md"
-  "codex/plugins/agentlas-core-engine-meta-agent/skills/clarify-question-loop/SKILL.md"
-  "codex/plugins/agentlas-core-engine-meta-agent/skills/agentlas-auto-activation/SKILL.md"
-  "codex/plugins/agentlas-core-engine-meta-agent/skills/skill-lifecycle-promotion/SKILL.md"
+  "codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-build/SKILL.md"
   "codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-network/SKILL.md"
+  "codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-cloud/SKILL.md"
   "skills/hephaestus-network/SKILL.md"
+  "skills/hephaestus-cloud/SKILL.md"
   ".agents/skills/hephaestus-network/SKILL.md"
-  "claude/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-network/SKILL.md"
+  ".agents/skills/hephaestus-cloud/SKILL.md"
   "gemini/extension/skills/hephaestus-network/SKILL.md"
-  "gemini/extension/commands/hephaestus-network.toml"
+  "gemini/extension/skills/hephaestus-cloud/SKILL.md"
   "cursor/plugin/.cursor-plugin/plugin.json"
-  "cursor/plugin/commands/hephaestus.md"
+  "cursor/plugin/commands/hephaestus-build.md"
   "cursor/plugin/commands/hephaestus-network.md"
+  "cursor/plugin/commands/hephaestus-cloud.md"
   "cursor/plugin/skills/hephaestus-network/SKILL.md"
+  "cursor/plugin/skills/hephaestus-cloud/SKILL.md"
   "cursor/plugin/rules/hephaestus.mdc"
-  "opencode/commands/hephaestus.md"
+  "opencode/commands/hephaestus-build.md"
   "opencode/commands/hephaestus-network.md"
+  "opencode/commands/hephaestus-cloud.md"
   "openclaw/skills/hephaestus-network/SKILL.md"
+  "openclaw/skills/hephaestus-cloud/SKILL.md"
   "hermes/skills/hephaestus-network/SKILL.md"
+  "hermes/skills/hephaestus-cloud/SKILL.md"
   "agentlas_cloud/mcp_stdio.py"
   "tests/test_mcp_stdio.py"
   "docs/local-models.md"
@@ -262,6 +269,33 @@ agent_count="$(find agents -mindepth 2 -maxdepth 2 -name agent.md | wc -l | tr -
 python3 - <<'PY'
 import json
 from pathlib import Path
+
+public_skill_names = {"hephaestus-build", "hephaestus-network", "hephaestus-cloud"}
+codex_skill_root = Path("codex/plugins/agentlas-core-engine-meta-agent/skills")
+actual = {path.parent.name for path in codex_skill_root.glob("*/SKILL.md")}
+if actual != public_skill_names:
+    raise SystemExit(f"{codex_skill_root} exposes {sorted(actual)}, expected {sorted(public_skill_names)}")
+
+claude_skill_root = Path("claude/plugins/agentlas-core-engine-meta-agent/skills")
+claude_skills = sorted(path.parent.name for path in claude_skill_root.glob("*/SKILL.md"))
+if claude_skills:
+    raise SystemExit(
+        "Claude plugin must expose commands only; duplicate SKILL.md files found: "
+        + ", ".join(claude_skills)
+    )
+
+for path in [
+    Path("claude/plugins/agentlas-core-engine-meta-agent/SKILL.md"),
+    Path("claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus.md"),
+    Path("codex/prompts/hephaestus.md"),
+    Path("gemini/extension/commands/hephaestus.toml"),
+    Path("antigravity/workflows/hephaestus.md"),
+    Path(".agents/workflows/hephaestus.md"),
+    Path("cursor/plugin/commands/hephaestus.md"),
+    Path("opencode/commands/hephaestus.md"),
+]:
+    if path.exists():
+        raise SystemExit(f"legacy public command/skill surface should be pruned: {path}")
 
 for path in Path(".").rglob("*.json"):
     if ".git" in path.parts:

@@ -1,14 +1,16 @@
 ---
-name: agentlas-core-engine-meta-agent
-description: "Use when creating a single Agentlas agent, creating a multi-agent team, or packaging an existing local/external agent into Agentlas architecture. Make sure to use this for /meta-agent-style requests in Codex."
+name: hephaestus-build
+description: "Use when the user types /prompts:hephaestus-build, mentions @Hephaestus for build work, asks to create a single Agentlas agent, create a multi-agent team, or package an existing local/external agent into Agentlas architecture."
 ---
 
-# Agentlas Core Engine Meta-Agent
+# Hephaestus Build
 
 ## Procedure
 
-1. Read `AGENTS.md`.
-2. Read `.agentlas/mode-map.json`.
+1. Treat this as the public Codex build surface. Do not expose or ask the user
+   to invoke the older internal support skill names.
+2. Read `AGENTS.md` and `.agentlas/mode-map.json` when they exist in the
+   current workspace.
 3. Run the public mode classifier:
    - package or repair existing material -> `30-agentlas-packager`;
    - multi-role roster/company/HQ -> `20-multi-agent-team-builder`;

@@ -83,7 +83,7 @@ yet, and reuses a saved sign-in silently. For CI/headless checks only, set
   re-route with the answer (still cloud-scoped).
 - `action: "propose_new"` — no matching package in the user's cloud. Offer to
   search the public marketplace (`hephaestus-network` / `--hub-only`) or to build
-  a new agent via `/hephaestus`.
+  a new agent via `/hephaestus-build`.
 - `action: "refuse"` — explain `reasons` (for example, loop guard). Do not retry.
 
 ## 5. Hard rules

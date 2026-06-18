@@ -89,9 +89,10 @@ become separate sources of truth.
 
 ## Hephaestus Network Commands
 
-`/hephaestus-network <request>` (alias `@Hephaestus <request>`, terminal
-`hephaestus "<request>"`) is the work-routing surface; `/hephaestus <request>`
-is the creation, repair, memory, playbook, and diagnostics surface. Route
+`/hephaestus-build <request>` is the creation, repair, memory, playbook, and
+diagnostics surface. `/hephaestus-network <request>` (alias
+`@Hephaestus <request>`, terminal `hephaests-network "<request>"`) is the
+work-routing surface. Route
 natural language through the local-first Agent OS router: explicit commands →
 project `.agentlas/routing-overrides.json` → local routing cards
 (`routing_ready`+ only) → redacted Agentlas Hub lookup → propose building a new

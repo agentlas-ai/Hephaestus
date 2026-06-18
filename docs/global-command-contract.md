@@ -70,9 +70,9 @@ Hephaestus itself exposes three user-facing commands:
 - `/hephaestus-cloud <request>` — use agents saved or shared through the
   signed-in user's Agentlas Cloud.
 
-The older `/hephaestus` command remains as a build alias. Network routing is
-backed by the local-first router (`docs/hephaestus-network-2.0.md`). Required
-surfaces:
+Network routing is backed by the local-first router
+(`docs/hephaestus-network-2.0.md`). Fresh installs expose only these three
+user-facing Hephaestus commands. Required surfaces:
 
 - Claude Code: `.claude/commands/hephaestus-build.md`,
   `.claude/commands/hephaestus-network.md`, and

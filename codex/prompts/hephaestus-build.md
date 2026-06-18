@@ -8,8 +8,8 @@ argument-hint: <request, or "ontology">
 Raw arguments: `$ARGUMENTS`
 
 Use the `agentlas-core-engine-meta-agent` skill from the Hephaestus plugin.
-`/prompts:hephaestus-build` is the clear build-focused name for the older
-`/prompts:hephaestus` prompt.
+Expose `/prompts:hephaestus-build` as the public Codex build prompt next to
+`/prompts:hephaestus-network` and `/prompts:hephaestus-cloud`.
 
 - If the arguments are `ontology`, resolve the runner exactly as in
   `/prompts:hephaestus-network` and run `"$RUNNER" ontology`.
