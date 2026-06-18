@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-version="${HEPHAESTUS_REF:-v0.7.8}"
+version="${HEPHAESTUS_REF:-v0.7.9}"
 repo="${HEPHAESTUS_REPO:-agentlas-ai/Hephaestus}"
 github_url="${HEPHAESTUS_GITHUB_URL:-https://github.com/$repo}"
 marketplace_name="${HEPHAESTUS_MARKETPLACE:-agentlas-core-engine}"
@@ -240,7 +240,8 @@ install_claude() {
 }
 
 # Keep the user-global ~/.claude/commands copies in sync with this release.
-# A copy may be a symlink into a local checkout (same file) — skip those.
+# Remove old entries first so stale symlinks from earlier installers do not
+# survive in the host app's command autocomplete cache.
 write_claude_commands() {
   ensure_downloaded_source || return 1
   mkdir -p "$HOME/.claude/commands"
@@ -248,9 +249,7 @@ write_claude_commands() {
   for name in hephaestus-build.md hephaestus-network.md hephaestus-cloud.md hephaestus-search.md hephaestus-call.md; do
     src="$source_dir/.claude/commands/$name"
     dest="$HOME/.claude/commands/$name"
-    if [[ -e "$dest" && "$src" -ef "$dest" ]]; then
-      continue
-    fi
+    rm -f "$dest"
     cp "$src" "$dest" || return 1
   done
   rm -f "$HOME/.claude/commands/hephaestus.md" "$HOME/.claude/commands/hephaests-network.md"
@@ -274,6 +273,7 @@ write_codex_prompts() {
   mkdir -p "$HOME/.codex/prompts"
   local name
   for name in hephaestus-build.md hephaestus-network.md hephaestus-cloud.md hephaestus-search.md hephaestus-call.md; do
+    rm -f "$HOME/.codex/prompts/$name"
     cp "$prompts_src/$name" "$HOME/.codex/prompts/$name" || return 1
   done
   rm -f "$HOME/.codex/prompts/hephaestus.md" "$HOME/.codex/prompts/hephaests-network.md"
@@ -336,6 +336,7 @@ write_gemini_fallback_command() {
   mkdir -p "$command_dir"
   local name
   for name in hephaestus-build.toml hephaestus-network.toml hephaestus-cloud.toml hephaestus-search.toml hephaestus-call.toml; do
+    rm -f "$command_dir/$name"
     cp "$source_dir/gemini/extension/commands/$name" "$command_dir/$name" || return 1
   done
   rm -f "$command_dir/hephaestus.toml" "$command_dir/hephaests-network.toml"
@@ -398,6 +399,7 @@ install_antigravity() {
       mkdir -p "$global_dir"
       local name
       for name in hephaestus-build.md hephaestus-network.md hephaestus-cloud.md hephaestus-search.md hephaestus-call.md; do
+        rm -f "$global_dir/$name"
         cp "$source_dir/antigravity/workflows/$name" "$global_dir/$name" || return 1
       done
       rm -f "$global_dir/hephaestus.md" "$global_dir/hephaests-network.md"
@@ -449,6 +451,7 @@ install_cursor() {
   mkdir -p "$HOME/.cursor/commands" "$HOME/.cursor/skills"
   local name
   for name in hephaestus-build.md hephaestus-network.md hephaestus-cloud.md hephaestus-search.md hephaestus-call.md; do
+    rm -f "$HOME/.cursor/commands/$name"
     cp "$source_dir/cursor/plugin/commands/$name" "$HOME/.cursor/commands/$name" || return 1
   done
   rm -f "$HOME/.cursor/commands/hephaestus.md" "$HOME/.cursor/commands/hephaests-network.md"
@@ -472,6 +475,7 @@ install_opencode() {
   mkdir -p "$HOME/.config/opencode/commands"
   local name
   for name in hephaestus-build.md hephaestus-network.md hephaestus-cloud.md hephaestus-search.md hephaestus-call.md; do
+    rm -f "$HOME/.config/opencode/commands/$name"
     cp "$source_dir/opencode/commands/$name" "$HOME/.config/opencode/commands/$name" || return 1
   done
   rm -f "$HOME/.config/opencode/commands/hephaestus.md" "$HOME/.config/opencode/commands/hephaests-network.md"

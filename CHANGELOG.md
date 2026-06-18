@@ -4,6 +4,14 @@
 
 No unreleased changes yet.
 
+## v0.7.9 - 2026-06-18
+
+- Hardened installer command refresh for Claude, Codex, Gemini, Antigravity,
+  Cursor, and OpenCode: stale command files and old symlinks are removed before
+  the current command files are copied.
+- This prevents older autocomplete entries such as `0-7-4` or retired
+  `agentlas-*` support commands from surviving after an update.
+
 ## v0.7.8 - 2026-06-18
 
 - Restored Super Ontology candidate-only sync invariants for consensus
