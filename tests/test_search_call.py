@@ -33,6 +33,36 @@ def test_search_agents_returns_cloud_and_hub_sections(tmp_path, monkeypatch):
     assert [scope for _, scope in calls] == ["cloud", "network"]
 
 
+def test_search_agents_retries_with_expanded_intent_when_hub_clarifies(tmp_path, monkeypatch):
+    calls = []
+
+    def fake_search_hub(tokens, home=None, approved=False, scope="network"):
+        calls.append((tuple(tokens), scope))
+        if "market" not in tokens:
+            return {"status": "clarify", "scope": scope, "query": " ".join(tokens), "reason": "low_confidence"}
+        return {
+            "status": "ok",
+            "scope": scope,
+            "query": " ".join(tokens),
+            "results": [
+                {
+                    "slug": f"{scope}-researcher",
+                    "name": "Researcher",
+                    "tagline": "Researches market reports.",
+                    "kind": "cloud-callable",
+                    "callable": True,
+                }
+            ],
+        }
+
+    monkeypatch.setattr("agentlas_cloud.networking.search_call.search_hub", fake_search_hub)
+    result = search_agents("시장 리포트 써야 하는데 쓸만한 에이전트 찾아줘", home=tmp_path / "networking")
+
+    assert result["sections"]["hub"]["results"][0]["slug"] == "network-researcher"
+    assert result["sections"]["hub"]["fallbackReason"] == "clarify"
+    assert any("market" in tokens and scope == "network" for tokens, scope in calls)
+
+
 def test_call_agents_prepares_exact_named_slugs(tmp_path, monkeypatch):
     prepared = []
 

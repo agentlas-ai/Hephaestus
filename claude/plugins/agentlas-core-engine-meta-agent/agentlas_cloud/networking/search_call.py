@@ -38,8 +38,8 @@ def search_agents(
     base = Path(home) if home else networking_home()
     tokens = word_tokens(query)
     limit = _normalize_limit(limit)
-    cloud_raw = search_hub(tokens, home=base, approved=True, scope="cloud")
-    hub_raw = search_hub(tokens, home=base, approved=True, scope="network")
+    cloud_raw = _search_scope(tokens, query, home=base, scope="cloud")
+    hub_raw = _search_scope(tokens, query, home=base, scope="network")
     sections = {
         "cloud": _section("cloud", cloud_raw, query, limit),
         "hub": _section("hub", hub_raw, query, limit),
@@ -177,6 +177,51 @@ def parse_agent_refs(value: list[str] | str) -> list[str]:
     return list(dict.fromkeys(refs))
 
 
+def _search_scope(tokens: list[str], query: str, *, home: Path, scope: str) -> dict[str, Any]:
+    raw = search_hub(tokens, home=home, approved=True, scope=scope)
+    if _has_results(raw):
+        return raw
+    expanded = _expanded_tokens(query, tokens)
+    if expanded == list(dict.fromkeys(tokens)):
+        return raw
+    retry = search_hub(expanded, home=home, approved=True, scope=scope)
+    if _has_results(retry) or retry.get("status") == "ok":
+        retry["expandedFrom"] = raw.get("query") or " ".join(tokens)
+        retry["fallbackReason"] = raw.get("status") or raw.get("reason") or "empty_results"
+        return retry
+    return raw
+
+
+def _has_results(raw: dict[str, Any]) -> bool:
+    return isinstance(raw.get("results"), list) and bool(raw.get("results"))
+
+
+def _expanded_tokens(query: str, tokens: list[str]) -> list[str]:
+    expanded = list(dict.fromkeys(tokens))
+    haystack = " ".join([query, *tokens]).lower()
+    additions: list[str] = []
+    if any(term in haystack for term in ("시장", "market", "산업", "industry")):
+        additions.extend(["market", "industry", "trend"])
+    if any(term in haystack for term in ("리포트", "보고서", "report", "dossier")):
+        additions.extend(["report", "brief", "dossier", "writer"])
+    if any(term in haystack for term in ("리서치", "조사", "research", "자료", "정보")):
+        additions.extend(["research", "intelligence", "analyst"])
+    if any(term in haystack for term in ("분석", "analysis", "analytics")):
+        additions.extend(["analysis", "analytics", "analyst"])
+    if any(term in haystack for term in ("쓸만한", "찾아", "추천", "recommend", "suitable", "best")):
+        additions.extend(["recommend", "suitable", "agent"])
+    if any(term in haystack for term in ("투자", "주식", "금융", "finance", "investment", "stock", "equity")):
+        additions.extend(["finance", "investment", "equity"])
+    if any(term in haystack for term in ("마케팅", "marketing", "growth", "campaign")):
+        additions.extend(["marketing", "growth"])
+    if any(term in haystack for term in ("코드", "개발", "버그", "code", "dev", "bug")):
+        additions.extend(["code", "developer", "engineering"])
+    for token in additions:
+        if token not in expanded:
+            expanded.append(token)
+    return expanded
+
+
 def _parse_ref(ref: str) -> dict[str, str]:
     value = ref.strip().strip("`")
     value = value.lstrip("@")
@@ -201,6 +246,8 @@ def _section(scope: str, raw: dict[str, Any], query: str, limit: int) -> dict[st
         "query": raw.get("query"),
         "cached": bool(raw.get("cached", False)),
         "results": [_candidate(scope, item, index, query) for index, item in enumerate(results[:limit], start=1)],
+        **({"expandedFrom": raw.get("expandedFrom")} if raw.get("expandedFrom") else {}),
+        **({"fallbackReason": raw.get("fallbackReason")} if raw.get("fallbackReason") else {}),
         **({"detail": raw.get("detail")} if raw.get("detail") else {}),
         **({"question": raw.get("question") or raw.get("questionKo")} if raw.get("status") == "clarify" else {}),
         **({"note": raw.get("note")} if raw.get("note") else {}),

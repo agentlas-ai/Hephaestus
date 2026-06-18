@@ -4,6 +4,15 @@
 
 No unreleased changes yet.
 
+## v0.7.7 - 2026-06-18
+
+- Added multilingual intent expansion for `/hephaestus-search`, so broad
+  Korean prompts such as "시장 리포트 써야 하는데 쓸만한 에이전트 찾아줘"
+  retry with high-signal market/research/report tokens when the Hub asks for
+  clarification or returns no candidates.
+- Search sections now report fallback metadata and still include candidate
+  descriptions and per-agent `why` explanations without invoking agents.
+
 ## v0.7.6 - 2026-06-18
 
 - Added power-user `/hephaestus-search` and `/hephaestus-call` surfaces across
