@@ -179,6 +179,53 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="JSON array of active host sessions for Stormbreaker pipeline scheduling (for example Codex, Claude, GLM, DeepSeek).",
     )
+    route.add_argument("--auto-run", action="store_true", help="When routing returns a pipeline execution_fabric, run it with Stormbreaker.")
+    route.add_argument("--plan-only", action="store_true", help="Return the route/plan only, even when --auto-run is present.")
+    route.add_argument("--background", action="store_true", help="With --auto-run, detach the Stormbreaker packet runner.")
+    route.add_argument(
+        "--executor-command",
+        default=None,
+        help="With --auto-run, shell command launched once per packet. Packet data is exposed through STORMBREAKER_* env vars.",
+    )
+    route.add_argument(
+        "--execute-card-commands",
+        action="store_true",
+        help="With --auto-run, execute non-slash card canonical_command values as shell commands.",
+    )
+    route.add_argument("--max-workers", type=int, default=None, help="With --auto-run, maximum concurrent packet workers.")
+    route.add_argument("--timeout", type=int, default=900, help="With --auto-run, per-packet executor timeout in seconds.")
+
+    stormbreaker = sub.add_parser("stormbreaker", help="Stormbreaker packet runner")
+    stormbreaker_sub = stormbreaker.add_subparsers(dest="stormbreaker_command", required=True)
+    stormbreaker_run = stormbreaker_sub.add_parser("run", help="Route and execute a pipeline execution_fabric")
+    stormbreaker_run.add_argument("query", nargs="?", help="Natural-language pipeline request")
+    stormbreaker_run.add_argument("--decision-file", default=None, help="Run an existing route decision JSON instead of routing a query")
+    stormbreaker_run.add_argument("--project", default=".")
+    stormbreaker_run.add_argument("--runtime", default="terminal")
+    stormbreaker_run.add_argument("--no-hub", action="store_true")
+    stormbreaker_run.add_argument("--approve-hub", action="store_true", help="Legacy no-op; Hub lookup already uses redacted keywords only")
+    stormbreaker_run.add_argument("--hub-only", action="store_true", help="Skip local cards and search Agentlas Hub marketplace only")
+    stormbreaker_run.add_argument("--scope", choices=["network", "cloud"], default="network")
+    stormbreaker_run.add_argument("--caller", default=None)
+    stormbreaker_run.add_argument(
+        "--session-inventory",
+        default=None,
+        help="JSON array of active host sessions; packets in the same parallel group can run concurrently.",
+    )
+    stormbreaker_run.add_argument(
+        "--executor-command",
+        default=None,
+        help="Shell command launched once per packet. Packet data is exposed through STORMBREAKER_* env vars.",
+    )
+    stormbreaker_run.add_argument(
+        "--execute-card-commands",
+        action="store_true",
+        help="Execute card canonical_command values as shell commands when they are not slash commands.",
+    )
+    stormbreaker_run.add_argument("--background", action="store_true", help="Detach the runner and write logs/results under .agentlas/stormbreaker/background/")
+    stormbreaker_run.add_argument("--output-file", default=None, help=argparse.SUPPRESS)
+    stormbreaker_run.add_argument("--max-workers", type=int, default=None)
+    stormbreaker_run.add_argument("--timeout", type=int, default=900, help="Per-packet executor timeout in seconds")
 
     local_gui = sub.add_parser("local-gui", help=argparse.SUPPRESS)
     local_gui.add_argument("query")
@@ -374,9 +421,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "route":
         from .networking import init_networking, route_request
         from .networking.bootstrap import networking_home
+        from .networking.stormbreaker_runner import run_stormbreaker_decision
 
         maybe_print_update_notice()
-        init_networking(networking_home())
+        home = networking_home()
+        init_networking(home)
         session_inventory = None
         if args.session_inventory:
             try:
@@ -386,19 +435,115 @@ def main(argv: list[str] | None = None) -> int:
             except (json.JSONDecodeError, ValueError) as exc:
                 emit({"action": "route", "status": "error", "error": f"invalid --session-inventory: {exc}"})
                 return 2
-        return emit(
-            route_request(
+        decision = route_request(
+            args.query,
+            project_dir=args.project,
+            runtime=args.runtime,
+            use_hub=not args.no_hub,
+            hub_approved=args.approve_hub,
+            hub_only=args.hub_only,
+            scope=args.scope,
+            caller_id=getattr(args, "caller", None),
+            session_inventory=session_inventory,
+        )
+        if args.auto_run and not args.plan_only:
+            if decision.get("action") == "pipeline" and isinstance(decision.get("execution_fabric"), dict):
+                if args.background:
+                    return emit(_start_stormbreaker_background(args, decision=decision))
+                result = run_stormbreaker_decision(
+                    decision,
+                    home=home,
+                    project_dir=args.project,
+                    executor_command=args.executor_command,
+                    execute_card_commands=args.execute_card_commands,
+                    max_workers=args.max_workers,
+                    timeout_seconds=args.timeout,
+                )
+                result["route_decision"] = {
+                    "action": decision.get("action"),
+                    "receipt_id": decision.get("receipt_id"),
+                    "match_reason": decision.get("match_reason"),
+                }
+                emit(result)
+                return 0 if result.get("status") == "completed" else 1
+            decision["auto_run"] = {
+                "status": "skipped",
+                "reason": "route decision did not include a runnable pipeline execution_fabric",
+                "runner": "hephaestus-storm",
+            }
+        return emit(decision)
+    if args.command == "stormbreaker" and args.stormbreaker_command == "run":
+        from .networking import init_networking
+        from .networking.bootstrap import networking_home
+        from .networking.stormbreaker_runner import run_stormbreaker_decision, run_stormbreaker_query
+
+        maybe_print_update_notice()
+        home = networking_home()
+        init_networking(home)
+        session_inventory = None
+        if args.session_inventory:
+            try:
+                session_inventory = json.loads(args.session_inventory)
+                if not isinstance(session_inventory, list):
+                    raise ValueError("session inventory must be a JSON array")
+            except (json.JSONDecodeError, ValueError) as exc:
+                emit({"action": "stormbreaker_run", "status": "error", "error": f"invalid --session-inventory: {exc}"})
+                return 2
+
+        if args.background:
+            if not args.query and not args.decision_file:
+                emit({"action": "stormbreaker_run", "status": "error", "error": "query or --decision-file is required"})
+                return 2
+            return emit(_start_stormbreaker_background(args))
+
+        if args.decision_file:
+            try:
+                decision = json.loads(Path(args.decision_file).read_text(encoding="utf-8"))
+            except OSError as exc:
+                emit({"action": "stormbreaker_run", "status": "error", "error": f"cannot read --decision-file: {exc}"})
+                return 2
+            except json.JSONDecodeError as exc:
+                emit({"action": "stormbreaker_run", "status": "error", "error": f"invalid --decision-file JSON: {exc}"})
+                return 2
+            result = run_stormbreaker_decision(
+                decision,
+                home=home,
+                project_dir=args.project,
+                executor_command=args.executor_command,
+                execute_card_commands=args.execute_card_commands,
+                max_workers=args.max_workers,
+                timeout_seconds=args.timeout,
+            )
+        else:
+            if not args.query:
+                emit({"action": "stormbreaker_run", "status": "error", "error": "query or --decision-file is required"})
+                return 2
+            result = run_stormbreaker_query(
                 args.query,
+                home=home,
                 project_dir=args.project,
                 runtime=args.runtime,
                 use_hub=not args.no_hub,
                 hub_approved=args.approve_hub,
                 hub_only=args.hub_only,
                 scope=args.scope,
-                caller_id=getattr(args, "caller", None),
+                caller_id=args.caller,
                 session_inventory=session_inventory,
+                executor_command=args.executor_command,
+                execute_card_commands=args.execute_card_commands,
+                max_workers=args.max_workers,
+                timeout_seconds=args.timeout,
             )
-        )
+        emit(result)
+        if args.output_file:
+            from .networking.bootstrap import atomic_write_json
+
+            atomic_write_json(Path(args.output_file), result)
+        if result.get("status") == "completed":
+            return 0
+        if result.get("status") in {"blocked", "not_executed"}:
+            return 1
+        return 2
     if args.command == "local-gui":
         from .networking import init_networking
         from .networking.bootstrap import networking_home
@@ -545,6 +690,80 @@ def configure_utf8_stdio() -> None:
                 reconfigure(encoding="utf-8", errors="replace")
             except (OSError, ValueError):
                 pass
+
+
+def _start_stormbreaker_background(args: argparse.Namespace, decision: dict[str, Any] | None = None) -> dict[str, Any]:
+    import uuid
+    from .networking.bootstrap import atomic_write_json
+
+    project = Path(args.project).expanduser().resolve()
+    run_id = uuid.uuid4().hex[:12]
+    run_dir = project / ".agentlas" / "stormbreaker" / "background" / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    result_file = run_dir / "result.json"
+    stdout_file = run_dir / "stdout.log"
+    stderr_file = run_dir / "stderr.log"
+    decision_file = None
+    if decision is not None:
+        decision_file = run_dir / "decision.json"
+        atomic_write_json(decision_file, decision)
+    child_argv = _stormbreaker_child_argv(args, result_file, decision_file=decision_file)
+    env = os.environ.copy()
+    env.setdefault("PYTHONUTF8", "1")
+    env.setdefault("PYTHONIOENCODING", "utf-8")
+    with stdout_file.open("w", encoding="utf-8") as out, stderr_file.open("w", encoding="utf-8") as err:
+        process = subprocess.Popen(
+            child_argv,
+            cwd=os.getcwd(),
+            env=env,
+            stdout=out,
+            stderr=err,
+            text=True,
+            start_new_session=True,
+        )
+    return {
+        "action": "stormbreaker_run",
+        "status": "background_started",
+        "run_id": run_id,
+        "pid": process.pid,
+        "result_file": str(result_file),
+        "stdout_file": str(stdout_file),
+        "stderr_file": str(stderr_file),
+        "decision_file": str(decision_file) if decision_file else None,
+        "route_receipt_id": decision.get("receipt_id") if decision else None,
+    }
+
+
+def _stormbreaker_child_argv(args: argparse.Namespace, result_file: Path, decision_file: Path | None = None) -> list[str]:
+    child = [sys.executable, "-m", "agentlas_cloud", "stormbreaker", "run"]
+    if decision_file is not None:
+        child.extend(["--decision-file", str(decision_file)])
+    elif args.query:
+        child.append(args.query)
+    if decision_file is None and getattr(args, "decision_file", None):
+        child.extend(["--decision-file", args.decision_file])
+    child.extend(["--project", args.project])
+    child.extend(["--runtime", args.runtime])
+    child.extend(["--scope", args.scope])
+    child.extend(["--timeout", str(args.timeout)])
+    child.extend(["--output-file", str(result_file)])
+    if args.no_hub:
+        child.append("--no-hub")
+    if args.approve_hub:
+        child.append("--approve-hub")
+    if args.hub_only:
+        child.append("--hub-only")
+    if args.caller:
+        child.extend(["--caller", args.caller])
+    if args.session_inventory:
+        child.extend(["--session-inventory", args.session_inventory])
+    if args.executor_command:
+        child.extend(["--executor-command", args.executor_command])
+    if args.execute_card_commands:
+        child.append("--execute-card-commands")
+    if args.max_workers is not None:
+        child.extend(["--max-workers", str(args.max_workers)])
+    return child
 
 
 def run_doctor() -> dict[str, Any]:

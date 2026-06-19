@@ -109,9 +109,19 @@ Every substantial task should move through these states:
      Stormbreaker execution fabric: required work packets, dependency groups,
      model/session hints, handoff paths, and the final-gate packet list.
    - The host runtime may advertise active sessions such as Codex, Claude, GLM,
-     DeepSeek, Gemini, or local models. Stormbreaker can then spread independent
-     packets across those sessions, while keeping mutating work behind host
-     approvals and privacy rules.
+     DeepSeek, Gemini, or local models. `hephaestus-storm` can
+     spread independent packets across local packet workers and bind real model
+     sessions through an explicit executor adapter, while keeping mutating work
+     behind host approvals and privacy rules.
+   - `hephaestus-storm --background` detaches the run and writes
+     a result file plus stdout/stderr logs under
+     `.agentlas/stormbreaker/background/<run_id>/`.
+   - `hephaestus-network` may auto-start that background runner when the route
+     decision already includes a runnable `execution_fabric`; `--plan-only`
+     disables this behavior.
+   - Sub-agent/session fan-out is elastic but bounded. The runner may use every
+     advertised session lane and `--max-workers`, but it must not create an
+     unbounded swarm or bypass dependency joins/final gates.
    - Parallelism is allowed only across packets whose dependencies are already
      satisfied. A dependent packet cannot start until its `parallel_group` join
      policy is satisfied.

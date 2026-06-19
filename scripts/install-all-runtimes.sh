@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-version="${HEPHAESTUS_REF:-v0.7.10}"
+version="${HEPHAESTUS_REF:-v0.7.11}"
 repo="${HEPHAESTUS_REPO:-agentlas-ai/Hephaestus}"
 github_url="${HEPHAESTUS_GITHUB_URL:-https://github.com/$repo}"
 marketplace_name="${HEPHAESTUS_MARKETPLACE:-agentlas-core-engine}"
@@ -130,6 +130,7 @@ install_runtime_home() {
   chmod +x "$home_dir/bin/hephaestus" \
     "$home_dir/bin/hephaestus-build" \
     "$home_dir/bin/hephaests-network" \
+    "$home_dir/bin/hephaestus-storm" \
     "$home_dir/bin/hephaestus-search" \
     "$home_dir/bin/hephaestus-call" 2>/dev/null || true
   printf '%s\n' "$version" > "$home_dir/RELEASE"
@@ -147,6 +148,9 @@ install_runtime_home() {
     ln -sfn hephaestus-call "$home_dir/bin/Hephaestus-call" 2>/dev/null || true
   fi
   ln -sfn hephaests-network "$home_dir/bin/hephaestus-network" 2>/dev/null || true
+  if [[ ! -e "$home_dir/bin/Hephaestus-storm" ]]; then
+    ln -sfn hephaestus-storm "$home_dir/bin/Hephaestus-storm" 2>/dev/null || true
+  fi
   ln -sfn "$home_dir" "$HOME/.agentlas/runtime/current"
   log "Installed runner: $HOME/.agentlas/runtime/current/bin/hephaestus"
 }
@@ -628,7 +632,7 @@ main() {
   log "  OpenCode:    /hephaestus-build, /hephaestus-network, /hephaestus-cloud, /hephaestus-search, /hephaestus-call"
   log "  OpenClaw:    /skill hephaestus-network <request>"
   log "  Hermes:      hephaestus-network skill (+ MCP, see hermes/README.md)"
-  log "  Terminal:    Hephaestus-build \"<request>\", hephaests-network \"<request>\", Hephaestus-search \"<request>\", Hephaestus-call \"agent-a,agent-b\" \"<context>\", or hephaestus cloud \"<request>\""
+  log "  Terminal:    Hephaestus-build \"<request>\", hephaests-network \"<request>\", hephaestus-storm \"<request>\" --background, Hephaestus-search \"<request>\", Hephaestus-call \"agent-a,agent-b\" \"<context>\", or hephaestus cloud \"<request>\""
   log "  Ollama/Gemma/DeepSeek local models: docs/local-models.md (MCP: hephaestus mcp serve)"
   log ""
   log "agentlas Hub MCP (agentlas.search, marketplace.*, agentlas.teams.*) was registered too."

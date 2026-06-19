@@ -223,6 +223,7 @@ required_files=(
   "codex/prompts/hephaestus-search.md"
   "codex/prompts/hephaestus-call.md"
   "codex/plugins/agentlas-core-engine-meta-agent/bin/hephaestus"
+  "bin/hephaestus-storm"
   "codex/plugins/agentlas-core-engine-meta-agent/agentlas_cloud/__main__.py"
   "codex/plugins/agentlas-core-engine-meta-agent/agentlas_cloud/cli.py"
   "codex/plugins/agentlas-core-engine-meta-agent/agentlas_cloud/runtime.py"

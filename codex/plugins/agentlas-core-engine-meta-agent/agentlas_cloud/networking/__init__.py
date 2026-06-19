@@ -20,6 +20,7 @@ from .card_migrate import migrate_tree
 from .card_store import load_global_cards, reindex, save_card
 from .router import route_request
 from .search_call import call_agents, search_agents
+from .stormbreaker_runner import run_stormbreaker_decision, run_stormbreaker_query
 
 __all__ = [
     "SCHEMA_VERSION",
@@ -33,6 +34,8 @@ __all__ = [
     "reindex",
     "remove_source",
     "route_request",
+    "run_stormbreaker_decision",
+    "run_stormbreaker_query",
     "call_agents",
     "search_agents",
     "save_card",

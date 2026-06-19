@@ -4,6 +4,27 @@
 
 No unreleased changes yet.
 
+## v0.7.11 - 2026-06-19
+
+- Added the Stormbreaker auto-runner for Hephaestus Network pipeline decisions:
+  routed `execution_fabric` packets can now be dispatched, journaled, recorded
+  in execution receipts, and final-gated by the local runner.
+- Added the terminal `hephaestus-storm` command for explicit background packet
+  execution. Background runs write result, stdout, stderr, and decision files
+  under `.agentlas/stormbreaker/background/<run_id>/`.
+- Let terminal `hephaestus-network` auto-start Stormbreaker for runnable
+  pipeline fabrics while preserving `--plan-only` as the routing-only escape
+  hatch.
+- Added executor adapter options for real runtime/session binding:
+  `--executor-command`, `--execute-card-commands`, `--session-inventory`,
+  `--max-workers`, and per-packet `--timeout`.
+- Documented the elastic-but-bounded worker model: Hephaestus may use advertised
+  Codex, Claude, GLM, DeepSeek, Gemini, or local session lanes, but it does not
+  create an unbounded sub-agent swarm or bypass dependency joins/final gates.
+- Added focused tests for successful packet execution, failure blocking,
+  background result writing, route auto-run, non-pipeline skip behavior, and the
+  `bin/hephaestus-storm` terminal command.
+
 ## v0.7.10 - 2026-06-19
 
 - Added the Builder Interview and Research Gate for `/hephaestus-build`.

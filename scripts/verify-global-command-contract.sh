@@ -75,6 +75,7 @@ required_files=(
   "hermes/skills/hephaestus-cloud/SKILL.md"
   "bin/hephaestus-build"
   "bin/hephaests-network"
+  "bin/hephaestus-storm"
   "bin/hephaestus-search"
   "bin/hephaestus-call"
   "agentlas_cloud/mcp_stdio.py"
@@ -129,6 +130,7 @@ for alias_command, adapter in {
     "Hephaestus-build": "bin/hephaestus-build",
     "hephaestus-build": "bin/hephaestus-build",
     "hephaests-network": "bin/hephaests-network",
+    "hephaestus-storm": "bin/hephaestus-storm",
     "hephaestus search": "bin/hephaestus",
     "hephaestus call": "bin/hephaestus",
 }.items():

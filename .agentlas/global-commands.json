@@ -25,7 +25,7 @@
       "runtime": "gemini-cli",
       "command": "/hephaestus-build",
       "adapterPath": "gemini/extension/commands/hephaestus-build.toml",
-      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v0.7.10",
+      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v0.7.11",
       "scope": "global",
       "status": "extension-custom-command",
       "notes": "Fallback user command is also installable at ~/.gemini/commands/hephaestus-build.toml."
@@ -103,7 +103,7 @@
       "runtime": "gemini-cli",
       "command": "/hephaestus-network",
       "adapterPath": "gemini/extension/commands/hephaestus-network.toml",
-      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v0.7.10",
+      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v0.7.11",
       "scope": "global",
       "status": "extension-custom-command",
       "notes": "Fallback user command is also installable at ~/.gemini/commands/hephaestus-network.toml."
@@ -169,7 +169,16 @@
       "globalInstallPath": "hephaests-network \"<request>\"",
       "scope": "terminal",
       "status": "shell-command-alias",
-      "notes": "Typo-tolerant standalone Network alias; maps to hephaestus hephaests-network \"<request>\" and forces Hub-only Network routing."
+      "notes": "Typo-tolerant standalone Network alias; maps to hephaestus hephaests-network \"<request>\", uses Hub-only Network routing, and auto-runs runnable Stormbreaker execution_fabric decisions unless --plan-only is present."
+    },
+    {
+      "runtime": "agentlas-terminal",
+      "command": "hephaestus-storm",
+      "adapterPath": "bin/hephaestus-storm",
+      "globalInstallPath": "hephaestus-storm \"<request>\" --background",
+      "scope": "terminal",
+      "status": "shell-command",
+      "notes": "Stormbreaker auto-runner surface. Routes a pipeline request, dispatches packets, and writes receipts/results. Terminal hephaestus-network can auto-start this runner for runnable execution_fabric decisions."
     },
     {
       "runtime": "claude-code",
@@ -193,7 +202,7 @@
       "runtime": "gemini-cli",
       "command": "/hephaestus-cloud",
       "adapterPath": "gemini/extension/commands/hephaestus-cloud.toml",
-      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v0.7.10",
+      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v0.7.11",
       "scope": "global",
       "status": "extension-custom-command",
       "notes": "Fallback user command is also installable at ~/.gemini/commands/hephaestus-cloud.toml."
@@ -428,6 +437,6 @@
   ],
   "postCreationUserMessage": {
     "required": true,
-    "template": "global_commands: Claude Code /hephaestus-build, /hephaestus-network, /hephaestus-cloud; Codex /prompts:hephaestus-build, /prompts:hephaestus-network, /prompts:hephaestus-cloud; Gemini CLI /hephaestus-build, /hephaestus-network, /hephaestus-cloud; Antigravity /hephaestus-build, /hephaestus-network, /hephaestus-cloud; Cursor /hephaestus-build, /hephaestus-network, /hephaestus-cloud; OpenCode /hephaestus-build, /hephaestus-network, /hephaestus-cloud; Agentlas terminal Hephaestus-build, hephaests-network, or hephaestus cloud. Meaning: build/create = /hephaestus-build; borrow public Hub agents = /hephaestus-network; share/use my Agentlas Cloud packages = /hephaestus-cloud."
+    "template": "global_commands: Claude Code /hephaestus-build, /hephaestus-network, /hephaestus-cloud; Codex /prompts:hephaestus-build, /prompts:hephaestus-network, /prompts:hephaestus-cloud; Gemini CLI /hephaestus-build, /hephaestus-network, /hephaestus-cloud; Antigravity /hephaestus-build, /hephaestus-network, /hephaestus-cloud; Cursor /hephaestus-build, /hephaestus-network, /hephaestus-cloud; OpenCode /hephaestus-build, /hephaestus-network, /hephaestus-cloud; Agentlas terminal Hephaestus-build, hephaests-network, hephaestus-storm, or hephaestus cloud. Meaning: build/create = /hephaestus-build; borrow public Hub agents = /hephaestus-network; auto-run Stormbreaker packets = hephaestus-storm; share/use my Agentlas Cloud packages = /hephaestus-cloud."
   }
 }

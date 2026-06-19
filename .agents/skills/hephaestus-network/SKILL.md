@@ -101,7 +101,11 @@ For demo/distribution/Hub-only requests:
   silently. If `task_force` or `execution_fabric` is present, use it as the
   Stormbreaker packet schedule; parallel groups can be dispatched across active
   Codex, Claude, GLM, DeepSeek, Gemini, or local sessions when the host has
-  them.
+  them. The local product runner is `hephaestus-storm`; attach real runtime
+  sessions with `--executor-command`, or use the default mode only to
+  materialize auditable handoff artifacts. Terminal `hephaestus-network`
+  auto-runs only when the route decision includes a runnable execution fabric;
+  use `--plan-only` for route-only output.
 - `action: "hub_fallback"` or `"hub_candidates"` — Hub lookup already used
   redacted keywords only; the raw prompt and local memory were not sent.
   If the user explicitly asks to avoid all local agents/cards, pass

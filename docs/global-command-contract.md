@@ -62,7 +62,7 @@ leave the user guessing how to run the agent after creation.
 
 ## Hephaestus Network 2.0 additions
 
-Hephaestus itself exposes three user-facing commands:
+Hephaestus itself exposes three primary chat commands:
 
 - `/hephaestus-build <request>` — create, repair, or package agents and teams.
 - `/hephaestus-network <request>` — borrow public Hub agents into a temporary
@@ -72,7 +72,10 @@ Hephaestus itself exposes three user-facing commands:
 
 Network routing is backed by the local-first router
 (`docs/hephaestus-network-2.0.md`). Fresh installs expose only these three
-user-facing Hephaestus commands. Required surfaces:
+primary chat commands plus power-user search/call surfaces. Stormbreaker packet
+auto-run is available through the terminal runner `hephaestus-storm`; terminal
+`hephaestus-network` may also auto-start it when routing returns a runnable
+`execution_fabric` and `--plan-only` is not present. Required surfaces:
 
 - Claude Code: `.claude/commands/hephaestus-build.md`,
   `.claude/commands/hephaestus-network.md`, and
@@ -90,6 +93,7 @@ user-facing Hephaestus commands. Required surfaces:
   `<project>/.cursor/rules/` — reacts to `/hephaestus*` and `@Hephaestus`.
 - Terminal: `Hephaestus-build "<request>"` is the human-facing build alias,
   `hephaests-network "<request>"` is the standalone Hub-only Network alias,
+  and `hephaestus-storm "<request>" --background` runs Stormbreaker packets.
   and `hephaestus cloud "<request>"` is the cloud/share surface.
 - Generic AGENTS.md / local-model runtimes: see
   `docs/runtime-fallback-adapters.md`.

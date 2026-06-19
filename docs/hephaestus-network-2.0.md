@@ -12,7 +12,7 @@ it.
   `/hephaestus-search`, and `/hephaestus-call` in Claude Code, Codex, Gemini
   CLI, Antigravity, Cursor, and OpenCode; terminal aliases are
   `Hephaestus-build`, `hephaests-network`, `hephaestus cloud`,
-  `Hephaestus-search`, and `Hephaestus-call`.
+  `hephaestus-storm`, `Hephaestus-search`, and `Hephaestus-call`.
 - A three-primary-command user surface: `/hephaestus-build` for creation and repair,
   `/hephaestus-network` for borrowing public Hub agents into temporary task
   forces, and `/hephaestus-cloud` for using agents saved or shared through the
@@ -23,8 +23,10 @@ it.
   `cards/` (routing cards), `policies/`, `memory/` (routing preferences only),
   `ledgers/` (routing receipts, executions, capability grants), `cache/`,
   `registry.sqlite` (rebuildable index), `sources.json`, `config.json`.
-- Routing receipts for every decision. The router only selects agents or Hub
-  bundles; host runtimes enforce permissions when tools actually execute.
+- Routing receipts for every decision. The router selects agents or Hub bundles
+  first; terminal `hephaestus-network` then auto-runs only when the decision
+  contains a runnable Stormbreaker `execution_fabric`. Use `--plan-only` to
+  force routing-only output.
 - Local Operator Mode policy labels: most super-ontology signals become
   `allow`, `allow_with_label`, `auto_redact`, or `candidate_only`. Human
   approval is reserved for real external export, global promotion, or
@@ -70,7 +72,9 @@ hephaestus cards lint [path]
 hephaestus cards migrate <root> --tier free|paid|plugin|local
 hephaestus route "<request>"     # or just: hephaestus "<request>"
 hephaestus hephaestus-build "<request>"     # build/create/package surface
-hephaestus hephaestus-network "<request>"   # Hub-only Network surface
+hephaestus hephaestus-network "<request>"   # Hub-only Network surface; auto-runs runnable pipeline fabrics
+hephaestus hephaestus-network "<request>" --plan-only   # route/plan only
+hephaestus-storm "<request>" --background   # route + auto-run Stormbreaker packets
 hephaestus search "<request>"               # show cloud + Hub candidates only
 hephaestus call "agent-a,agent-b" "<ctx>"    # prepare exact named agents
 Hephaestus "<request>"           # human-facing terminal alias
@@ -126,9 +130,20 @@ Use `docs/robustness-protocol.md` for the execution contract after routing and
 
 For `pipeline` decisions, the returned JSON includes `execution_fabric`:
 required work packets, dependency groups, session hints, and a resume/final-gate
-policy. The host runtime owns actual calls to Codex, Claude, GLM, DeepSeek, or
-local model sessions; Hephaestus supplies the auditable schedule and blocks a
-success claim until the required packet list is complete.
+policy. `hephaestus-storm` consumes that fabric, launches local packet workers
+by parallel group, records per-packet receipts, and blocks a
+success claim until the required packet list is complete. External Codex,
+Claude, GLM, DeepSeek, Gemini, or local-model sessions are attached through an
+explicit executor adapter (`--executor-command`) or host runtime integration;
+without an executor the runner only materializes auditable handoff artifacts.
+Use `--background` when the product surface should return immediately while the
+runner completes packets and writes `.agentlas/stormbreaker/background/<run_id>/result.json`.
+Terminal `hephaestus-network` uses this runner automatically for decisions that
+already contain a runnable `execution_fabric`; non-runnable Hub candidates,
+clarify results, and single-agent routes are returned as routing decisions.
+The runner is elastic but bounded: pass `--session-inventory` to advertise
+available Codex/Claude/GLM/DeepSeek/Gemini/local sessions and `--max-workers`
+to cap concurrent packet workers. Hephaestus never starts an unbounded swarm.
 
 When an Agent Ontology graph is present, pipeline planning first tries the AO
 `produces`/`consumes` graph and records the resulting `graph_path`. Card-level

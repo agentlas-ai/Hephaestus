@@ -30,6 +30,7 @@ code_files=(
   "bin/hephaestus"
   "bin/hephaestus-build"
   "bin/hephaests-network"
+  "bin/hephaestus-storm"
   "bin/hephaestus-search"
   "bin/hephaestus-call"
   "bin/hephaestus.cmd"

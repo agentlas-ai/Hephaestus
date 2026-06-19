@@ -65,6 +65,7 @@ Usage:
   bin/hephaestus route "<request>" [--project <dir>] [--no-hub] [--approve-hub] [--hub-only] [--scope network|cloud] [--caller <agent-id>]
   bin/hephaestus hephaestus-network "<request>"     # public Hub / temporary TF surface
   bin/hephaestus hephaests-network "<request>"      # accepted typo alias
+  bin/hephaestus hephaestus-storm "<request>" [--background] [--executor-command <cmd>]  # auto-run pipeline packets
   bin/hephaestus cloud "<request>" [--project <dir>] [--no-hub]   # search ONLY my own cloud packages (보관함)
   bin/hephaestus search "<request>" [--limit 10]     # show cloud + Hub candidates only
   bin/hephaestus call "agent-a,agent-b" "<context>"  # prepare named Hub/cloud agents
@@ -180,7 +181,14 @@ EOF
 	        exit "$gui_status"
 	      fi
 	    fi
-	    run_python_module agentlas_cloud route "$@" --hub-only --scope network
+	    if [[ "${HEPHAESTUS_NETWORK_AUTO_RUN:-1}" == "0" ]]; then
+	      run_python_module agentlas_cloud route "$@" --hub-only --scope network
+	    else
+	      run_python_module agentlas_cloud route "$@" --hub-only --scope network --auto-run --background
+	    fi
+	    ;;
+	  hephaestus-storm|storm)
+	    run_python_module agentlas_cloud stormbreaker run "$@"
 	    ;;
 	  search|hephaestus-search|Hephaestus-search)
 	    run_python_module agentlas_cloud search "$@"
