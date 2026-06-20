@@ -5,14 +5,15 @@ Codex plugins CANNOT register slash commands — the loader reads only
 `commands/` or `prompts/` directory exists in the plugin spec). Hephaestus
 therefore exposes one clear Codex product surface in three places:
 
-1. **Skills** (in the plugin): `hephaestus-build`, `hephaestus-network`, and
-   `hephaestus-cloud`. Invoke with a `$` mention, browse with `/skills`, or let
-   Codex trigger them implicitly from the description.
+1. **Compatibility skills** (in the plugin): `hephaestus-build`,
+   `hephaestus-network`, and `hephaestus-cloud`. Codex may trigger them
+   implicitly from the description.
 2. **Custom prompts** (explicit slash surface): `codex/prompts/*.md` are
    copied to `~/.codex/prompts/` by the installer and appear as
-   `/prompts:hephaestus-build`, `/prompts:hephaestus-network`, and
-   `/prompts:hephaestus-cloud`, with power-user prompts
-   `/prompts:hephaestus-search` and `/prompts:hephaestus-call`. Top-level
+   `/prompts:hep-build`, `/prompts:hep-network`, and
+   `/prompts:hep-cloud`, with power-user prompts
+   `/prompts:hep-search`, `/prompts:hep-call`, and `/prompts:hep-upload`.
+   Top-level
    files only — Codex ignores subdirectories there.
 3. **MCP**: the installer registers the local stdio server
    (`hephaestus mcp serve`) as `mcp_servers.hephaestus-network` in
@@ -33,16 +34,16 @@ git --version
 One-command install or update for every supported runtime:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.11/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.12/scripts/install-all-runtimes.sh | bash
 ```
 
 Codex-only manual install:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.7.11
+codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.7.12
 codex plugin add hephaestus@agentlas-core-engine
 mkdir -p ~/.codex/prompts
-cp codex/prompts/hephaestus-build.md codex/prompts/hephaestus-network.md codex/prompts/hephaestus-cloud.md codex/prompts/hephaestus-search.md codex/prompts/hephaestus-call.md ~/.codex/prompts/
+cp codex/prompts/hep-build.md codex/prompts/hep-network.md codex/prompts/hep-cloud.md codex/prompts/hep-search.md codex/prompts/hep-call.md codex/prompts/hep-upload.md ~/.codex/prompts/
 ```
 
 The OS-terminal Codex CLI command is singular: `codex plugin`, not
@@ -54,12 +55,12 @@ plugins; do not run `/plugin marketplace add` inside the app.
 Open or restart Codex and type:
 
 ```text
-/prompts:hephaestus-build create a support operations agent
-/prompts:hephaestus-network find me an agent for app store reviews
-/prompts:hephaestus-cloud use my saved finance analyst agent
-/prompts:hephaestus-search find agents for market report research
-/prompts:hephaestus-call market-researcher, report-writer {draft a market report brief}
-$hephaestus-network   (skill mention; skill picker should show only the three public Hephaestus skills)
+/prompts:hep-build create a support operations agent
+/prompts:hep-network find me an agent for app store reviews
+/prompts:hep-cloud use my saved finance analyst agent
+/prompts:hep-search find agents for market report research
+/prompts:hep-call market-researcher, report-writer {draft a market report brief}
+/prompts:hep-upload ./agents/customer-support-hq
 ```
 
 If an older install still shows `agentlas-meta-agent`, `mode-classification`,

@@ -2,17 +2,25 @@
 
 ## Unreleased
 
-No unreleased changes yet.
+## v0.7.12 - 2026-06-20
+
+- Renamed the visible command surface to the short `/hep-*` family across app,
+  web/docs, terminal, and runtime adapters: `/hep-build`, `/hep-network`,
+  `/hep-cloud`, `/hep-search`, `/hep-call`, and `/hep-upload`.
+- Added `/hep-upload` and `hep-upload`, which always ask Cloud-private vs
+  Agentlas-Hub-public before any package, publish, register, or upload action.
+- Updated installer/sync/verification contracts so new runtime installs expose
+  the short command names and prune stale `/hephaestus-*` command files.
 
 ## v0.7.11 - 2026-06-19
 
 - Added the Stormbreaker auto-runner for Hephaestus Network pipeline decisions:
   routed `execution_fabric` packets can now be dispatched, journaled, recorded
   in execution receipts, and final-gated by the local runner.
-- Added the terminal `hephaestus-storm` command for explicit background packet
+- Added the terminal `hep-storm` command for explicit background packet
   execution. Background runs write result, stdout, stderr, and decision files
   under `.agentlas/stormbreaker/background/<run_id>/`.
-- Let terminal `hephaestus-network` auto-start Stormbreaker for runnable
+- Let terminal `hep-network` auto-start Stormbreaker for runnable
   pipeline fabrics while preserving `--plan-only` as the routing-only escape
   hatch.
 - Added executor adapter options for real runtime/session binding:
@@ -23,11 +31,11 @@ No unreleased changes yet.
   create an unbounded sub-agent swarm or bypass dependency joins/final gates.
 - Added focused tests for successful packet execution, failure blocking,
   background result writing, route auto-run, non-pipeline skip behavior, and the
-  `bin/hephaestus-storm` terminal command.
+  `bin/hep-storm` terminal command.
 
 ## v0.7.10 - 2026-06-19
 
-- Added the Builder Interview and Research Gate for `/hephaestus-build`.
+- Added the Builder Interview and Research Gate for `/hep-build`.
   Substantial single-agent, team-builder, and packager runs must now ask an
   8-12 question first batch before generating behavior.
 - Made similar-agent/repository research and academic or professional theory
@@ -65,7 +73,7 @@ No unreleased changes yet.
 
 ## v0.7.7 - 2026-06-18
 
-- Added multilingual intent expansion for `/hephaestus-search`, so broad
+- Added multilingual intent expansion for `/hep-search`, so broad
   Korean prompts such as "시장 리포트 써야 하는데 쓸만한 에이전트 찾아줘"
   retry with high-signal market/research/report tokens when the Hub asks for
   clarification or returns no candidates.
@@ -74,15 +82,15 @@ No unreleased changes yet.
 
 ## v0.7.6 - 2026-06-18
 
-- Added power-user `/hephaestus-search` and `/hephaestus-call` surfaces across
+- Added power-user `/hep-search` and `/hep-call` surfaces across
   Claude, Codex prompts, Gemini, Antigravity, Cursor, OpenCode, terminal, and
   the local MCP server.
-- `hephaestus-search` returns separate top-10 sections for the signed-in
+- `hep-search` returns separate top-10 sections for the signed-in
   user's Agentlas Cloud packages and the public Agentlas Hub without invoking
   any agent.
-- `hephaestus-call` prepares exactly named Hub/cloud agent slugs as BYOM
+- `hep-call` prepares exactly named Hub/cloud agent slugs as BYOM
   runtime bundles and writes receipts; the host runtime still owns execution.
-- Clarified that `/hephaestus-build ontology` is the local project
+- Clarified that `/hep-build ontology` is the local project
   knowledge/memory map, not the Hub marketplace search.
 - Hardened the one-touch installer to prune stale visible command files,
   typo-command remnants, and old `0-7-4`/`0.7.4` plugin cache folders.
@@ -97,7 +105,7 @@ No unreleased changes yet.
   `/hephaestus` and `/prompts:hephaestus` are no longer installed as chat
   autocomplete entries.
 - Locked the Claude connector to command-only exposure: exactly
-  `hephaestus-build`, `hephaestus-network`, and `hephaestus-cloud`. This
+  `hep-build`, `hep-network`, and `hep-cloud`. This
   prevents broad root-folder scans from showing version folders such as
   `0-7-4`, and prevents duplicate command+skill entries for the same names.
 - Tightened the installer to clear stale Claude/Codex plugin caches before
@@ -107,8 +115,8 @@ No unreleased changes yet.
 ## v0.7.3 - 2026-06-18
 
 - Added the clearer three-command user surface:
-  `/hephaestus-build` for creation, `/hephaestus-network` for borrowing public
-  Hub agents, and `/hephaestus-cloud` for using agents saved or shared through
+  `/hep-build` for creation, `/hep-network` for borrowing public
+  Hub agents, and `/hep-cloud` for using agents saved or shared through
   Agentlas Cloud. Legacy `/hephaestus` remains as a build alias.
 
 ## v0.7.2 - 2026-06-18
@@ -117,15 +125,15 @@ No unreleased changes yet.
   `agent_os_router`, `task_force`, Local Operator `policy_decision`, and
   candidate-first `memory_playbook` metadata in both responses and receipts.
 - Added Hub stage-wise temporary TF planning for composite Hub-only
-  `/hephaestus-network` requests while preserving the existing `hub_candidates`
+  `/hep-network` requests while preserving the existing `hub_candidates`
   action for caller compatibility.
 - Wired pipeline planning to prefer Agent Ontology `produces`/`consumes` graph
   paths when available, falling back to routing-card artifact contracts.
 - Added a Memory/Playbook control-plane registry and candidate queues under the
   local networking home; the router still cannot write durable/global memory
   directly.
-- Added terminal aliases `hephaestus hephaestus-network` and the typo-tolerant
-  `hephaestus hephaests-network` for the two-command user surface.
+- Added terminal aliases `hephaestus hep-network` and the typo-tolerant
+  `hephaestus hep-network` for the two-command user surface.
 - Added the Stormbreaker execution fabric for Hephaestus Network `pipeline`
   decisions: required work packets, dependency groups, session hints, resume
   policy, and a final gate that blocks success until all required packets pass.

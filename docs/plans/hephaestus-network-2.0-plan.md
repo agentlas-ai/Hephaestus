@@ -15,7 +15,7 @@
 | Hephaestus repo | `schemas/agent-card.schema.json` (최소 필드, `additionalProperties: true`), `agentlas_cloud/plugin_discovery.py` (로컬 우선 + `https://agentlas.cloud/api/plugins` 머지, 오프라인 폴백) | routing-card 스키마·라우터·`~/.agentlas/networking/` 미구현 |
 | agentlas_desktop | `electron/agents/auto-router.ts` 키워드 스코어링 라우터(한글 지원), SQLite `installed_agents`, `surface-trust.ts` 승인 게이트 | 라우팅 카드 미연동, 라우팅 영수증 없음 |
 | AgentsAtlas Hub | `POST /api/mcp/v1` `marketplace.search_agents` (무인증, ko/en 토크나이저), `cloud-agents/v1/register` (보안 차단 패턴), OAuth RFC 9728 | routingCard 필드·폴백 승인 게이트 미구현 |
-| 런타임 등록 | `global-commands.json` 계약 + `install-all-runtimes.sh` (Claude/Codex/Gemini/Antigravity 4종 검증됨) | Cursor 미지원, /hephaestus-network 별칭 없음, 글로벌 init 훅 없음 |
+| 런타임 등록 | `global-commands.json` 계약 + `install-all-runtimes.sh` (Claude/Codex/Gemini/Antigravity 4종 검증됨) | Cursor 미지원, /hep-network 별칭 없음, 글로벌 init 훅 없음 |
 
 핵심 결론: **새로 발명할 것은 적다.** 기존 3개의 독립 라우팅/검색 구현(desktop auto-router, Hub catalog, plugin_discovery)을 하나의 카드 표준 + 글로벌 레지스트리로 수렴시키는 작업이다.
 
@@ -159,10 +159,10 @@ Codex 리뷰 반영 보강:
 
 | 런타임 | 자동 등록 | 방식 | 비고 |
 |--------|-----------|------|------|
-| Claude Code | ✅ | 기존 플러그인 + `~/.claude/commands/hephaestus*.md` symlink. `/hephaestus-network` 명령 파일 추가 | 검증됨 |
-| Codex | ✅ | `codex/plugins/.../commands/hephaestus-network.md` 추가 | 검증됨 |
-| Gemini CLI | ⚠️ 부분 | extension + `hephaestus-network.toml`. TOML 생성은 설치 스크립트가 수행 | 폴백: `~/.gemini/commands/` 직접 복사 |
-| Antigravity | ✅ | `antigravity/workflows/hephaestus-network.md` + global_workflows 복사 | 다중 소스 엔진 해석 이미 내장 |
+| Claude Code | ✅ | 기존 플러그인 + `~/.claude/commands/hephaestus*.md` symlink. `/hep-network` 명령 파일 추가 | 검증됨 |
+| Codex | ✅ | `codex/plugins/.../commands/hep-network.md` 추가 | 검증됨 |
+| Gemini CLI | ⚠️ 부분 | extension + `hep-network.toml`. TOML 생성은 설치 스크립트가 수행 | 폴백: `~/.gemini/commands/` 직접 복사 |
+| Antigravity | ✅ | `antigravity/workflows/hep-network.md` + global_workflows 복사 | 다중 소스 엔진 해석 이미 내장 |
 | Cursor | ⚠️ 신규 | `cursor/rules/hephaestus.mdc` 어댑터 신규 작성 + 프로젝트 `.cursor/rules/` 설치. 슬래시 명령 미지원 → `@Hephaestus` 트리거 규칙으로 폴백 | 이 머신엔 Cursor 미설치, 어댑터만 출하 |
 | 터미널 | ✅ | `bin/hephaestus route "<요청>"` + `hephaestus "<요청>"` 단축 | |
 | Gemma/로컬 모델, Hermes류 | ⚠️ 문서 폴백 | 자동 등록 불가 → `AGENTS.md` generic 섹션 + `docs/runtime-fallback-adapters.md`에 수동 설치 가이드 | 현실적 한계 명시 |
@@ -197,7 +197,7 @@ Codex 리뷰 반영 보강:
 **Phase 0 — 계약/스키마 (행동 변화 없음)**
 - [ ] `schemas/routing-card.schema.json` 신규
 - [ ] `docs/hephaestus-network-2.0.md` (사용자-facing 계약), `docs/runtime-fallback-adapters.md` 신규
-- [ ] `docs/global-command-contract.md`에 `/hephaestus-network`·`@Hephaestus` 추가
+- [ ] `docs/global-command-contract.md`에 `/hep-network`·`@Hephaestus` 추가
 
 **Phase 1 — 글로벌 init + 카드 스토어**
 - [ ] `agentlas_cloud/networking/{__init__,bootstrap,card_store,card_lint}.py`
@@ -209,7 +209,7 @@ Codex 리뷰 반영 보강:
 **Phase 2 — 라우터 + 영수증 + 메모리**
 - [ ] `agentlas_cloud/networking/{router,receipts,memory,approvals}.py`
 - [ ] `bin/hephaestus route` / `network bench`
-- [ ] 런타임 명령 파일: `.claude/commands/hephaestus-network.md`, `claude/plugins/.../commands/`, `codex/plugins/.../commands/`, `gemini/extension/commands/hephaestus-network.toml`, `antigravity/workflows/hephaestus-network.md`, `cursor/rules/hephaestus.mdc` (신규 어댑터 디렉토리)
+- [ ] 런타임 명령 파일: `.claude/commands/hep-network.md`, `claude/plugins/.../commands/`, `codex/plugins/.../commands/`, `gemini/extension/commands/hep-network.toml`, `antigravity/workflows/hep-network.md`, `cursor/rules/hephaestus.mdc` (신규 어댑터 디렉토리)
 - [ ] `.agentlas/global-commands.json`에 hephaestus-network 등록, `scripts/sync-adapters.sh` 미러 목록 갱신
 - [ ] `tests/test_network_router.py` (엣지 케이스 표 전부)
 

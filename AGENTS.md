@@ -108,10 +108,12 @@ become separate sources of truth.
 
 ## Hephaestus Network Commands
 
-`/hephaestus-build <request>` is the creation, repair, memory, playbook, and
-diagnostics surface. `/hephaestus-network <request>` (alias
-`@Hephaestus <request>`, terminal `hephaests-network "<request>"`) is the
-work-routing surface. Route
+`/hep-build <request>` is the creation, repair, memory, playbook, and
+diagnostics surface. `/hep-network <request>` (alias
+`@Hephaestus <request>`, terminal `hep-network "<request>"`) is the
+work-routing surface. `/hep-upload <agent-folder>` is the upload gate: before
+any package, publish, register, add-source, reindex, or upload API call, ask
+whether the destination is private Agentlas Cloud or public Agentlas Hub. Route
 natural language through the local-first Agent OS router: explicit commands →
 project `.agentlas/routing-overrides.json` → local routing cards
 (`routing_ready`+ only) → redacted Agentlas Hub lookup → propose building a new

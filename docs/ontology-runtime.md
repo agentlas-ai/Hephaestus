@@ -51,7 +51,7 @@ bin/ontology sources add /path/to/company-docs --project . --kind company --scop
 
 ## Local Dashboard
 
-`/hephaestus-build ontology` and `bin/hephaestus ontology` create
+`/hep-build ontology` and `bin/hephaestus ontology` create
 `.agentlas/ontology-gui/index.html` inside the active project. The file is a
 self-contained dashboard, so it works without a hosted web server.
 

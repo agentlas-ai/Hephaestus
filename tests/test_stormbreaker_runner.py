@@ -167,7 +167,7 @@ def test_hephaestus_storm_terminal_command_runs_pipeline(tmp_path):
 
     completed = subprocess.run(
         [
-            "bin/hephaestus-storm",
+            "bin/hep-storm",
             "웹앱 기획부터 구현, 테스트 검증까지 끝까지 해줘",
             "--project",
             str(project),

@@ -1,7 +1,7 @@
 # Builder Interview and Research Gate
 
 This gate protects the functional quality of agents built with
-`/hephaestus-build`. The package architecture can be correct while the actual
+`/hep-build`. The package architecture can be correct while the actual
 agent behavior is weak; this gate is about the agent's job design, prompts,
 tools, examples, and evaluation pressure. The goal is to make rough user
 requests produce strong agents by forcing interview, comparable-agent research,
@@ -177,7 +177,7 @@ marked as a minimal private scaffold.
 
 ## Final Handoff Evidence
 
-The final `/hephaestus-build` response must report:
+The final `/hep-build` response must report:
 
 - interview status and unresolved assumptions;
 - research sources used;

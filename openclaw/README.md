@@ -2,7 +2,7 @@
 
 OpenClaw loads skills from `~/.openclaw/skills` and `~/.agents/skills`
 (AgentSkills spec). User-invocable skills are exposed as slash commands —
-`/skill hephaestus-network <request>` always works; native `/hephaestus-network`
+`/skill hephaestus-network <request>` always works; native `/hep-network`
 registration follows the gateway's `commands.nativeSkills` setting.
 
 `scripts/install-all-runtimes.sh` installs the skill automatically. Manual

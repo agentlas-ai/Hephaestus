@@ -162,12 +162,12 @@ def main(argv: list[str] | None = None) -> int:
     route.add_argument("--runtime", default="terminal")
     route.add_argument("--no-hub", action="store_true")
     route.add_argument("--approve-hub", action="store_true", help="Legacy no-op; Hub lookup already uses redacted keywords only")
-    route.add_argument("--hub-only", action="store_true", help="Skip local cards and search Agentlas Hub marketplace only (/hephaestus-network)")
+    route.add_argument("--hub-only", action="store_true", help="Skip local cards and search Agentlas Hub marketplace only (/hep-network)")
     route.add_argument(
         "--scope",
         choices=["network", "cloud"],
         default="network",
-        help="network = public Hub marketplace; cloud = the signed-in owner's OWN cloud packages (보관함). cloud implies --hub-only (/hephaestus-cloud).",
+        help="network = public Hub marketplace; cloud = the signed-in owner's OWN cloud packages (보관함). cloud implies --hub-only (/hep-cloud).",
     )
     route.add_argument(
         "--caller",
@@ -469,7 +469,7 @@ def main(argv: list[str] | None = None) -> int:
             decision["auto_run"] = {
                 "status": "skipped",
                 "reason": "route decision did not include a runnable pipeline execution_fabric",
-                "runner": "hephaestus-storm",
+                "runner": "hep-storm",
             }
         return emit(decision)
     if args.command == "stormbreaker" and args.stormbreaker_command == "run":

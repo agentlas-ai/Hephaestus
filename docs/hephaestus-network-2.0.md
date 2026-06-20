@@ -8,23 +8,23 @@ it.
 
 ## What you get
 
-- `/hephaestus-build`, `/hephaestus-network`, `/hephaestus-cloud`,
-  `/hephaestus-search`, and `/hephaestus-call` in Claude Code, Codex, Gemini
+- `/hep-build`, `/hep-network`, `/hep-cloud`,
+  `/hep-search`, `/hep-call`, and `/hep-upload` in Claude Code, Codex, Gemini
   CLI, Antigravity, Cursor, and OpenCode; terminal aliases are
-  `Hephaestus-build`, `hephaests-network`, `hephaestus cloud`,
-  `hephaestus-storm`, `Hephaestus-search`, and `Hephaestus-call`.
-- A three-primary-command user surface: `/hephaestus-build` for creation and repair,
-  `/hephaestus-network` for borrowing public Hub agents into temporary task
-  forces, and `/hephaestus-cloud` for using agents saved or shared through the
-  signed-in user's Agentlas Cloud. Power users add `/hephaestus-search` to
-  compare Cloud/Hub candidates without invoking and `/hephaestus-call` to
+  `hep-build`, `hep-network`, `hep-cloud`, `hep-upload`,
+  `hep-storm`, `hep-search`, and `hep-call`.
+- A three-primary-command user surface: `/hep-build` for creation and repair,
+  `/hep-network` for borrowing public Hub agents into temporary task
+  forces, and `/hep-cloud` for using agents saved or shared through the
+  signed-in user's Agentlas Cloud. Power users add `/hep-search` to
+  compare Cloud/Hub candidates without invoking and `/hep-call` to
   prepare exact named agents.
 - A global, local-only structure at `~/.agentlas/networking/`:
   `cards/` (routing cards), `policies/`, `memory/` (routing preferences only),
   `ledgers/` (routing receipts, executions, capability grants), `cache/`,
   `registry.sqlite` (rebuildable index), `sources.json`, `config.json`.
 - Routing receipts for every decision. The router selects agents or Hub bundles
-  first; terminal `hephaestus-network` then auto-runs only when the decision
+  first; terminal `hep-network` then auto-runs only when the decision
   contains a runnable Stormbreaker `execution_fabric`. Use `--plan-only` to
   force routing-only output.
 - Local Operator Mode policy labels: most super-ontology signals become
@@ -71,17 +71,17 @@ hephaestus network grant <capability> --target <id> --scope per_call|session|pro
 hephaestus cards lint [path]
 hephaestus cards migrate <root> --tier free|paid|plugin|local
 hephaestus route "<request>"     # or just: hephaestus "<request>"
-hephaestus hephaestus-build "<request>"     # build/create/package surface
-hephaestus hephaestus-network "<request>"   # Hub-only Network surface; auto-runs runnable pipeline fabrics
-hephaestus hephaestus-network "<request>" --plan-only   # route/plan only
-hephaestus-storm "<request>" --background   # route + auto-run Stormbreaker packets
-hephaestus search "<request>"               # show cloud + Hub candidates only
-hephaestus call "agent-a,agent-b" "<ctx>"    # prepare exact named agents
-Hephaestus "<request>"           # human-facing terminal alias
-Hephaestus-build "<request>"     # human-facing build alias
-Hephaestus-search "<request>"    # human-facing search alias
-Hephaestus-call "agent-a,agent-b" "<ctx>"    # human-facing call alias
-hephaests-network "<request>"    # standalone Hub-only Network alias
+hephaestus hep-build "<request>"     # build/create/package surface
+hephaestus hep-network "<request>"   # Hub-only Network surface; auto-runs runnable pipeline fabrics
+hephaestus hep-network "<request>" --plan-only   # route/plan only
+hep-storm "<request>" --background   # route + auto-run Stormbreaker packets
+hep-search "<request>"               # show cloud + Hub candidates only
+hep-call "agent-a,agent-b" "<ctx>"    # prepare exact named agents
+hep-upload <agent-folder>            # ask private Cloud vs public Hub first
+hep-build "<request>"     # human-facing build alias
+hep-search "<request>"    # human-facing search alias
+hep-call "agent-a,agent-b" "<ctx>"    # human-facing call alias
+hep-network "<request>"    # standalone Hub-only Network alias
 ```
 
 ## Decisions the router can return
@@ -92,7 +92,7 @@ hephaests-network "<request>"    # standalone Hub-only Network alias
 | `pipeline` | plan-anchored composite request ("기획부터 구현, QA까지") — a multi-team stage plan chained by Agent Ontology or card `produces`/`consumes` artifact contracts; includes a Stormbreaker `execution_fabric` so host runtimes can run independent packets across active sessions and block success until every required packet passes |
 | `clarify` | low confidence or ambiguous local match — answer the question to continue |
 | `hub_fallback` / `hub_candidates` | no local match or Hub-only mode; Hub lookup used redacted keywords only. Composite Hub-only requests include a `task_force` with stage-level Hub candidates |
-| `propose_new` | nothing matched locally or on the Hub — build a new agent with `/hephaestus-build` |
+| `propose_new` | nothing matched locally or on the Hub — build a new agent with `/hep-build` |
 | `refuse` | loop guard or another technical guard; the reason is in `reasons` |
 
 Every decision writes a receipt to
@@ -130,7 +130,7 @@ Use `docs/robustness-protocol.md` for the execution contract after routing and
 
 For `pipeline` decisions, the returned JSON includes `execution_fabric`:
 required work packets, dependency groups, session hints, and a resume/final-gate
-policy. `hephaestus-storm` consumes that fabric, launches local packet workers
+policy. `hep-storm` consumes that fabric, launches local packet workers
 by parallel group, records per-packet receipts, and blocks a
 success claim until the required packet list is complete. External Codex,
 Claude, GLM, DeepSeek, Gemini, or local-model sessions are attached through an
@@ -138,7 +138,7 @@ explicit executor adapter (`--executor-command`) or host runtime integration;
 without an executor the runner only materializes auditable handoff artifacts.
 Use `--background` when the product surface should return immediately while the
 runner completes packets and writes `.agentlas/stormbreaker/background/<run_id>/result.json`.
-Terminal `hephaestus-network` uses this runner automatically for decisions that
+Terminal `hep-network` uses this runner automatically for decisions that
 already contain a runnable `execution_fabric`; non-runnable Hub candidates,
 clarify results, and single-agent routes are returned as routing decisions.
 The runner is elastic but bounded: pass `--session-inventory` to advertise

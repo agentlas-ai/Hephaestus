@@ -1,6 +1,6 @@
 """Explicit local GUI shortcuts for the Network surface.
 
-The public `/hephaestus-network` surface is Hub-only by default. This module
+The public `/hep-network` surface is Hub-only by default. This module
 adds a narrow escape hatch: a local routing card can opt in to a GUI shortcut
 with `network_shortcut.enabled=true` and exact phrases. Nothing else is routed
 locally from the Network command.

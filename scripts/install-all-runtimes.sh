@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-version="${HEPHAESTUS_REF:-v0.7.11}"
+version="${HEPHAESTUS_REF:-v0.7.12}"
 repo="${HEPHAESTUS_REPO:-agentlas-ai/Hephaestus}"
 github_url="${HEPHAESTUS_GITHUB_URL:-https://github.com/$repo}"
 marketplace_name="${HEPHAESTUS_MARKETPLACE:-agentlas-core-engine}"
@@ -128,29 +128,24 @@ install_runtime_home() {
   mkdir -p "$home_dir"
   cp -R "$source_dir/bin" "$source_dir/agentlas_cloud" "$source_dir/ontology" "$home_dir/" || return 1
   chmod +x "$home_dir/bin/hephaestus" \
-    "$home_dir/bin/hephaestus-build" \
-    "$home_dir/bin/hephaests-network" \
-    "$home_dir/bin/hephaestus-storm" \
-    "$home_dir/bin/hephaestus-search" \
-    "$home_dir/bin/hephaestus-call" 2>/dev/null || true
+    "$home_dir/bin/hep-build" \
+    "$home_dir/bin/hep-network" \
+    "$home_dir/bin/hep-cloud" \
+    "$home_dir/bin/hep-search" \
+    "$home_dir/bin/hep-call" \
+    "$home_dir/bin/hep-upload" \
+    "$home_dir/bin/hep-storm" 2>/dev/null || true
   printf '%s\n' "$version" > "$home_dir/RELEASE"
   write_python3_shim "$home_dir/bin" || true
   if [[ ! -e "$home_dir/bin/Hephaestus" ]]; then
     ln -sfn hephaestus "$home_dir/bin/Hephaestus" 2>/dev/null || true
   fi
-  if [[ ! -e "$home_dir/bin/Hephaestus-build" ]]; then
-    ln -sfn hephaestus-build "$home_dir/bin/Hephaestus-build" 2>/dev/null || true
-  fi
-  if [[ ! -e "$home_dir/bin/Hephaestus-search" ]]; then
-    ln -sfn hephaestus-search "$home_dir/bin/Hephaestus-search" 2>/dev/null || true
-  fi
-  if [[ ! -e "$home_dir/bin/Hephaestus-call" ]]; then
-    ln -sfn hephaestus-call "$home_dir/bin/Hephaestus-call" 2>/dev/null || true
-  fi
-  ln -sfn hephaests-network "$home_dir/bin/hephaestus-network" 2>/dev/null || true
-  if [[ ! -e "$home_dir/bin/Hephaestus-storm" ]]; then
-    ln -sfn hephaestus-storm "$home_dir/bin/Hephaestus-storm" 2>/dev/null || true
-  fi
+  rm -f "$home_dir/bin/Hephaestus-build" "$home_dir/bin/Hephaestus-search" \
+        "$home_dir/bin/Hephaestus-call" "$home_dir/bin/Hephaestus-storm" \
+        "$home_dir/bin/hephaestus-network" \
+        "$home_dir/bin/hephaestus-build" "$home_dir/bin/hephaests-network" \
+        "$home_dir/bin/hephaestus-search" "$home_dir/bin/hephaestus-call" \
+        "$home_dir/bin/hephaestus-storm" 2>/dev/null || true
   ln -sfn "$home_dir" "$HOME/.agentlas/runtime/current"
   log "Installed runner: $HOME/.agentlas/runtime/current/bin/hephaestus"
 }
@@ -238,7 +233,7 @@ install_claude() {
 
   run claude plugin install "$plugin_name@$marketplace_name" || return 1
   try claude plugin enable "$plugin_name@$marketplace_name" >/dev/null 2>&1 || true
-  write_claude_commands || warn "Claude global command refresh failed; copy .claude/commands/hephaestus*.md to ~/.claude/commands manually."
+  write_claude_commands || warn "Claude global command refresh failed; copy .claude/commands/hep-*.md to ~/.claude/commands manually."
   log "agentlas Hub MCP is bundled with the plugin (.mcp.json) and registers automatically."
   ok=$((ok + 1))
 }
@@ -250,14 +245,17 @@ write_claude_commands() {
   ensure_downloaded_source || return 1
   mkdir -p "$HOME/.claude/commands"
   local name src dest
-  for name in hephaestus-build.md hephaestus-network.md hephaestus-cloud.md hephaestus-search.md hephaestus-call.md; do
+  for name in hep-build.md hep-network.md hep-cloud.md hep-search.md hep-call.md hep-upload.md; do
     src="$source_dir/.claude/commands/$name"
     dest="$HOME/.claude/commands/$name"
     rm -f "$dest"
     cp "$src" "$dest" || return 1
   done
-  rm -f "$HOME/.claude/commands/hephaestus.md" "$HOME/.claude/commands/hephaests-network.md"
-  log "Refreshed Claude commands: /hephaestus-build, /hephaestus-network, /hephaestus-cloud, /hephaestus-search, /hephaestus-call"
+  rm -f "$HOME/.claude/commands/hephaestus.md" "$HOME/.claude/commands/hephaests-network.md" \
+        "$HOME/.claude/commands/hephaestus-build.md" "$HOME/.claude/commands/hephaestus-network.md" \
+        "$HOME/.claude/commands/hephaestus-cloud.md" "$HOME/.claude/commands/hephaestus-search.md" \
+        "$HOME/.claude/commands/hephaestus-call.md"
+  log "Refreshed Claude commands: /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload"
 }
 
 remove_codex_existing() {
@@ -276,12 +274,15 @@ write_codex_prompts() {
   [[ -d "$prompts_src" ]] || { warn "codex prompts not found: $prompts_src"; return 1; }
   mkdir -p "$HOME/.codex/prompts"
   local name
-  for name in hephaestus-build.md hephaestus-network.md hephaestus-cloud.md hephaestus-search.md hephaestus-call.md; do
+  for name in hep-build.md hep-network.md hep-cloud.md hep-search.md hep-call.md hep-upload.md; do
     rm -f "$HOME/.codex/prompts/$name"
     cp "$prompts_src/$name" "$HOME/.codex/prompts/$name" || return 1
   done
-  rm -f "$HOME/.codex/prompts/hephaestus.md" "$HOME/.codex/prompts/hephaests-network.md"
-  log "Installed Codex custom prompts: /prompts:hephaestus-build, /prompts:hephaestus-network, /prompts:hephaestus-cloud, /prompts:hephaestus-search, /prompts:hephaestus-call"
+  rm -f "$HOME/.codex/prompts/hephaestus.md" "$HOME/.codex/prompts/hephaests-network.md" \
+        "$HOME/.codex/prompts/hephaestus-build.md" "$HOME/.codex/prompts/hephaestus-network.md" \
+        "$HOME/.codex/prompts/hephaestus-cloud.md" "$HOME/.codex/prompts/hephaestus-search.md" \
+        "$HOME/.codex/prompts/hephaestus-call.md"
+  log "Installed Codex custom prompts: /prompts:hep-build, /prompts:hep-network, /prompts:hep-cloud, /prompts:hep-search, /prompts:hep-call, /prompts:hep-upload"
 }
 
 install_codex() {
@@ -339,12 +340,15 @@ write_gemini_fallback_command() {
   local command_dir="$HOME/.gemini/commands"
   mkdir -p "$command_dir"
   local name
-  for name in hephaestus-build.toml hephaestus-network.toml hephaestus-cloud.toml hephaestus-search.toml hephaestus-call.toml; do
+  for name in hep-build.toml hep-network.toml hep-cloud.toml hep-search.toml hep-call.toml hep-upload.toml; do
     rm -f "$command_dir/$name"
     cp "$source_dir/gemini/extension/commands/$name" "$command_dir/$name" || return 1
   done
-  rm -f "$command_dir/hephaestus.toml" "$command_dir/hephaests-network.toml"
-  log "Installed Gemini fallback commands: /hephaestus-build, /hephaestus-network, /hephaestus-cloud, /hephaestus-search, /hephaestus-call"
+  rm -f "$command_dir/hephaestus.toml" "$command_dir/hephaests-network.toml" \
+        "$command_dir/hephaestus-build.toml" "$command_dir/hephaestus-network.toml" \
+        "$command_dir/hephaestus-cloud.toml" "$command_dir/hephaestus-search.toml" \
+        "$command_dir/hephaestus-call.toml"
+  log "Installed Gemini fallback commands: /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload"
 }
 
 install_gemini() {
@@ -402,12 +406,15 @@ install_antigravity() {
       local global_dir="$data_dir/global_workflows"
       mkdir -p "$global_dir"
       local name
-      for name in hephaestus-build.md hephaestus-network.md hephaestus-cloud.md hephaestus-search.md hephaestus-call.md; do
+      for name in hep-build.md hep-network.md hep-cloud.md hep-search.md hep-call.md hep-upload.md; do
         rm -f "$global_dir/$name"
         cp "$source_dir/antigravity/workflows/$name" "$global_dir/$name" || return 1
       done
-      rm -f "$global_dir/hephaestus.md" "$global_dir/hephaests-network.md"
-      log "Installed Antigravity global workflows: /hephaestus-build, /hephaestus-network, /hephaestus-cloud, /hephaestus-search, /hephaestus-call"
+      rm -f "$global_dir/hephaestus.md" "$global_dir/hephaests-network.md" \
+            "$global_dir/hephaestus-build.md" "$global_dir/hephaestus-network.md" \
+            "$global_dir/hephaestus-cloud.md" "$global_dir/hephaestus-search.md" \
+            "$global_dir/hephaestus-call.md"
+      log "Installed Antigravity global workflows: /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload"
       installed=$((installed + 1))
     fi
   done
@@ -454,16 +461,19 @@ install_cursor() {
   ensure_downloaded_source || return 1
   mkdir -p "$HOME/.cursor/commands" "$HOME/.cursor/skills"
   local name
-  for name in hephaestus-build.md hephaestus-network.md hephaestus-cloud.md hephaestus-search.md hephaestus-call.md; do
+  for name in hep-build.md hep-network.md hep-cloud.md hep-search.md hep-call.md hep-upload.md; do
     rm -f "$HOME/.cursor/commands/$name"
     cp "$source_dir/cursor/plugin/commands/$name" "$HOME/.cursor/commands/$name" || return 1
   done
-  rm -f "$HOME/.cursor/commands/hephaestus.md" "$HOME/.cursor/commands/hephaests-network.md"
+  rm -f "$HOME/.cursor/commands/hephaestus.md" "$HOME/.cursor/commands/hephaests-network.md" \
+        "$HOME/.cursor/commands/hephaestus-build.md" "$HOME/.cursor/commands/hephaestus-network.md" \
+        "$HOME/.cursor/commands/hephaestus-cloud.md" "$HOME/.cursor/commands/hephaestus-search.md" \
+        "$HOME/.cursor/commands/hephaestus-call.md"
   for name in hephaestus-network hephaestus-cloud; do
     rm -rf "$HOME/.cursor/skills/$name"
     cp -R "$source_dir/skills/$name" "$HOME/.cursor/skills/$name" || return 1
   done
-  log "Installed Cursor commands (/hephaestus-build, /hephaestus-network, /hephaestus-cloud, /hephaestus-search, /hephaestus-call) and skills."
+  log "Installed Cursor commands (/hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload) and skills."
   ok=$((ok + 1))
 }
 
@@ -478,12 +488,15 @@ install_opencode() {
   ensure_downloaded_source || return 1
   mkdir -p "$HOME/.config/opencode/commands"
   local name
-  for name in hephaestus-build.md hephaestus-network.md hephaestus-cloud.md hephaestus-search.md hephaestus-call.md; do
+  for name in hep-build.md hep-network.md hep-cloud.md hep-search.md hep-call.md hep-upload.md; do
     rm -f "$HOME/.config/opencode/commands/$name"
     cp "$source_dir/opencode/commands/$name" "$HOME/.config/opencode/commands/$name" || return 1
   done
-  rm -f "$HOME/.config/opencode/commands/hephaestus.md" "$HOME/.config/opencode/commands/hephaests-network.md"
-  log "Installed OpenCode commands: /hephaestus-build, /hephaestus-network, /hephaestus-cloud, /hephaestus-search, /hephaestus-call"
+  rm -f "$HOME/.config/opencode/commands/hephaestus.md" "$HOME/.config/opencode/commands/hephaests-network.md" \
+        "$HOME/.config/opencode/commands/hephaestus-build.md" "$HOME/.config/opencode/commands/hephaestus-network.md" \
+        "$HOME/.config/opencode/commands/hephaestus-cloud.md" "$HOME/.config/opencode/commands/hephaestus-search.md" \
+        "$HOME/.config/opencode/commands/hephaestus-call.md"
+  log "Installed OpenCode commands: /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload"
   ok=$((ok + 1))
 }
 
@@ -623,16 +636,15 @@ main() {
   log "Public chat surface: three primary commands plus two power-user commands are installed or refreshed."
   log "Restart open Claude Code, Codex, Gemini, Antigravity, Cursor, OpenCode, OpenClaw, and Hermes apps."
   log "Then use:"
-  log "  Claude Code: /reload-plugins, then /hephaestus-build, /hephaestus-network, /hephaestus-cloud, /hephaestus-search, /hephaestus-call"
-  log "  Codex:       /prompts:hephaestus-build, /prompts:hephaestus-network, /prompts:hephaestus-cloud, /prompts:hephaestus-search, /prompts:hephaestus-call"
-  log "               skill picker: hephaestus-build, hephaestus-network, hephaestus-cloud"
-  log "  Gemini CLI:  /extensions list or /commands list, then /hephaestus-build, /hephaestus-network, /hephaestus-cloud, /hephaestus-search, /hephaestus-call"
-  log "  Antigravity: reopen the workspace, then /hephaestus-build, /hephaestus-network, /hephaestus-cloud, /hephaestus-search, /hephaestus-call"
-  log "  Cursor:      /hephaestus-build, /hephaestus-network, /hephaestus-cloud, /hephaestus-search, /hephaestus-call"
-  log "  OpenCode:    /hephaestus-build, /hephaestus-network, /hephaestus-cloud, /hephaestus-search, /hephaestus-call"
+  log "  Claude Code: /reload-plugins, then /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload"
+  log "  Codex:       /prompts:hep-build, /prompts:hep-network, /prompts:hep-cloud, /prompts:hep-search, /prompts:hep-call, /prompts:hep-upload"
+  log "  Gemini CLI:  /extensions list or /commands list, then /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload"
+  log "  Antigravity: reopen the workspace, then /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload"
+  log "  Cursor:      /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload"
+  log "  OpenCode:    /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload"
   log "  OpenClaw:    /skill hephaestus-network <request>"
   log "  Hermes:      hephaestus-network skill (+ MCP, see hermes/README.md)"
-  log "  Terminal:    Hephaestus-build \"<request>\", hephaests-network \"<request>\", hephaestus-storm \"<request>\" --background, Hephaestus-search \"<request>\", Hephaestus-call \"agent-a,agent-b\" \"<context>\", or hephaestus cloud \"<request>\""
+  log "  Terminal:    hep-build \"<request>\", hep-network \"<request>\", hep-cloud \"<request>\", hep-search \"<request>\", hep-call \"agent-a,agent-b\" \"<context>\", hep-upload <agent-folder>, or hep-storm \"<request>\" --background"
   log "  Ollama/Gemma/DeepSeek local models: docs/local-models.md (MCP: hephaestus mcp serve)"
   log ""
   log "agentlas Hub MCP (agentlas.search, marketplace.*, agentlas.teams.*) was registered too."

@@ -44,7 +44,7 @@
   <!-- ───────────── Band 1 · Runtimes ───────────── -->
   <rect class="layer" x="60" y="108" width="1480" height="138" rx="10"/>
   <text class="h" x="84" y="136">AI Runtimes</text>
-  <text class="mono" x="240" y="136">/hephaestus-network &lt;request&gt;  ·  @Hephaestus &lt;request&gt;  ·  hephaestus "&lt;request&gt;"</text>
+  <text class="mono" x="240" y="136">/hep-network &lt;request&gt;  ·  @Hephaestus &lt;request&gt;  ·  hephaestus "&lt;request&gt;"</text>
 
   <rect class="boxBlue" x="84"   y="176" width="200" height="50" rx="8"/>
   <text class="tc" x="135" y="207">Claude Code</text>

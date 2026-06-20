@@ -478,10 +478,10 @@ def route_request(
     session_inventory: list[Any] | None = None,
 ) -> dict[str, Any]:
     # Three-scope command model (docs/hephaestus-network-2.0.md):
-    #   scope="cloud"   → /hephaestus-cloud: search ONLY the signed-in user's
+    #   scope="cloud"   -> /hep-cloud: search ONLY the signed-in user's
     #                     OWN cloud packages (보관함). Owner-scoped Hub query,
     #                     implies hub_only (skip local + public marketplace).
-    #   scope="network" → /hephaestus-network: search ONLY the public Hub
+    #   scope="network" -> /hep-network: search ONLY the public Hub
     #                     marketplace. Used with hub_only by the network command.
     #   default combined route (hub_only=False, scope="network") → local +
     #                     own-cloud + Hub together, each priced by origin.
@@ -499,7 +499,7 @@ def route_request(
     raw_tokens = tokenize(query)
     query_tokens = set(redact_tokens(raw_tokens)) - {"[redacted]"}
     hub_query_tokens = word_tokens(query)
-    chain = router_chain or ["hephaestus-cloud" if cloud_only else "hephaestus-network"]
+    chain = router_chain or ["hep-cloud" if cloud_only else "hep-network"]
 
     def _search_hub(query_tokens: list[str], *, search_scope: str) -> dict[str, Any]:
         # Pass `scope` only when it is the non-default owner cloud, so existing
@@ -564,12 +564,15 @@ def route_request(
         result["blocked_by_axiom"] = blocked_by_axiom or []
         result["fallback_scope"] = fallback_scope
         result["agent_os_router"] = {
-            "surface": chain[0] if chain else "hephaestus-network",
+            "surface": chain[0] if chain else "hep-network",
             "command_model": "three_command",
             "commands": {
-                "build": "hephaestus-build",
-                "network": "hephaests-network",
-                "cloud": "hephaestus cloud",
+                "build": "hep-build",
+                "network": "hep-network",
+                "cloud": "hep-cloud",
+                "search": "hep-search",
+                "call": "hep-call",
+                "upload": "hep-upload",
             },
             "router_version": "agent_os_router.v1",
             "local_operator_mode": True,
@@ -594,7 +597,7 @@ def route_request(
     if hub_only:
         # The owner cloud (보관함) and the public marketplace share this
         # Hub-only flow; the only difference is the scope passed to the Hub and
-        # the receipt/reason tag, so /hephaestus-cloud and /hephaestus-network
+        # the receipt/reason tag, so /hep-cloud and /hep-network
         # stay one code path with two scopes.
         scope_tag = "cloud_only" if cloud_only else "hub_only"
         if use_hub:
@@ -943,7 +946,7 @@ def route_request(
             **({"hub": hub} if hub is not None else {}),
             "suggestions": suggestions,
             "reasons": [
-                "no local match; hub unavailable or empty — propose building a new agent via /hephaestus-build"
+                "no local match; hub unavailable or empty - propose building a new agent via /hep-build"
                 if use_hub
                 else "no auto-eligible local match (hub disabled)"
             ],

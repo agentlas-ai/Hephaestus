@@ -1182,7 +1182,7 @@ def build_gui_html(activation: dict[str, Any], sources: list[dict[str, Any]]) ->
           </div>
           <div class="actions">
             <button class="btn ghost" id="openPalette"><span class="icon">/</span>Palette</button>
-            <button class="btn" data-copy="/hephaestus-build ontology"><span class="icon">C</span>Copy slash</button>
+            <button class="btn" data-copy="/hep-build ontology"><span class="icon">C</span>Copy slash</button>
             <button class="btn primary" data-copy="bin/hephaestus ontology --no-open ."><span class="icon">R</span>Resync</button>
           </div>
         </div>
@@ -1266,7 +1266,7 @@ def build_gui_html(activation: dict[str, Any], sources: list[dict[str, Any]]) ->
                 <h2>Registered Sources</h2>
                 <p>Inbox and explicit registrations only</p>
               </div>
-              <button class="btn primary" data-copy="/hephaestus-build ontology add ./company-docs --kind company --scope private"><span class="icon">C</span>Copy add</button>
+              <button class="btn primary" data-copy="/hep-build ontology add ./company-docs --kind company --scope private"><span class="icon">C</span>Copy add</button>
             </div>
             <div class="table-toolbar">
               <input class="search-input" id="sourceSearch" placeholder="Filter sources" aria-label="Filter sources">
@@ -1666,8 +1666,8 @@ def graph_workspace_html(verify_counts: dict[str, Any], sources: list[dict[str, 
 
 def command_list_html() -> str:
     commands = [
-        ("/hephaestus-build ontology", "Open or refresh the ontology dashboard"),
-        ("/hephaestus-build ontology add ./company-docs --kind company --scope private", "Register a private source folder"),
+        ("/hep-build ontology", "Open or refresh the ontology dashboard"),
+        ("/hep-build ontology add ./company-docs --kind company --scope private", "Register a private source folder"),
         ("bin/hephaestus ontology --no-open .", "Terminal refresh without opening a browser"),
         ("bin/ontology query \"Project Helios Memory Curator\" --scope private", "Run a local GraphRAG query"),
         ("bin/ontology memory candidates", "List curator candidate tickets"),

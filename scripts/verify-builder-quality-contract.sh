@@ -63,15 +63,15 @@ for path in "${core_files[@]}"; do
 done
 
 runtime_files=(
-  "claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus-build.md"
-  ".claude/commands/hephaestus-build.md"
-  "codex/prompts/hephaestus-build.md"
-  "gemini/extension/commands/hephaestus-build.toml"
-  ".gemini/commands/hephaestus-build.toml"
-  "antigravity/workflows/hephaestus-build.md"
-  ".agents/workflows/hephaestus-build.md"
-  "cursor/plugin/commands/hephaestus-build.md"
-  "opencode/commands/hephaestus-build.md"
+  "claude/plugins/agentlas-core-engine-meta-agent/commands/hep-build.md"
+  ".claude/commands/hep-build.md"
+  "codex/prompts/hep-build.md"
+  "gemini/extension/commands/hep-build.toml"
+  ".gemini/commands/hep-build.toml"
+  "antigravity/workflows/hep-build.md"
+  ".agents/workflows/hep-build.md"
+  "cursor/plugin/commands/hep-build.md"
+  "opencode/commands/hep-build.md"
 )
 
 for path in "${runtime_files[@]}"; do

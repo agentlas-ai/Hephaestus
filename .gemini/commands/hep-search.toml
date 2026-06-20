@@ -1,0 +1,18 @@
+description = "Search Agentlas Cloud and Hub candidates without invoking agents."
+prompt = """
+# /hep-search
+
+Raw arguments:
+{{args}}
+
+Find the Hephaestus runner at `~/.agentlas/runtime/current/bin/hephaestus` or
+`./bin/hephaestus`, ensure Agentlas sign-in with `hephaestus auth ensure
+--timeout 180`, then run:
+
+`hephaestus search "{{args}}" --runtime gemini-cli --limit 10`
+
+Present the result as two sections: `cloud` (my own Agentlas Cloud packages)
+and `hub` (public Agentlas Hub). Include rank, name, slug, description,
+callable/routing status, why it matched, and the `receipt_id`. Do not invoke
+agents from this command.
+"""

@@ -1,6 +1,6 @@
 ---
 name: hephaestus-network
-description: "Use when the user types /hephaestus-network, mentions @Hephaestus, or asks to find/invoke the right Agentlas Hub agent, team, or plugin for a task. For public demos, distribution docs, README GIFs, and user-facing MCP tests, Hephaestus Network means Hub-first/Hub-only invocation, not Mason's local Paid/Free folders."
+description: "Use when the user types /hep-network, mentions @Hephaestus, or asks to find/invoke the right Agentlas Hub agent, team, or plugin for a task. For public demos, distribution docs, README GIFs, and user-facing MCP tests, Hephaestus Network means Hub-first/Hub-only invocation, not Mason's local Paid/Free folders."
 metadata: {"openclaw": {"emoji": "🔨", "requires": {"bins": ["python3"]}, "homepage": "https://github.com/agentlas-ai/Hephaestus"}}
 ---
 

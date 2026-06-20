@@ -51,7 +51,7 @@ def write_receipt(
         "candidates": [{"id": item.get("id"), "score": item.get("score")} for item in candidates[:5]],
         "reasons": reasons,
         "hop_count": hop_count,
-        "router_chain": router_chain or ["hephaestus-network"],
+        "router_chain": router_chain or ["hep-network"],
         "match_reason": match_reason,
         "graph_path": graph_path or [],
         "allowed_by": allowed_by or [],

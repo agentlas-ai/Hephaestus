@@ -1,6 +1,6 @@
 ---
 name: hephaestus-cloud
-description: "Use when the user types /hephaestus-cloud or asks to find/route to one of THEIR OWN Agentlas cloud packages (보관함, 내 클라우드, 내 보관함, my cloud, my own agents). This is the owner-scoped leg of the three-scope model — it searches ONLY the signed-in user's own cloud packages, not the public marketplace (use hephaestus-network for that) and not local cards. The user's own cloud packages are restorable/owned by them and call-priced at a flat 1 credit."
+description: "Use when the user types /hep-cloud or asks to find/route to one of THEIR OWN Agentlas cloud packages (보관함, 내 클라우드, 내 보관함, my cloud, my own agents). This is the owner-scoped leg of the three-scope model — it searches ONLY the signed-in user's own cloud packages, not the public marketplace (use hep-network for that) and not local cards. The user's own cloud packages are restorable/owned by them and call-priced at a flat 1 credit."
 ---
 
 # Hephaestus Cloud Routing (my own cloud / 보관함)
@@ -10,7 +10,7 @@ Never guess an agent yourself when this skill is active — the router/Hub decid
 
 ## 0. Scope rule
 
-`/hephaestus-cloud` is owner-scoped: it queries ONLY the authenticated owner's
+`/hep-cloud` is owner-scoped: it queries ONLY the authenticated owner's
 own cloud packages (보관함) via the Hub owner filter (`cargo.*`). It does **not**
 search the public marketplace and does **not** search local Paid/Free/plugin
 cards.
@@ -18,7 +18,7 @@ cards.
 - The user's own cloud packages are restorable/owned by them, call-priced at a
   flat **1 credit** per call.
 - For the public marketplace (others' published, per-call-priced agents), use
-  the `hephaestus-network` skill / `--hub-only` instead.
+  the `hephaestus-network` skill or `/hep-network` / `--hub-only` instead.
 - For the combined search (local + own cloud + Hub, each priced by origin), use
   plain-language routing (`hephaestus route`).
 
@@ -81,8 +81,8 @@ yet, and reuses a saved sign-in silently. For CI/headless checks only, set
 - `action: "clarify"` — ask `clarify_question` with the candidate list and
   re-route with the answer (still cloud-scoped).
 - `action: "propose_new"` — no matching package in the user's cloud. Offer to
-  search the public marketplace (`hephaestus-network` / `--hub-only`) or to build
-  a new agent via `/hephaestus-build`.
+  search the public marketplace (`/hep-network` / `--hub-only`) or to build
+  a new agent via `/hep-build`.
 - `action: "refuse"` — explain `reasons` (for example, loop guard). Do not retry.
 
 ## 5. Hard rules

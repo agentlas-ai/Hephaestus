@@ -19,12 +19,12 @@ slash command. Hephaestus ships the three workflows at two scopes:
 
 | Scope | File | Effect |
 | --- | --- | --- |
-| Global | `~/.gemini/antigravity/global_workflows/hephaestus-*.md` | `/hephaestus-build`, `/hephaestus-network`, and `/hephaestus-cloud` in **every** Antigravity workspace. Installed by `scripts/install-all-runtimes.sh`. |
-| Project | `.agents/workflows/hephaestus-*.md` | The same three commands when this repo (or any project carrying the package) is open. Ships in the repo. |
+| Global | `~/.gemini/antigravity/global_workflows/hep-*.md` | `/hep-build`, `/hep-network`, and `/hep-cloud` in **every** Antigravity workspace. Installed by `scripts/install-all-runtimes.sh`. |
+| Project | `.agents/workflows/hep-*.md` | The same three commands when this repo (or any project carrying the package) is open. Ships in the repo. |
 
-`antigravity/workflows/hephaestus-build.md`,
-`antigravity/workflows/hephaestus-network.md`, and
-`antigravity/workflows/hephaestus-cloud.md` are the canonical workflow bodies;
+`antigravity/workflows/hep-build.md`,
+`antigravity/workflows/hep-network.md`, and
+`antigravity/workflows/hep-cloud.md` are the canonical workflow bodies;
 the locations above mirror them (global install + in-repo project copy), the
 same way the Gemini adapter ships both extension commands and
 `~/.gemini/commands` fallbacks.
@@ -34,10 +34,10 @@ same way the Gemini adapter ships both extension commands and
 From an OS terminal (not the Antigravity chat box):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.11/scripts/install-all-runtimes.sh | bash
+curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Hephaestus/v0.7.12/scripts/install-all-runtimes.sh | bash
 ```
 
-Then reopen Antigravity and type `/hephaestus-build`, `/hephaestus-network`,
-or `/hephaestus-cloud`. Antigravity shares the `~/.gemini/` home with the
+Then reopen Antigravity and type `/hep-build`, `/hep-network`,
+or `/hep-cloud`. Antigravity shares the `~/.gemini/` home with the
 Gemini CLI, so this install also keeps the Gemini extension and commands in
 sync.

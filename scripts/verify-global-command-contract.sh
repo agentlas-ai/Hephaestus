@@ -15,42 +15,50 @@ required_files=(
   "schemas/global-commands.schema.json"
   "templates/global-commands.json.tpl"
   "templates/antigravity-workflow.md.tpl"
-  ".claude/commands/hephaestus-build.md"
-  ".claude/commands/hephaestus-network.md"
-  ".claude/commands/hephaestus-cloud.md"
-  ".claude/commands/hephaestus-search.md"
-  ".claude/commands/hephaestus-call.md"
-  "codex/prompts/hephaestus-build.md"
-  "codex/prompts/hephaestus-network.md"
-  "codex/prompts/hephaestus-cloud.md"
-  "codex/prompts/hephaestus-search.md"
-  "codex/prompts/hephaestus-call.md"
-  "gemini/extension/commands/hephaestus-build.toml"
-  "gemini/extension/commands/hephaestus-network.toml"
-  "gemini/extension/commands/hephaestus-cloud.toml"
-  "gemini/extension/commands/hephaestus-search.toml"
-  "gemini/extension/commands/hephaestus-call.toml"
-  ".gemini/commands/hephaestus-build.toml"
-  ".gemini/commands/hephaestus-network.toml"
-  ".gemini/commands/hephaestus-cloud.toml"
-  ".gemini/commands/hephaestus-search.toml"
-  ".gemini/commands/hephaestus-call.toml"
+  ".claude/commands/hep-build.md"
+  ".claude/commands/hep-network.md"
+  ".claude/commands/hep-cloud.md"
+  ".claude/commands/hep-search.md"
+  ".claude/commands/hep-call.md"
+  ".claude/commands/hep-upload.md"
+  "codex/prompts/hep-build.md"
+  "codex/prompts/hep-network.md"
+  "codex/prompts/hep-cloud.md"
+  "codex/prompts/hep-search.md"
+  "codex/prompts/hep-call.md"
+  "codex/prompts/hep-upload.md"
+  "gemini/extension/commands/hep-build.toml"
+  "gemini/extension/commands/hep-network.toml"
+  "gemini/extension/commands/hep-cloud.toml"
+  "gemini/extension/commands/hep-search.toml"
+  "gemini/extension/commands/hep-call.toml"
+  "gemini/extension/commands/hep-upload.toml"
+  ".gemini/commands/hep-build.toml"
+  ".gemini/commands/hep-network.toml"
+  ".gemini/commands/hep-cloud.toml"
+  ".gemini/commands/hep-search.toml"
+  ".gemini/commands/hep-call.toml"
+  ".gemini/commands/hep-upload.toml"
   "gemini/extension/gemini-extension.json"
-  "antigravity/workflows/hephaestus-build.md"
-  "antigravity/workflows/hephaestus-network.md"
-  "antigravity/workflows/hephaestus-cloud.md"
-  "antigravity/workflows/hephaestus-search.md"
-  "antigravity/workflows/hephaestus-call.md"
-  ".agents/workflows/hephaestus-build.md"
-  ".agents/workflows/hephaestus-network.md"
-  ".agents/workflows/hephaestus-cloud.md"
-  ".agents/workflows/hephaestus-search.md"
-  ".agents/workflows/hephaestus-call.md"
+  "antigravity/workflows/hep-build.md"
+  "antigravity/workflows/hep-network.md"
+  "antigravity/workflows/hep-cloud.md"
+  "antigravity/workflows/hep-search.md"
+  "antigravity/workflows/hep-call.md"
+  "antigravity/workflows/hep-upload.md"
+  ".agents/workflows/hep-build.md"
+  ".agents/workflows/hep-network.md"
+  ".agents/workflows/hep-cloud.md"
+  ".agents/workflows/hep-search.md"
+  ".agents/workflows/hep-call.md"
+  ".agents/workflows/hep-upload.md"
   "AGENTS.md"
-  "claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus-network.md"
-  "claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus-cloud.md"
-  "claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus-search.md"
-  "claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus-call.md"
+  "claude/plugins/agentlas-core-engine-meta-agent/commands/hep-build.md"
+  "claude/plugins/agentlas-core-engine-meta-agent/commands/hep-network.md"
+  "claude/plugins/agentlas-core-engine-meta-agent/commands/hep-cloud.md"
+  "claude/plugins/agentlas-core-engine-meta-agent/commands/hep-search.md"
+  "claude/plugins/agentlas-core-engine-meta-agent/commands/hep-call.md"
+  "claude/plugins/agentlas-core-engine-meta-agent/commands/hep-upload.md"
   "codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-build/SKILL.md"
   "codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-network/SKILL.md"
   "codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-cloud/SKILL.md"
@@ -59,25 +67,29 @@ required_files=(
   ".agents/skills/hephaestus-network/SKILL.md"
   ".agents/skills/hephaestus-cloud/SKILL.md"
   "cursor/rules/hephaestus.mdc"
-  "cursor/plugin/commands/hephaestus-build.md"
-  "cursor/plugin/commands/hephaestus-network.md"
-  "cursor/plugin/commands/hephaestus-cloud.md"
-  "cursor/plugin/commands/hephaestus-search.md"
-  "cursor/plugin/commands/hephaestus-call.md"
-  "opencode/commands/hephaestus-build.md"
-  "opencode/commands/hephaestus-network.md"
-  "opencode/commands/hephaestus-cloud.md"
-  "opencode/commands/hephaestus-search.md"
-  "opencode/commands/hephaestus-call.md"
+  "cursor/plugin/commands/hep-build.md"
+  "cursor/plugin/commands/hep-network.md"
+  "cursor/plugin/commands/hep-cloud.md"
+  "cursor/plugin/commands/hep-search.md"
+  "cursor/plugin/commands/hep-call.md"
+  "cursor/plugin/commands/hep-upload.md"
+  "opencode/commands/hep-build.md"
+  "opencode/commands/hep-network.md"
+  "opencode/commands/hep-cloud.md"
+  "opencode/commands/hep-search.md"
+  "opencode/commands/hep-call.md"
+  "opencode/commands/hep-upload.md"
   "openclaw/skills/hephaestus-network/SKILL.md"
   "openclaw/skills/hephaestus-cloud/SKILL.md"
   "hermes/skills/hephaestus-network/SKILL.md"
   "hermes/skills/hephaestus-cloud/SKILL.md"
-  "bin/hephaestus-build"
-  "bin/hephaests-network"
-  "bin/hephaestus-storm"
-  "bin/hephaestus-search"
-  "bin/hephaestus-call"
+  "bin/hep-build"
+  "bin/hep-network"
+  "bin/hep-cloud"
+  "bin/hep-search"
+  "bin/hep-call"
+  "bin/hep-upload"
+  "bin/hep-storm"
   "agentlas_cloud/mcp_stdio.py"
   "docs/local-models.md"
   "docs/hephaestus-network-2.0.md"
@@ -106,33 +118,34 @@ for item in registry.get("commands", []):
     if item.get("command") == command:
         commands[item["runtime"]] = item
 
-build_commands = [item for item in registry.get("commands", []) if item.get("command") == "/hephaestus-build"]
+build_commands = [item for item in registry.get("commands", []) if item.get("command") == "/hep-build"]
 if len(build_commands) < 4:
-    raise SystemExit("expected /hephaestus-build entries for at least claude-code, codex, gemini-cli, antigravity")
+    raise SystemExit("expected /hep-build entries for at least claude-code, codex, gemini-cli, antigravity")
 for item in build_commands:
     adapter = item.get("adapterPath")
     if not adapter or not Path(adapter).exists():
-        raise SystemExit(f"/hephaestus-build adapter missing: {adapter}")
+        raise SystemExit(f"/hep-build adapter missing: {adapter}")
 
-network_commands = [item for item in registry.get("commands", []) if item.get("command") == "/hephaestus-network"]
+network_commands = [item for item in registry.get("commands", []) if item.get("command") == "/hep-network"]
 if len(network_commands) < 4:
-    raise SystemExit("expected /hephaestus-network entries for at least claude-code, codex, gemini-cli, antigravity")
+    raise SystemExit("expected /hep-network entries for at least claude-code, codex, gemini-cli, antigravity")
 for item in network_commands:
     adapter = item.get("adapterPath")
     if not adapter or not Path(adapter).exists():
-        raise SystemExit(f"/hephaestus-network adapter missing: {adapter}")
+        raise SystemExit(f"/hep-network adapter missing: {adapter}")
 terminal_aliases = {
     item.get("command"): item
     for item in registry.get("commands", [])
     if item.get("runtime") == "agentlas-terminal"
 }
 for alias_command, adapter in {
-    "Hephaestus-build": "bin/hephaestus-build",
-    "hephaestus-build": "bin/hephaestus-build",
-    "hephaests-network": "bin/hephaests-network",
-    "hephaestus-storm": "bin/hephaestus-storm",
-    "hephaestus search": "bin/hephaestus",
-    "hephaestus call": "bin/hephaestus",
+    "hep-build": "bin/hep-build",
+    "hep-network": "bin/hep-network",
+    "hep-cloud": "bin/hep-cloud",
+    "hep-search": "bin/hep-search",
+    "hep-call": "bin/hep-call",
+    "hep-upload": "bin/hep-upload",
+    "hep-storm": "bin/hep-storm",
 }.items():
     item = terminal_aliases.get(alias_command)
     if not item:
@@ -142,16 +155,16 @@ for alias_command, adapter in {
     if not Path(adapter).exists():
         raise SystemExit(f"{alias_command} adapter file does not exist: {adapter}")
 
-for command_name in ("/hephaestus-search", "/prompts:hephaestus-search", "/hephaestus-call", "/prompts:hephaestus-call", "hephaestus_search", "hephaestus_call"):
+for command_name in ("/hep-search", "/prompts:hep-search", "/hep-call", "/prompts:hep-call", "/hep-upload", "/prompts:hep-upload", "hephaestus_search", "hephaestus_call"):
     if not any(item.get("command") == command_name for item in registry.get("commands", [])):
         raise SystemExit(f"missing power-user command registry entry: {command_name}")
 required = {
-    "claude-code": ".claude/commands/hephaestus-build.md",
-    "codex": "codex/prompts/hephaestus-build.md",
-    "gemini-cli": "gemini/extension/commands/hephaestus-build.toml",
-    "antigravity": "antigravity/workflows/hephaestus-build.md",
+    "claude-code": ".claude/commands/hep-build.md",
+    "codex": "codex/prompts/hep-build.md",
+    "gemini-cli": "gemini/extension/commands/hep-build.toml",
+    "antigravity": "antigravity/workflows/hep-build.md",
     "generic-agents-md": "AGENTS.md",
-    "agentlas-terminal": "bin/hephaestus-build",
+    "agentlas-terminal": "bin/hep-build",
 }
 for runtime, adapter in required.items():
     item = commands.get(runtime)
@@ -211,6 +224,6 @@ require_pattern modes/single-agent-creator.md 'Antigravity'
 require_pattern modes/team-builder.md 'Antigravity'
 require_pattern modes/agentlas-packager.md 'Antigravity'
 require_pattern codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-build/SKILL.md 'global_commands'
-require_pattern claude/plugins/agentlas-core-engine-meta-agent/commands/hephaestus-build.md 'global_commands'
+require_pattern claude/plugins/agentlas-core-engine-meta-agent/commands/hep-build.md 'global_commands'
 
 echo "Global command contract verification passed."

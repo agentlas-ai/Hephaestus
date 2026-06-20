@@ -37,6 +37,101 @@ run_python_module() {
   PYTHONPATH="$root${PYTHONPATH:+:$PYTHONPATH}" $HEPHAESTUS_PY -m "$@"
 }
 
+upload_question() {
+  cat <<'EOF'
+Cloud에 업로드 할까요? 다른사람들이 볼 수 없어요.
+Upload to Cloud? Other people cannot see it.
+
+Agentlas Hub에 업로드 할까요? 다른 사람들이 빌려 쓸 수 있어요.
+Upload to Agentlas Hub? Other people can borrow it.
+
+1) Cloud
+2) Agentlas Hub
+EOF
+}
+
+resolve_upload_folder() {
+  local forge_root="${HEPHAESTUS_FORGE_ROOT:-$HOME/Documents/Hephaestus_agent_forge}"
+  local arg candidate
+  for arg in "$@"; do
+    candidate="${arg#file://}"
+    candidate="${candidate%\"}"
+    candidate="${candidate#\"}"
+    if [[ -d "$candidate" ]]; then
+      (cd "$candidate" && pwd)
+      return 0
+    fi
+    if [[ -d "$PWD/$candidate" ]]; then
+      (cd "$PWD/$candidate" && pwd)
+      return 0
+    fi
+    if [[ -d "$forge_root/$candidate" ]]; then
+      (cd "$forge_root/$candidate" && pwd)
+      return 0
+    fi
+  done
+  return 1
+}
+
+run_agentlas_cli() {
+  local cli="${AGENTLAS_CLI:-}"
+  if [[ -z "$cli" && -x "$HOME/.local/bin/agentlas" ]]; then
+    cli="$HOME/.local/bin/agentlas"
+  fi
+  if [[ -z "$cli" && -n "${AGENTLAS_DESKTOP_CLI:-}" ]]; then
+    cli="$AGENTLAS_DESKTOP_CLI"
+  fi
+  if [[ -z "$cli" ]]; then
+    cli="$(command -v agentlas || true)"
+  fi
+  if [[ -z "$cli" ]]; then
+    echo "agentlas CLI not found. Set AGENTLAS_CLI or install Agentlas Desktop CLI." >&2
+    return 127
+  fi
+  case "$cli" in
+    *.cjs|*.mjs|*.js) node "$cli" "$@" ;;
+    *) "$cli" "$@" ;;
+  esac
+}
+
+run_upload_gate() {
+  local target choice forge_root rel
+  upload_question
+  if [[ ! -t 0 ]]; then
+    echo "No upload performed. Choose Cloud or Agentlas Hub in the chat, or rerun hep-upload from an interactive terminal." >&2
+    return 0
+  fi
+  printf 'Select 1 or 2: ' >&2
+  read -r choice
+  if ! target="$(resolve_upload_folder "$@")"; then
+    echo "업로드 대상 에이전트 폴더를 찾지 못했습니다. /hep-upload <agent-folder> 형태로 다시 실행하세요." >&2
+    return 2
+  fi
+  case "$(printf '%s' "$choice" | tr '[:upper:]' '[:lower:]')" in
+    1|cloud|c)
+      run_agentlas_cli cloud publish "$target" --visibility private-link --json
+      ;;
+    2|hub|agentlas\ hub|agentlas|h)
+      forge_root="${HEPHAESTUS_FORGE_ROOT:-$HOME/Documents/Hephaestus_agent_forge}"
+      forge_root="$(cd "$forge_root" && pwd)"
+      case "$target" in
+        "$forge_root"/*)
+          rel="${target#"$forge_root"/}"
+          (cd "$forge_root" && node scripts/forge-sync.mjs --path "$rel" --publish --json)
+          ;;
+        *)
+          echo "Hub 업로드는 Forge 패키지에서 실행해야 합니다: $forge_root/Free 또는 $forge_root/Paid 아래 폴더를 지정하세요." >&2
+          return 2
+          ;;
+      esac
+      ;;
+    *)
+      echo "Upload cancelled. Choose 1 for Cloud or 2 for Agentlas Hub." >&2
+      return 2
+      ;;
+  esac
+}
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -53,8 +148,8 @@ Usage:
   bin/hephaestus plugins list [--project <dir>]
   bin/hephaestus plugins resolve "<need>" [--project <dir>] [--no-hub]
   bin/hephaestus meta-agent "<request>"
-  bin/hephaestus hephaestus-build "<request>"      # build/create/package surface
-  bin/hephaestus build "<request>"                 # shorthand for hephaestus-build
+  bin/hephaestus hep-build "<request>"             # build/create/package surface
+  bin/hephaestus build "<request>"                 # shorthand for hep-build
   bin/hephaestus network init|status|reindex|bench
   bin/hephaestus network add-source <path> | remove-source <path>
   bin/hephaestus network grant <capability> --target <id> [--scope ...]
@@ -63,12 +158,12 @@ Usage:
   bin/hephaestus ao plan <from> <to> [--max-depth N] [dir]
   bin/hephaestus ao diff [dir] | ao migrate [dir] [--no-write] [--overwrite]
   bin/hephaestus route "<request>" [--project <dir>] [--no-hub] [--approve-hub] [--hub-only] [--scope network|cloud] [--caller <agent-id>]
-  bin/hephaestus hephaestus-network "<request>"     # public Hub / temporary TF surface
-  bin/hephaestus hephaests-network "<request>"      # accepted typo alias
-  bin/hephaestus hephaestus-storm "<request>" [--background] [--executor-command <cmd>]  # auto-run pipeline packets
-  bin/hephaestus cloud "<request>" [--project <dir>] [--no-hub]   # search ONLY my own cloud packages (보관함)
-  bin/hephaestus search "<request>" [--limit 10]     # show cloud + Hub candidates only
-  bin/hephaestus call "agent-a,agent-b" "<context>"  # prepare named Hub/cloud agents
+  bin/hephaestus hep-network "<request>"           # public Hub / temporary TF surface
+  bin/hephaestus hep-storm "<request>" [--background] [--executor-command <cmd>]  # auto-run pipeline packets
+  bin/hephaestus hep-cloud "<request>" [--project <dir>] [--no-hub]   # search ONLY my own cloud packages (보관함)
+  bin/hephaestus hep-search "<request>" [--limit 10]     # show cloud + Hub candidates only
+  bin/hephaestus hep-call "agent-a,agent-b" "<context>"  # prepare named Hub/cloud agents
+  bin/hephaestus hep-upload <agent-folder>          # ask Cloud vs Hub before upload
   bin/hephaestus mcp serve              # stdio MCP server (hephaestus_route tool)
 
 Examples:
@@ -150,20 +245,20 @@ case "$command" in
 	  plugins)
 	    run_python_module agentlas_cloud plugins "$@"
 	    ;;
-  meta-agent|hephaestus-build|Hephaestus-build|build)
+  meta-agent|hep-build|hephaestus-build|Hephaestus-build|build)
     request="${*:-Create or package an Agentlas-compatible agent.}"
     cat <<EOF
 Hephaestus meta-agent request:
 $request
 
 Open Claude Code or Codex with the installed plugin, then run:
-/hephaestus-build $request
+/hep-build $request
 EOF
     ;;
 	  network|cards|ao|route|mcp)
 	    run_python_module agentlas_cloud "$command" "$@"
 	    ;;
-	  hephaestus-network|hephaests-network)
+	  hep-network|hephaestus-network|hephaests-network)
 	    if [[ "${HEPHAESTUS_NETWORK_LOCAL_GUI_SHORTCUTS:-1}" != "0" ]]; then
 	      set +e
 	      gui_args=("$@")
@@ -187,21 +282,24 @@ EOF
 	      run_python_module agentlas_cloud route "$@" --hub-only --scope network --auto-run --background
 	    fi
 	    ;;
-	  hephaestus-storm|storm)
-	    run_python_module agentlas_cloud stormbreaker run "$@"
-	    ;;
-	  search|hephaestus-search|Hephaestus-search)
-	    run_python_module agentlas_cloud search "$@"
-	    ;;
-	  call|hephaestus-call|Hephaestus-call)
-	    run_python_module agentlas_cloud call "$@"
-	    ;;
-	  cloud)
-	    # /hephaestus-cloud: route through the owner's OWN cloud packages only
-	    # (보관함). Reuses the route command with the cloud scope (owner-scoped
-	    # Hub query; implies --hub-only).
-	    run_python_module agentlas_cloud route "$@" --scope cloud
-	    ;;
+		  hep-storm|hephaestus-storm|storm)
+		    run_python_module agentlas_cloud stormbreaker run "$@"
+		    ;;
+		  search|hep-search|hephaestus-search|Hephaestus-search)
+		    run_python_module agentlas_cloud search "$@"
+		    ;;
+		  call|hep-call|hephaestus-call|Hephaestus-call)
+		    run_python_module agentlas_cloud call "$@"
+		    ;;
+		  cloud|hep-cloud|hephaestus-cloud)
+		    # /hep-cloud: route through the owner's OWN cloud packages only
+		    # (보관함). Reuses the route command with the cloud scope (owner-scoped
+		    # Hub query; implies --hub-only).
+		    run_python_module agentlas_cloud route "$@" --scope cloud
+		    ;;
+      upload|hep-upload|hephaestus-upload)
+        run_upload_gate "$@"
+        ;;
   -*)
     echo "hephaestus: unknown command: $command" >&2
     usage >&2

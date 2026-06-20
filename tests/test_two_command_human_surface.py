@@ -111,7 +111,7 @@ def _command_aliases(tmp_path: Path) -> Path:
     aliases.mkdir()
     for name, target in {
         "Hephaestus": ROOT / "bin" / "hephaestus",
-        "hephaests-network": ROOT / "bin" / "hephaests-network",
+        "hep-network": ROOT / "bin" / "hep-network",
     }.items():
         alias = aliases / name
         alias.write_text(f"#!/usr/bin/env bash\nexec {target} \"$@\"\n", encoding="utf-8")
@@ -193,8 +193,8 @@ def test_three_command_surface_keeps_network_120_human_style_invocations(tmp_pat
         commands.extend([["Hephaestus", "weekly report from meeting notes"]] * 40)
         commands.extend([["Hephaestus", "기획부터 구현하고 테스트까지 릴리즈 끝까지"]] * 20)
         commands.extend([["Hephaestus", "내 private memory 참고해서 weekly report from meeting notes"]] * 20)
-        commands.extend([["hephaests-network", f"상품 설명 써주는 에이전트 case {idx}"] for idx in range(20)])
-        commands.extend([["hephaests-network", f"기획부터 구현하고 테스트까지 끝까지 case {idx}"] for idx in range(20)])
+        commands.extend([["hep-network", f"상품 설명 써주는 에이전트 case {idx}"] for idx in range(20)])
+        commands.extend([["hep-network", f"기획부터 구현하고 테스트까지 끝까지 case {idx}"] for idx in range(20)])
 
         seen_command_names: list[str] = []
         action_counts: dict[str, int] = {}
@@ -204,11 +204,11 @@ def test_three_command_surface_keeps_network_120_human_style_invocations(tmp_pat
             action_counts[result["action"]] = action_counts.get(result["action"], 0) + 1
             assert result["receipt_id"]
             assert result["agent_os_router"]["command_model"] == "three_command"
-            assert result["agent_os_router"]["commands"]["network"] == "hephaests-network"
+            assert result["agent_os_router"]["commands"]["network"] == "hep-network"
             assert result["task_force"]["mode"] == "agent_os_router"
             assert result["policy_decision"]["mode"] == "local_operator"
             assert result["memory_playbook"]["mode"] == "memory_playbook_control_plane"
-            if command[0] == "hephaests-network":
+            if command[0] == "hep-network":
                 assert result["action"] == "hub_candidates"
                 assert result["task_force"]["formation"] in {
                     "single_stage_hub_candidates",
@@ -220,7 +220,7 @@ def test_three_command_surface_keeps_network_120_human_style_invocations(tmp_pat
                 assert result["memory_playbook"]["candidates"]
 
         assert len(commands) == 120
-        assert set(seen_command_names) == {"Hephaestus", "hephaests-network"}
+        assert set(seen_command_names) == {"Hephaestus", "hep-network"}
         assert action_counts["route"] >= 40
         assert action_counts["pipeline"] >= 20
         assert action_counts["hub_candidates"] >= 40

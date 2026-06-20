@@ -64,37 +64,44 @@ leave the user guessing how to run the agent after creation.
 
 Hephaestus itself exposes three primary chat commands:
 
-- `/hephaestus-build <request>` — create, repair, or package agents and teams.
-- `/hephaestus-network <request>` — borrow public Hub agents into a temporary
+- `/hep-build <request>` — create, repair, or package agents and teams.
+- `/hep-network <request>` — borrow public Hub agents into a temporary
   task force.
-- `/hephaestus-cloud <request>` — use agents saved or shared through the
+- `/hep-cloud <request>` — use agents saved or shared through the
   signed-in user's Agentlas Cloud.
 
 Network routing is backed by the local-first router
 (`docs/hephaestus-network-2.0.md`). Fresh installs expose only these three
-primary chat commands plus power-user search/call surfaces. Stormbreaker packet
-auto-run is available through the terminal runner `hephaestus-storm`; terminal
-`hephaestus-network` may also auto-start it when routing returns a runnable
+primary chat commands plus `/hep-search`, `/hep-call`, and the `/hep-upload`
+destination gate. Stormbreaker packet auto-run is available through the terminal runner `hep-storm`; terminal
+`hep-network` may also auto-start it when routing returns a runnable
 `execution_fabric` and `--plan-only` is not present. Required surfaces:
 
-- Claude Code: `.claude/commands/hephaestus-build.md`,
-  `.claude/commands/hephaestus-network.md`, and
-  `.claude/commands/hephaestus-cloud.md` (+ global symlinks).
-- Codex: `codex/prompts/hephaestus-build.md`,
-  `codex/prompts/hephaestus-network.md`, and
-  `codex/prompts/hephaestus-cloud.md`.
-- Gemini CLI: `gemini/extension/commands/hephaestus-build.toml`,
-  `hephaestus-network.toml`, and `hephaestus-cloud.toml`
+- Claude Code: `.claude/commands/hep-build.md`,
+  `.claude/commands/hep-network.md`, `.claude/commands/hep-cloud.md`,
+  `.claude/commands/hep-search.md`, `.claude/commands/hep-call.md`, and
+  `.claude/commands/hep-upload.md` (+ global symlinks).
+- Codex: `codex/prompts/hep-build.md`,
+  `codex/prompts/hep-network.md`, `codex/prompts/hep-cloud.md`,
+  `codex/prompts/hep-search.md`, `codex/prompts/hep-call.md`, and
+  `codex/prompts/hep-upload.md`.
+- Gemini CLI: `gemini/extension/commands/hep-build.toml`,
+  `hep-network.toml`, `hep-cloud.toml`, `hep-search.toml`, `hep-call.toml`,
+  and `hep-upload.toml`
   (+ `~/.gemini/commands/` fallbacks).
-- Antigravity: `antigravity/workflows/hephaestus-build.md`,
-  `hephaestus-network.md`, and `hephaestus-cloud.md`
+- Antigravity: `antigravity/workflows/hep-build.md`,
+  `hep-network.md`, `hep-cloud.md`, `hep-search.md`, `hep-call.md`, and
+  `hep-upload.md`
   (+ `~/.gemini/antigravity*/global_workflows/`).
-- Cursor (no custom slash commands): `cursor/rules/hephaestus.mdc` copied into
-  `<project>/.cursor/rules/` — reacts to `/hephaestus*` and `@Hephaestus`.
-- Terminal: `Hephaestus-build "<request>"` is the human-facing build alias,
-  `hephaests-network "<request>"` is the standalone Hub-only Network alias,
-  and `hephaestus-storm "<request>" --background` runs Stormbreaker packets.
-  and `hephaestus cloud "<request>"` is the cloud/share surface.
+- Cursor: command files under `cursor/plugin/commands/hep-*.md`, with
+  `cursor/rules/hephaestus.mdc` as the per-project fallback — reacts to
+  `/hep-*` and `@Hephaestus`.
+- Terminal: `hep-build "<request>"` is the human-facing build alias,
+  `hep-network "<request>"` is the standalone Hub-only Network alias,
+  `hep-cloud "<request>"` is the cloud/share surface, `hep-search` and
+  `hep-call` are explicit power-user tools, `hep-upload <agent-folder>` asks
+  Cloud-vs-Hub first, and `hep-storm "<request>" --background` runs
+  Stormbreaker packets.
 - Generic AGENTS.md / local-model runtimes: see
   `docs/runtime-fallback-adapters.md`.
 

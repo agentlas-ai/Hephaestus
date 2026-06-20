@@ -1,6 +1,6 @@
 # Builder Quality Research Basis
 
-This file is the baseline research basis for `/hephaestus-build` quality.
+This file is the baseline research basis for `/hep-build` quality.
 Generated agents still need domain-specific research, but every substantial
 build must at least use these patterns when turning interview answers and
 source research into agent behavior.

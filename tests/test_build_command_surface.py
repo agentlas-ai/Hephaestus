@@ -22,9 +22,9 @@ def _run(*args: str) -> str:
 
 
 def test_build_subcommands_point_to_hephaestus_build() -> None:
-    for command in ("hephaestus-build", "build", "meta-agent"):
+    for command in ("hep-build", "build", "meta-agent"):
         output = _run(command, "create a customer support agent")
-        assert "/hephaestus-build create a customer support agent" in output
+        assert "/hep-build create a customer support agent" in output
         assert "Legacy alias:" not in output
 
 
@@ -32,7 +32,7 @@ def test_standalone_build_wrapper_points_to_hephaestus_build() -> None:
     env = os.environ.copy()
     env["HEPHAESTUS_UPDATE_CHECK"] = "0"
     completed = subprocess.run(
-        [str(ROOT / "bin" / "hephaestus-build"), "create a finance agent"],
+        [str(ROOT / "bin" / "hep-build"), "create a finance agent"],
         cwd=str(ROOT),
         env=env,
         text=True,
@@ -40,4 +40,4 @@ def test_standalone_build_wrapper_points_to_hephaestus_build() -> None:
         check=False,
     )
     assert completed.returncode == 0, completed.stderr or completed.stdout
-    assert "/hephaestus-build create a finance agent" in completed.stdout
+    assert "/hep-build create a finance agent" in completed.stdout

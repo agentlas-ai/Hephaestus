@@ -350,7 +350,7 @@ class OntologyRuntimeTests(unittest.TestCase):
         self.assertIn("Ask Ontology", gui_html)
         self.assertIn("Memory Candidate Queue", gui_html)
         self.assertIn("data-view-target=\"sources\"", gui_html)
-        self.assertIn("data-copy=\"/hephaestus-build ontology\"", gui_html)
+        self.assertIn("data-copy=\"/hep-build ontology\"", gui_html)
 
     def test_hephaestus_runner_creates_project_gui_without_browser(self):
         env = os.environ.copy()

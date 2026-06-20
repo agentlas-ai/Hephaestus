@@ -8,7 +8,7 @@ description: "Use when a meta-agent request is too ambiguous to safely generate,
 Ask only questions that change the generated package, runtime adapter, safety
 boundary, or public/private release decision.
 
-For `/hephaestus-build` creation or behavior-changing packaging, this is not a
+For `/hep-build` creation or behavior-changing packaging, this is not a
 substitute for the Builder Interview and Research Gate in
 `docs/builder-interview-research-gate.md`. Run that gate first: ask an 8-12
 question first batch, research similar agent repositories or comparables and

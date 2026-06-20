@@ -30,16 +30,18 @@ scan_files=(
   codex/plugins/agentlas-core-engine-meta-agent/.codex-plugin/plugin.json
   claude/plugins/agentlas-core-engine-meta-agent/.claude-plugin/plugin.json
   gemini/extension/gemini-extension.json
-  gemini/extension/commands/hephaestus-build.toml
-  gemini/extension/commands/hephaestus-network.toml
-  gemini/extension/commands/hephaestus-cloud.toml
-  gemini/extension/commands/hephaestus-search.toml
-  gemini/extension/commands/hephaestus-call.toml
-  .gemini/commands/hephaestus-build.toml
-  .gemini/commands/hephaestus-network.toml
-  .gemini/commands/hephaestus-cloud.toml
-  .gemini/commands/hephaestus-search.toml
-  .gemini/commands/hephaestus-call.toml
+  gemini/extension/commands/hep-build.toml
+  gemini/extension/commands/hep-network.toml
+  gemini/extension/commands/hep-cloud.toml
+  gemini/extension/commands/hep-search.toml
+  gemini/extension/commands/hep-call.toml
+  gemini/extension/commands/hep-upload.toml
+  .gemini/commands/hep-build.toml
+  .gemini/commands/hep-network.toml
+  .gemini/commands/hep-cloud.toml
+  .gemini/commands/hep-search.toml
+  .gemini/commands/hep-call.toml
+  .gemini/commands/hep-upload.toml
   manifest.json
   scripts/install.sh
   scripts/install-all-runtimes.sh
@@ -117,27 +119,31 @@ assert claude["version"] == expected_version, claude["version"]
 assert "skills" not in claude, claude.get("skills")
 assert manifest["package"] == "hephaestus", manifest["package"]
 
-assert manifest["entrypoints"]["claudeHephaestusBuildCommand"].endswith("hephaestus-build.md")
-assert manifest["entrypoints"]["claudeHephaestusNetworkCommand"].endswith("hephaestus-network.md")
-assert manifest["entrypoints"]["claudeHephaestusCloudCommand"].endswith("hephaestus-cloud.md")
-assert manifest["entrypoints"]["claudeHephaestusSearchCommand"].endswith("hephaestus-search.md")
-assert manifest["entrypoints"]["claudeHephaestusCallCommand"].endswith("hephaestus-call.md")
-assert manifest["entrypoints"]["codexHephaestusBuildPrompt"].endswith("hephaestus-build.md")
-assert manifest["entrypoints"]["codexHephaestusNetworkPrompt"].endswith("hephaestus-network.md")
-assert manifest["entrypoints"]["codexHephaestusCloudPrompt"].endswith("hephaestus-cloud.md")
-assert manifest["entrypoints"]["codexHephaestusSearchPrompt"].endswith("hephaestus-search.md")
-assert manifest["entrypoints"]["codexHephaestusCallPrompt"].endswith("hephaestus-call.md")
+assert manifest["entrypoints"]["claudeHephaestusBuildCommand"].endswith("hep-build.md")
+assert manifest["entrypoints"]["claudeHephaestusNetworkCommand"].endswith("hep-network.md")
+assert manifest["entrypoints"]["claudeHephaestusCloudCommand"].endswith("hep-cloud.md")
+assert manifest["entrypoints"]["claudeHephaestusSearchCommand"].endswith("hep-search.md")
+assert manifest["entrypoints"]["claudeHephaestusCallCommand"].endswith("hep-call.md")
+assert manifest["entrypoints"]["claudeHephaestusUploadCommand"].endswith("hep-upload.md")
+assert manifest["entrypoints"]["codexHephaestusBuildPrompt"].endswith("hep-build.md")
+assert manifest["entrypoints"]["codexHephaestusNetworkPrompt"].endswith("hep-network.md")
+assert manifest["entrypoints"]["codexHephaestusCloudPrompt"].endswith("hep-cloud.md")
+assert manifest["entrypoints"]["codexHephaestusSearchPrompt"].endswith("hep-search.md")
+assert manifest["entrypoints"]["codexHephaestusCallPrompt"].endswith("hep-call.md")
+assert manifest["entrypoints"]["codexHephaestusUploadPrompt"].endswith("hep-upload.md")
 assert manifest["entrypoints"]["geminiExtension"].endswith("gemini-extension.json")
-assert manifest["entrypoints"]["geminiHephaestusBuildCommand"].endswith("hephaestus-build.toml")
-assert manifest["entrypoints"]["geminiHephaestusNetworkCommand"].endswith("hephaestus-network.toml")
-assert manifest["entrypoints"]["geminiHephaestusCloudCommand"].endswith("hephaestus-cloud.toml")
-assert manifest["entrypoints"]["geminiHephaestusSearchCommand"].endswith("hephaestus-search.toml")
-assert manifest["entrypoints"]["geminiHephaestusCallCommand"].endswith("hephaestus-call.toml")
-assert manifest["entrypoints"]["antigravityBuildWorkflow"].endswith("antigravity/workflows/hephaestus-build.md")
-assert manifest["entrypoints"]["antigravityNetworkWorkflow"].endswith("antigravity/workflows/hephaestus-network.md")
-assert manifest["entrypoints"]["antigravityCloudWorkflow"].endswith("antigravity/workflows/hephaestus-cloud.md")
-assert manifest["entrypoints"]["antigravitySearchWorkflow"].endswith("antigravity/workflows/hephaestus-search.md")
-assert manifest["entrypoints"]["antigravityCallWorkflow"].endswith("antigravity/workflows/hephaestus-call.md")
+assert manifest["entrypoints"]["geminiHephaestusBuildCommand"].endswith("hep-build.toml")
+assert manifest["entrypoints"]["geminiHephaestusNetworkCommand"].endswith("hep-network.toml")
+assert manifest["entrypoints"]["geminiHephaestusCloudCommand"].endswith("hep-cloud.toml")
+assert manifest["entrypoints"]["geminiHephaestusSearchCommand"].endswith("hep-search.toml")
+assert manifest["entrypoints"]["geminiHephaestusCallCommand"].endswith("hep-call.toml")
+assert manifest["entrypoints"]["geminiHephaestusUploadCommand"].endswith("hep-upload.toml")
+assert manifest["entrypoints"]["antigravityBuildWorkflow"].endswith("antigravity/workflows/hep-build.md")
+assert manifest["entrypoints"]["antigravityNetworkWorkflow"].endswith("antigravity/workflows/hep-network.md")
+assert manifest["entrypoints"]["antigravityCloudWorkflow"].endswith("antigravity/workflows/hep-cloud.md")
+assert manifest["entrypoints"]["antigravitySearchWorkflow"].endswith("antigravity/workflows/hep-search.md")
+assert manifest["entrypoints"]["antigravityCallWorkflow"].endswith("antigravity/workflows/hep-call.md")
+assert manifest["entrypoints"]["antigravityUploadWorkflow"].endswith("antigravity/workflows/hep-upload.md")
 assert manifest["entrypoints"]["globalCommands"].endswith("global-commands.json")
 
 for path in [
@@ -154,9 +160,30 @@ PY
 
 for path in \
   bin/hephaestus \
+  bin/hep-build \
+  bin/hep-network \
+  bin/hep-cloud \
+  bin/hep-search \
+  bin/hep-call \
+  bin/hep-upload \
+  bin/hep-storm \
   bin/ontology \
   claude/plugins/agentlas-core-engine-meta-agent/bin/hephaestus \
+  claude/plugins/agentlas-core-engine-meta-agent/bin/hep-build \
+  claude/plugins/agentlas-core-engine-meta-agent/bin/hep-network \
+  claude/plugins/agentlas-core-engine-meta-agent/bin/hep-cloud \
+  claude/plugins/agentlas-core-engine-meta-agent/bin/hep-search \
+  claude/plugins/agentlas-core-engine-meta-agent/bin/hep-call \
+  claude/plugins/agentlas-core-engine-meta-agent/bin/hep-upload \
+  claude/plugins/agentlas-core-engine-meta-agent/bin/hep-storm \
   codex/plugins/agentlas-core-engine-meta-agent/bin/hephaestus \
+  codex/plugins/agentlas-core-engine-meta-agent/bin/hep-build \
+  codex/plugins/agentlas-core-engine-meta-agent/bin/hep-network \
+  codex/plugins/agentlas-core-engine-meta-agent/bin/hep-cloud \
+  codex/plugins/agentlas-core-engine-meta-agent/bin/hep-search \
+  codex/plugins/agentlas-core-engine-meta-agent/bin/hep-call \
+  codex/plugins/agentlas-core-engine-meta-agent/bin/hep-upload \
+  codex/plugins/agentlas-core-engine-meta-agent/bin/hep-storm \
   scripts/install.sh \
   scripts/install-all-runtimes.sh \
   scripts/preflight-macos.sh \

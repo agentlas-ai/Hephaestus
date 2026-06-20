@@ -1,14 +1,14 @@
 ---
-description: Hephaestus Network routing — apply when the user types /hephaestus-network or mentions @Hephaestus in a routing request. Routes natural-language requests to local Agentlas agents/teams/plugins via the local-first router, with Hub fallback.
+description: Hephaestus Network routing — apply when the user types /hep-network or mentions @Hephaestus in a routing request. Routes natural-language requests to local Agentlas agents/teams/plugins via the local-first router, with Hub fallback.
 alwaysApply: false
 ---
 
 # Hephaestus Network (Cursor adapter)
 
-Cursor ships `/hephaestus-build`, `/hephaestus-network`, and
-`/hephaestus-cloud` as commands (see `cursor/plugin/`); this rule is the
+Cursor ships `/hep-build`, `/hep-network`, and
+`/hep-cloud` as commands (see `cursor/plugin/`); this rule is the
 fallback adapter so plain-text routing triggers work too: when the user writes
-`/hephaestus-network <request>` or `@Hephaestus <request>`, do the following.
+`/hep-network <request>` or `@Hephaestus <request>`, do the following.
 
 1. Resolve the runner — first executable wins:
    `~/.agentlas/runtime/current/bin/hephaestus`, `./bin/hephaestus` in the

@@ -1,6 +1,6 @@
 """Power-user search and explicit call helpers for Hephaestus Network.
 
-`/hephaestus-network` stays the simple borrow surface: the router decides
+`/hep-network` stays the simple borrow surface: the router decides
 whether a task is single-agent, clarify, or a temporary task force. These
 helpers expose two deliberate advanced moves:
 
@@ -58,7 +58,7 @@ def search_agents(
         reasons=["cloud_and_hub_sections", "candidate_only"],
         locale="ko" if has_hangul(query) else "en",
         runtime=runtime,
-        router_chain=["hephaestus-search"],
+        router_chain=["hep-search"],
         match_reason="explicit_candidate_search",
         allowed_by=["redacted_hub_search", "owner_cloud_search"],
         fallback_scope=None,
@@ -150,7 +150,7 @@ def call_agents(
         reasons=["explicit_agent_call"],
         locale="ko" if has_hangul(context) else "en",
         runtime=runtime,
-        router_chain=["hephaestus-call"],
+        router_chain=["hep-call"],
         match_reason="explicit_agent_refs",
         allowed_by=["user_named_agents", "hub_runtime_bundle"],
         fallback_scope=None,

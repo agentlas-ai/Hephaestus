@@ -1,47 +1,47 @@
 {
   "schemaVersion": "1.0",
   "packageId": "agentlas-core-engine-meta-agent",
-  "canonicalCommand": "/hephaestus-build",
+  "canonicalCommand": "/hep-build",
   "commands": [
     {
       "runtime": "claude-code",
-      "command": "/hephaestus-build",
-      "adapterPath": ".claude/commands/hephaestus-build.md",
-      "globalInstallPath": "~/.claude/commands/hephaestus-build.md",
+      "command": "/hep-build",
+      "adapterPath": ".claude/commands/hep-build.md",
+      "globalInstallPath": "~/.claude/commands/hep-build.md",
       "scope": "global",
       "status": "native-slash-command",
       "notes": "Build/create/package surface."
     },
     {
       "runtime": "codex",
-      "command": "/prompts:hephaestus-build",
-      "adapterPath": "codex/prompts/hephaestus-build.md",
-      "globalInstallPath": "~/.codex/prompts/hephaestus-build.md",
+      "command": "/prompts:hep-build",
+      "adapterPath": "codex/prompts/hep-build.md",
+      "globalInstallPath": "~/.codex/prompts/hep-build.md",
       "scope": "global",
       "status": "custom-prompt-slash-command",
-      "notes": "Codex plugins cannot register slash commands (skills only). The explicit build surface is namespaced as /prompts:hephaestus-build."
+      "notes": "Codex plugins cannot register slash commands (skills only). The explicit build surface is namespaced as /prompts:hep-build."
     },
     {
       "runtime": "gemini-cli",
-      "command": "/hephaestus-build",
-      "adapterPath": "gemini/extension/commands/hephaestus-build.toml",
-      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v0.7.11",
+      "command": "/hep-build",
+      "adapterPath": "gemini/extension/commands/hep-build.toml",
+      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v0.7.12",
       "scope": "global",
       "status": "extension-custom-command",
-      "notes": "Fallback user command is also installable at ~/.gemini/commands/hephaestus-build.toml."
+      "notes": "Fallback user command is also installable at ~/.gemini/commands/hep-build.toml."
     },
     {
       "runtime": "antigravity",
-      "command": "/hephaestus-build",
-      "adapterPath": "antigravity/workflows/hephaestus-build.md",
-      "globalInstallPath": "~/.gemini/antigravity/global_workflows/hephaestus-build.md",
+      "command": "/hep-build",
+      "adapterPath": "antigravity/workflows/hep-build.md",
+      "globalInstallPath": "~/.gemini/antigravity/global_workflows/hep-build.md",
       "scope": "global",
       "status": "workflow-slash-command",
-      "notes": "Installed by scripts/install-all-runtimes.sh. Project-scope fallback ships at .agents/workflows/hephaestus-build.md."
+      "notes": "Installed by scripts/install-all-runtimes.sh. Project-scope fallback ships at .agents/workflows/hep-build.md."
     },
     {
       "runtime": "generic-agents-md",
-      "command": "/hephaestus-build",
+      "command": "/hep-build",
       "adapterPath": "AGENTS.md",
       "scope": "project",
       "status": "adapter-command-alias",
@@ -49,79 +49,71 @@
     },
     {
       "runtime": "agentlas-terminal",
-      "command": "hephaestus-build",
-      "adapterPath": "bin/hephaestus-build",
-      "globalInstallPath": "hephaestus-build \"<request>\"",
-      "scope": "terminal",
-      "status": "shell-command"
-    },
-    {
-      "runtime": "agentlas-terminal",
-      "command": "Hephaestus-build",
-      "adapterPath": "bin/hephaestus-build",
-      "globalInstallPath": "Hephaestus-build \"<request>\"",
+      "command": "hep-build",
+      "adapterPath": "bin/hep-build",
+      "globalInstallPath": "hep-build \"<request>\"",
       "scope": "terminal",
       "status": "shell-command-alias",
-      "notes": "Human-facing build alias installed by scripts/install-all-runtimes.sh; same builder surface as /hephaestus-build."
+      "notes": "Human-facing build alias installed by scripts/install-all-runtimes.sh; same builder surface as /hep-build."
     },
     {
       "runtime": "cursor",
-      "command": "/hephaestus-build",
-      "adapterPath": "cursor/plugin/commands/hephaestus-build.md",
-      "globalInstallPath": "~/.cursor/commands/hephaestus-build.md",
+      "command": "/hep-build",
+      "adapterPath": "cursor/plugin/commands/hep-build.md",
+      "globalInstallPath": "~/.cursor/commands/hep-build.md",
       "scope": "global",
       "status": "native-slash-command",
       "notes": "Build/create/package surface. Cursor also keeps the @Hephaestus project-rule fallback."
     },
     {
       "runtime": "opencode",
-      "command": "/hephaestus-build",
-      "adapterPath": "opencode/commands/hephaestus-build.md",
-      "globalInstallPath": "~/.config/opencode/commands/hephaestus-build.md",
+      "command": "/hep-build",
+      "adapterPath": "opencode/commands/hep-build.md",
+      "globalInstallPath": "~/.config/opencode/commands/hep-build.md",
       "scope": "global",
       "status": "native-slash-command",
       "notes": "Build/create/package surface."
     },
     {
       "runtime": "claude-code",
-      "command": "/hephaestus-network",
-      "adapterPath": ".claude/commands/hephaestus-network.md",
-      "globalInstallPath": "~/.claude/commands/hephaestus-network.md",
+      "command": "/hep-network",
+      "adapterPath": ".claude/commands/hep-network.md",
+      "globalInstallPath": "~/.claude/commands/hep-network.md",
       "scope": "global",
       "status": "native-slash-command"
     },
     {
       "runtime": "codex",
-      "command": "/prompts:hephaestus-network",
-      "adapterPath": "codex/prompts/hephaestus-network.md",
-      "globalInstallPath": "~/.codex/prompts/hephaestus-network.md",
+      "command": "/prompts:hep-network",
+      "adapterPath": "codex/prompts/hep-network.md",
+      "globalInstallPath": "~/.codex/prompts/hep-network.md",
       "scope": "global",
       "status": "custom-prompt-slash-command",
       "notes": "Implicit/skill surface: codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-network/SKILL.md ($hephaestus-network). Tool surface: mcp_servers.hephaestus-network in ~/.codex/config.toml."
     },
     {
       "runtime": "gemini-cli",
-      "command": "/hephaestus-network",
-      "adapterPath": "gemini/extension/commands/hephaestus-network.toml",
-      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v0.7.11",
+      "command": "/hep-network",
+      "adapterPath": "gemini/extension/commands/hep-network.toml",
+      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v0.7.12",
       "scope": "global",
       "status": "extension-custom-command",
-      "notes": "Fallback user command is also installable at ~/.gemini/commands/hephaestus-network.toml."
+      "notes": "Fallback user command is also installable at ~/.gemini/commands/hep-network.toml."
     },
     {
       "runtime": "antigravity",
-      "command": "/hephaestus-network",
-      "adapterPath": "antigravity/workflows/hephaestus-network.md",
-      "globalInstallPath": "~/.gemini/antigravity/global_workflows/hephaestus-network.md",
+      "command": "/hep-network",
+      "adapterPath": "antigravity/workflows/hep-network.md",
+      "globalInstallPath": "~/.gemini/antigravity/global_workflows/hep-network.md",
       "scope": "global",
       "status": "workflow-slash-command",
-      "notes": "Project-scope fallback ships at .agents/workflows/hephaestus-network.md."
+      "notes": "Project-scope fallback ships at .agents/workflows/hep-network.md."
     },
     {
       "runtime": "cursor",
-      "command": "/hephaestus-network",
-      "adapterPath": "cursor/plugin/commands/hephaestus-network.md",
-      "globalInstallPath": "~/.cursor/commands/hephaestus-network.md",
+      "command": "/hep-network",
+      "adapterPath": "cursor/plugin/commands/hep-network.md",
+      "globalInstallPath": "~/.cursor/commands/hep-network.md",
       "scope": "global",
       "status": "native-slash-command",
       "notes": "Cursor ≥1.6 supports commands (~/.cursor/commands), Cursor ≥2.4 skills (~/.cursor/skills, ~/.agents/skills). cursor/plugin/ is the marketplace-ready bundle."
@@ -133,13 +125,13 @@
       "globalInstallPath": "<project>/.cursor/rules/hephaestus.mdc",
       "scope": "project",
       "status": "rule-trigger-fallback",
-      "notes": "Per-project rule fallback; reacts to /hephaestus-network and @Hephaestus routing mentions."
+      "notes": "Per-project rule fallback; reacts to /hep-network and @Hephaestus routing mentions."
     },
     {
       "runtime": "opencode",
-      "command": "/hephaestus-network",
-      "adapterPath": "opencode/commands/hephaestus-network.md",
-      "globalInstallPath": "~/.config/opencode/commands/hephaestus-network.md",
+      "command": "/hep-network",
+      "adapterPath": "opencode/commands/hep-network.md",
+      "globalInstallPath": "~/.config/opencode/commands/hep-network.md",
       "scope": "global",
       "status": "native-slash-command",
       "notes": "OpenCode also reads the universal skill at ~/.agents/skills/hephaestus-network and supports MCP (opencode/README.md)."
@@ -151,7 +143,7 @@
       "globalInstallPath": "~/.openclaw/skills/hephaestus-network/SKILL.md",
       "scope": "global",
       "status": "skill-slash-command",
-      "notes": "AgentSkills spec; native /hephaestus-network registration follows commands.nativeSkills. Also loaded from ~/.agents/skills."
+      "notes": "AgentSkills spec; native /hep-network registration follows commands.nativeSkills. Also loaded from ~/.agents/skills."
     },
     {
       "runtime": "hermes-agent",
@@ -164,72 +156,72 @@
     },
     {
       "runtime": "agentlas-terminal",
-      "command": "hephaests-network",
-      "adapterPath": "bin/hephaests-network",
-      "globalInstallPath": "hephaests-network \"<request>\"",
+      "command": "hep-network",
+      "adapterPath": "bin/hep-network",
+      "globalInstallPath": "hep-network \"<request>\"",
       "scope": "terminal",
       "status": "shell-command-alias",
-      "notes": "Typo-tolerant standalone Network alias; maps to hephaestus hephaests-network \"<request>\", uses Hub-only Network routing, and auto-runs runnable Stormbreaker execution_fabric decisions unless --plan-only is present."
+      "notes": "Typo-tolerant standalone Network alias; maps to hephaestus hep-network \"<request>\", uses Hub-only Network routing, and auto-runs runnable Stormbreaker execution_fabric decisions unless --plan-only is present."
     },
     {
       "runtime": "agentlas-terminal",
-      "command": "hephaestus-storm",
-      "adapterPath": "bin/hephaestus-storm",
-      "globalInstallPath": "hephaestus-storm \"<request>\" --background",
+      "command": "hep-storm",
+      "adapterPath": "bin/hep-storm",
+      "globalInstallPath": "hep-storm \"<request>\" --background",
       "scope": "terminal",
       "status": "shell-command",
-      "notes": "Stormbreaker auto-runner surface. Routes a pipeline request, dispatches packets, and writes receipts/results. Terminal hephaestus-network can auto-start this runner for runnable execution_fabric decisions."
+      "notes": "Stormbreaker auto-runner surface. Routes a pipeline request, dispatches packets, and writes receipts/results. Terminal hep-network can auto-start this runner for runnable execution_fabric decisions."
     },
     {
       "runtime": "claude-code",
-      "command": "/hephaestus-cloud",
-      "adapterPath": ".claude/commands/hephaestus-cloud.md",
-      "globalInstallPath": "~/.claude/commands/hephaestus-cloud.md",
+      "command": "/hep-cloud",
+      "adapterPath": ".claude/commands/hep-cloud.md",
+      "globalInstallPath": "~/.claude/commands/hep-cloud.md",
       "scope": "global",
       "status": "native-slash-command",
       "notes": "Owner-scoped leg of the three-scope model: searches ONLY the signed-in user's own cloud packages (보관함), call-priced at a flat 1 credit. Maps to `hephaestus route --scope cloud` (implies --hub-only, cargo.* owner query)."
     },
     {
       "runtime": "codex",
-      "command": "/prompts:hephaestus-cloud",
-      "adapterPath": "codex/prompts/hephaestus-cloud.md",
-      "globalInstallPath": "~/.codex/prompts/hephaestus-cloud.md",
+      "command": "/prompts:hep-cloud",
+      "adapterPath": "codex/prompts/hep-cloud.md",
+      "globalInstallPath": "~/.codex/prompts/hep-cloud.md",
       "scope": "global",
       "status": "custom-prompt-slash-command",
       "notes": "Implicit/skill surface: codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-cloud/SKILL.md ($hephaestus-cloud). Tool surface: hephaestus_cloud_search in mcp_servers.hephaestus-network."
     },
     {
       "runtime": "gemini-cli",
-      "command": "/hephaestus-cloud",
-      "adapterPath": "gemini/extension/commands/hephaestus-cloud.toml",
-      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v0.7.11",
+      "command": "/hep-cloud",
+      "adapterPath": "gemini/extension/commands/hep-cloud.toml",
+      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v0.7.12",
       "scope": "global",
       "status": "extension-custom-command",
-      "notes": "Fallback user command is also installable at ~/.gemini/commands/hephaestus-cloud.toml."
+      "notes": "Fallback user command is also installable at ~/.gemini/commands/hep-cloud.toml."
     },
     {
       "runtime": "antigravity",
-      "command": "/hephaestus-cloud",
-      "adapterPath": "antigravity/workflows/hephaestus-cloud.md",
-      "globalInstallPath": "~/.gemini/antigravity/global_workflows/hephaestus-cloud.md",
+      "command": "/hep-cloud",
+      "adapterPath": "antigravity/workflows/hep-cloud.md",
+      "globalInstallPath": "~/.gemini/antigravity/global_workflows/hep-cloud.md",
       "scope": "global",
       "status": "workflow-slash-command",
-      "notes": "Project-scope fallback ships at .agents/workflows/hephaestus-cloud.md."
+      "notes": "Project-scope fallback ships at .agents/workflows/hep-cloud.md."
     },
     {
       "runtime": "cursor",
-      "command": "/hephaestus-cloud",
-      "adapterPath": "cursor/plugin/commands/hephaestus-cloud.md",
-      "globalInstallPath": "~/.cursor/commands/hephaestus-cloud.md",
+      "command": "/hep-cloud",
+      "adapterPath": "cursor/plugin/commands/hep-cloud.md",
+      "globalInstallPath": "~/.cursor/commands/hep-cloud.md",
       "scope": "global",
       "status": "native-slash-command",
       "notes": "Owner cloud (보관함) only. cursor/plugin/ is the marketplace-ready bundle."
     },
     {
       "runtime": "opencode",
-      "command": "/hephaestus-cloud",
-      "adapterPath": "opencode/commands/hephaestus-cloud.md",
-      "globalInstallPath": "~/.config/opencode/commands/hephaestus-cloud.md",
+      "command": "/hep-cloud",
+      "adapterPath": "opencode/commands/hep-cloud.md",
+      "globalInstallPath": "~/.config/opencode/commands/hep-cloud.md",
       "scope": "global",
       "status": "native-slash-command",
       "notes": "OpenCode also reads the universal skill at ~/.agents/skills/hephaestus-cloud and supports MCP (hephaestus_cloud_search)."
@@ -241,7 +233,7 @@
       "globalInstallPath": "~/.openclaw/skills/hephaestus-cloud/SKILL.md",
       "scope": "global",
       "status": "skill-slash-command",
-      "notes": "AgentSkills spec; native /hephaestus-cloud registration follows commands.nativeSkills. Also loaded from ~/.agents/skills."
+      "notes": "AgentSkills spec; native /hep-cloud registration follows commands.nativeSkills. Also loaded from ~/.agents/skills."
     },
     {
       "runtime": "hermes-agent",
@@ -263,12 +255,12 @@
     },
     {
       "runtime": "agentlas-terminal",
-      "command": "hephaestus cloud",
-      "adapterPath": "bin/hephaestus",
-      "globalInstallPath": "hephaestus cloud \"<request>\"",
+      "command": "hep-cloud",
+      "adapterPath": "bin/hep-cloud",
+      "globalInstallPath": "hep-cloud \"<request>\"",
       "scope": "terminal",
       "status": "shell-command",
-      "notes": "hephaestus cloud \"<request>\" is shorthand for hephaestus route \"<request>\" --scope cloud (owner cloud / 보관함 only)."
+      "notes": "hep-cloud \"<request>\" is shorthand for hephaestus route \"<request>\" --scope cloud (owner cloud / 보관함 only)."
     },
     {
       "runtime": "mcp",
@@ -298,103 +290,103 @@
     },
     {
       "runtime": "claude-code",
-      "command": "/hephaestus-search",
-      "adapterPath": ".claude/commands/hephaestus-search.md",
-      "globalInstallPath": "~/.claude/commands/hephaestus-search.md",
+      "command": "/hep-search",
+      "adapterPath": ".claude/commands/hep-search.md",
+      "globalInstallPath": "~/.claude/commands/hep-search.md",
       "scope": "global",
       "status": "native-slash-command",
       "notes": "Power-user search: show top owner-cloud and public Hub candidates without invoking."
     },
     {
       "runtime": "claude-code",
-      "command": "/hephaestus-call",
-      "adapterPath": ".claude/commands/hephaestus-call.md",
-      "globalInstallPath": "~/.claude/commands/hephaestus-call.md",
+      "command": "/hep-call",
+      "adapterPath": ".claude/commands/hep-call.md",
+      "globalInstallPath": "~/.claude/commands/hep-call.md",
       "scope": "global",
       "status": "native-slash-command",
       "notes": "Power-user explicit call: prepare named Hub/cloud agents and return BYOM runtime bundles."
     },
     {
       "runtime": "codex",
-      "command": "/prompts:hephaestus-search",
-      "adapterPath": "codex/prompts/hephaestus-search.md",
-      "globalInstallPath": "~/.codex/prompts/hephaestus-search.md",
+      "command": "/prompts:hep-search",
+      "adapterPath": "codex/prompts/hep-search.md",
+      "globalInstallPath": "~/.codex/prompts/hep-search.md",
       "scope": "global",
       "status": "custom-prompt-slash-command",
       "notes": "Codex prompt surface for candidate-only cloud/hub search."
     },
     {
       "runtime": "codex",
-      "command": "/prompts:hephaestus-call",
-      "adapterPath": "codex/prompts/hephaestus-call.md",
-      "globalInstallPath": "~/.codex/prompts/hephaestus-call.md",
+      "command": "/prompts:hep-call",
+      "adapterPath": "codex/prompts/hep-call.md",
+      "globalInstallPath": "~/.codex/prompts/hep-call.md",
       "scope": "global",
       "status": "custom-prompt-slash-command",
       "notes": "Codex prompt surface for explicit named-agent BYOM bundle preparation."
     },
     {
       "runtime": "gemini-cli",
-      "command": "/hephaestus-search",
-      "adapterPath": "gemini/extension/commands/hephaestus-search.toml",
-      "globalInstallPath": "~/.gemini/commands/hephaestus-search.toml",
+      "command": "/hep-search",
+      "adapterPath": "gemini/extension/commands/hep-search.toml",
+      "globalInstallPath": "~/.gemini/commands/hep-search.toml",
       "scope": "global",
       "status": "extension-custom-command",
       "notes": "Fallback user command installed by scripts/install-all-runtimes.sh."
     },
     {
       "runtime": "gemini-cli",
-      "command": "/hephaestus-call",
-      "adapterPath": "gemini/extension/commands/hephaestus-call.toml",
-      "globalInstallPath": "~/.gemini/commands/hephaestus-call.toml",
+      "command": "/hep-call",
+      "adapterPath": "gemini/extension/commands/hep-call.toml",
+      "globalInstallPath": "~/.gemini/commands/hep-call.toml",
       "scope": "global",
       "status": "extension-custom-command",
       "notes": "Fallback user command installed by scripts/install-all-runtimes.sh."
     },
     {
       "runtime": "antigravity",
-      "command": "/hephaestus-search",
-      "adapterPath": "antigravity/workflows/hephaestus-search.md",
-      "globalInstallPath": "~/.gemini/antigravity/global_workflows/hephaestus-search.md",
+      "command": "/hep-search",
+      "adapterPath": "antigravity/workflows/hep-search.md",
+      "globalInstallPath": "~/.gemini/antigravity/global_workflows/hep-search.md",
       "scope": "global",
       "status": "workflow-slash-command"
     },
     {
       "runtime": "antigravity",
-      "command": "/hephaestus-call",
-      "adapterPath": "antigravity/workflows/hephaestus-call.md",
-      "globalInstallPath": "~/.gemini/antigravity/global_workflows/hephaestus-call.md",
+      "command": "/hep-call",
+      "adapterPath": "antigravity/workflows/hep-call.md",
+      "globalInstallPath": "~/.gemini/antigravity/global_workflows/hep-call.md",
       "scope": "global",
       "status": "workflow-slash-command"
     },
     {
       "runtime": "cursor",
-      "command": "/hephaestus-search",
-      "adapterPath": "cursor/plugin/commands/hephaestus-search.md",
-      "globalInstallPath": "~/.cursor/commands/hephaestus-search.md",
+      "command": "/hep-search",
+      "adapterPath": "cursor/plugin/commands/hep-search.md",
+      "globalInstallPath": "~/.cursor/commands/hep-search.md",
       "scope": "global",
       "status": "native-slash-command"
     },
     {
       "runtime": "cursor",
-      "command": "/hephaestus-call",
-      "adapterPath": "cursor/plugin/commands/hephaestus-call.md",
-      "globalInstallPath": "~/.cursor/commands/hephaestus-call.md",
+      "command": "/hep-call",
+      "adapterPath": "cursor/plugin/commands/hep-call.md",
+      "globalInstallPath": "~/.cursor/commands/hep-call.md",
       "scope": "global",
       "status": "native-slash-command"
     },
     {
       "runtime": "opencode",
-      "command": "/hephaestus-search",
-      "adapterPath": "opencode/commands/hephaestus-search.md",
-      "globalInstallPath": "~/.config/opencode/commands/hephaestus-search.md",
+      "command": "/hep-search",
+      "adapterPath": "opencode/commands/hep-search.md",
+      "globalInstallPath": "~/.config/opencode/commands/hep-search.md",
       "scope": "global",
       "status": "native-slash-command"
     },
     {
       "runtime": "opencode",
-      "command": "/hephaestus-call",
-      "adapterPath": "opencode/commands/hephaestus-call.md",
-      "globalInstallPath": "~/.config/opencode/commands/hephaestus-call.md",
+      "command": "/hep-call",
+      "adapterPath": "opencode/commands/hep-call.md",
+      "globalInstallPath": "~/.config/opencode/commands/hep-call.md",
       "scope": "global",
       "status": "native-slash-command"
     },
@@ -418,25 +410,85 @@
     },
     {
       "runtime": "agentlas-terminal",
-      "command": "hephaestus search",
-      "adapterPath": "bin/hephaestus",
-      "globalInstallPath": "Hephaestus-search \"<request>\"",
+      "command": "hep-search",
+      "adapterPath": "bin/hep-search",
+      "globalInstallPath": "hep-search \"<request>\"",
       "scope": "terminal",
       "status": "shell-command-alias",
       "notes": "Candidate-only cloud/hub search."
     },
     {
       "runtime": "agentlas-terminal",
-      "command": "hephaestus call",
-      "adapterPath": "bin/hephaestus",
-      "globalInstallPath": "Hephaestus-call \"agent-a,agent-b\" \"<context>\"",
+      "command": "hep-call",
+      "adapterPath": "bin/hep-call",
+      "globalInstallPath": "hep-call \"agent-a,agent-b\" \"<context>\"",
       "scope": "terminal",
       "status": "shell-command-alias",
       "notes": "Prepare exactly named agents."
+    },
+    {
+      "runtime": "claude-code",
+      "command": "/hep-upload",
+      "adapterPath": ".claude/commands/hep-upload.md",
+      "globalInstallPath": "~/.claude/commands/hep-upload.md",
+      "scope": "global",
+      "status": "native-slash-command",
+      "notes": "Upload gate. Always asks Cloud private-link vs Agentlas Hub public publish before any package/register action."
+    },
+    {
+      "runtime": "codex",
+      "command": "/prompts:hep-upload",
+      "adapterPath": "codex/prompts/hep-upload.md",
+      "globalInstallPath": "~/.codex/prompts/hep-upload.md",
+      "scope": "global",
+      "status": "custom-prompt-slash-command",
+      "notes": "Codex prompt upload gate. Always asks Cloud vs Agentlas Hub first."
+    },
+    {
+      "runtime": "gemini-cli",
+      "command": "/hep-upload",
+      "adapterPath": "gemini/extension/commands/hep-upload.toml",
+      "globalInstallPath": "~/.gemini/commands/hep-upload.toml",
+      "scope": "global",
+      "status": "extension-custom-command",
+      "notes": "Fallback user command installed by scripts/install-all-runtimes.sh."
+    },
+    {
+      "runtime": "antigravity",
+      "command": "/hep-upload",
+      "adapterPath": "antigravity/workflows/hep-upload.md",
+      "globalInstallPath": "~/.gemini/antigravity/global_workflows/hep-upload.md",
+      "scope": "global",
+      "status": "workflow-slash-command"
+    },
+    {
+      "runtime": "cursor",
+      "command": "/hep-upload",
+      "adapterPath": "cursor/plugin/commands/hep-upload.md",
+      "globalInstallPath": "~/.cursor/commands/hep-upload.md",
+      "scope": "global",
+      "status": "native-slash-command"
+    },
+    {
+      "runtime": "opencode",
+      "command": "/hep-upload",
+      "adapterPath": "opencode/commands/hep-upload.md",
+      "globalInstallPath": "~/.config/opencode/commands/hep-upload.md",
+      "scope": "global",
+      "status": "native-slash-command"
+    },
+    {
+      "runtime": "agentlas-terminal",
+      "command": "hep-upload",
+      "adapterPath": "bin/hep-upload",
+      "globalInstallPath": "hep-upload <agent-folder>",
+      "scope": "terminal",
+      "status": "shell-command",
+      "notes": "Interactive upload gate. Shows the mandatory bilingual Cloud vs Agentlas Hub question before upload."
     }
   ],
   "postCreationUserMessage": {
     "required": true,
-    "template": "global_commands: Claude Code /hephaestus-build, /hephaestus-network, /hephaestus-cloud; Codex /prompts:hephaestus-build, /prompts:hephaestus-network, /prompts:hephaestus-cloud; Gemini CLI /hephaestus-build, /hephaestus-network, /hephaestus-cloud; Antigravity /hephaestus-build, /hephaestus-network, /hephaestus-cloud; Cursor /hephaestus-build, /hephaestus-network, /hephaestus-cloud; OpenCode /hephaestus-build, /hephaestus-network, /hephaestus-cloud; Agentlas terminal Hephaestus-build, hephaests-network, hephaestus-storm, or hephaestus cloud. Meaning: build/create = /hephaestus-build; borrow public Hub agents = /hephaestus-network; auto-run Stormbreaker packets = hephaestus-storm; share/use my Agentlas Cloud packages = /hephaestus-cloud."
+    "template": "global_commands: Claude Code /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload; Codex /prompts:hep-build, /prompts:hep-network, /prompts:hep-cloud, /prompts:hep-search, /prompts:hep-call, /prompts:hep-upload; Gemini CLI /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload; Antigravity /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload; Cursor /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload; OpenCode /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-call, /hep-upload; Agentlas terminal hep-build, hep-network, hep-cloud, hep-search, hep-call, hep-upload, or hep-storm. Meaning: build/create = /hep-build; borrow public Hub agents = /hep-network; auto-run Stormbreaker packets = hep-storm; share/use my Agentlas Cloud packages = /hep-cloud; upload gate = /hep-upload."
   }
 }

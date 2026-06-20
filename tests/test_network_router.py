@@ -36,7 +36,7 @@ def _assert_routing_evidence_fields(result: dict) -> None:
     assert isinstance(result.get("allowed_by"), list)
     assert isinstance(result.get("blocked_by_axiom"), list)
     assert result["agent_os_router"]["command_model"] == "three_command"
-    assert result["agent_os_router"]["commands"]["build"] == "hephaestus-build"
+    assert result["agent_os_router"]["commands"]["build"] == "hep-build"
     assert result["policy_decision"]["mode"] == "local_operator"
     assert result["memory_playbook"]["mode"] == "memory_playbook_control_plane"
     assert result["task_force"]["mode"] == "agent_os_router"

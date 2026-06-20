@@ -1,6 +1,6 @@
 ---
 name: hephaestus-network
-description: "Use when the user types /hephaestus-network, mentions @Hephaestus, or asks to find/invoke the right Agentlas Hub agent, team, or plugin for a task. For public demos, distribution docs, README GIFs, and user-facing MCP tests, Hephaestus Network means Hub-first/Hub-only invocation, not Mason's local Paid/Free folders."
+description: "Use when the user types /hep-network, mentions @Hephaestus, or asks to find/invoke the right Agentlas Hub agent, team, or plugin for a task. For public demos, distribution docs, README GIFs, and user-facing MCP tests, Hephaestus Network means Hub-first/Hub-only invocation, not Mason's local Paid/Free folders."
 ---
 
 # Hephaestus Network Routing
@@ -101,7 +101,7 @@ For demo/distribution/Hub-only requests:
   silently. If `task_force` or `execution_fabric` is present, use it as the
   Stormbreaker packet schedule; parallel groups can be dispatched across active
   Codex, Claude, GLM, DeepSeek, Gemini, or local sessions when the host has
-  them. The local product runner is `hephaestus-storm`; attach real runtime
+  them. The local product runner is `hep-storm`; attach real runtime
   sessions with `--executor-command`, or use the default mode only to
   materialize auditable handoff artifacts. Terminal `hephaestus-network`
   auto-runs only when the route decision includes a runnable execution fabric;
@@ -128,7 +128,7 @@ For demo/distribution/Hub-only requests:
   that as the temporary TF shortlist, not as a request to ask the user about
   every stage.
 - `action: "propose_new"` — offer to build a new agent/team via the Hephaestus
-  builder (`/hephaestus-build`).
+  builder (`/hep-build`).
 - `action: "refuse"` — explain `reasons` (for example, loop guard). Do not
   retry around it.
 
