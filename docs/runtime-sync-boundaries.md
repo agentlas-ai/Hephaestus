@@ -18,7 +18,9 @@ Public core owns the portable contract:
 - visible package foldering;
 - `.agentlas` contracts;
 - local credential store contract for gitignored `.env`, `signing/`, and
-  `credentials/` materialization;
+  `credentials/` materialization, plus value-free borrowed-agent credential
+  request metadata such as provider, env name, allowed host, scope, and broker
+  mode;
 - global command registry and post-creation command handoff;
 - Memory Tickets, PM Soul, Memory Curator, sitemap/task-bias, policy, eval, QA,
   and runtime adapter rules;
@@ -48,7 +50,8 @@ public core contract is the public version they should all mirror:
 | Generated folder layout | canonical | emits ZIPs | installs or imports |
 | Global commands | canonical `.agentlas/global-commands.json` and command files | emits command registry and install hints | may install global commands locally |
 | `.agentlas` memory files | canonical | emits in exports | creates/maintains locally |
-| Local credential store | value-free public contract | may emit placeholders only | may store real values in gitignored local files |
+| Local credential store | value-free public contract | may emit placeholders only | may store real values in gitignored local files or local keychain/vault |
+| Borrowed-agent credential request | provider/env/host/scope/broker metadata only | may render setup guidance without values | owns secure GUI, OS vault/keychain, and any host-bound broker implementation |
 | `.agentlas` skill lifecycle files | canonical export contract | emits candidate registry and empty ledgers | may merge locally as candidate metadata |
 | `.agentlas` Super Ontology files | canonical candidate contract | emits candidate contract and empty replay/evidence ledgers | may seed locally as candidate metadata |
 | PM Soul / Memory Curator | generated role contract | may package into exports | may ship built-in agents |
@@ -88,6 +91,9 @@ not be copied into this public repo as product code:
 - local App Factory and Tool Factory implementation;
 - filesystem materialization of installed agents;
 - filesystem materialization of project-local credential files;
+- secure credential-entry GUI, OS keychain/vault brokering, credential preview
+  masking, and any separate process/daemon that enforces host-bound credential
+  attachment;
 - automation scheduler and local surface registry.
 
 Public core can define public activation and package contracts. Local runtimes
@@ -103,7 +109,8 @@ The following formerly runtime-owned behaviors are now public contracts:
    `skills/clarify-question-loop/SKILL.md`.
 3. `.agentlas` auto-activation: see `docs/agentlas-auto-activation.md` and
    `skills/agentlas-auto-activation/SKILL.md`.
-4. Local credential store: see `docs/local-credential-store.md`.
+4. Local credential store and borrowed-agent credential request metadata: see
+   `docs/local-credential-store.md`.
 5. Global commands: see `docs/global-command-contract.md`. Generated and
    packaged agents must include `.agentlas/global-commands.json`, runtime
    command files or aliases, and a final `global_commands` handoff.

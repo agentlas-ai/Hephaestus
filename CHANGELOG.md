@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## v0.7.21 - 2026-06-22
+
+- Added the public value-free credential request contract for borrowed
+  agents and plugins: provider, env name, allowed hosts, allowed operations,
+  scope, setup URL, input mode, save target, and broker mode may be indexed
+  without storing secret values.
+- Clarified that `brokerMode: host-bound-broker` requires a real local
+  process/IPC boundary, while `runtime-env-injection` remains a compatibility
+  path and must not be represented as full broker isolation.
+- Updated auto-activation, source-of-truth, runtime boundary, schema, and
+  project-memory templates so local Desktop/terminal runtimes own secure GUI,
+  OS keychain/vault storage, masked previews, and future host-bound broker
+  enforcement.
+
 ## v0.7.20 - 2026-06-22
 
 - Aligned Hub-facing language around Agents, Teams, and Plugins so public

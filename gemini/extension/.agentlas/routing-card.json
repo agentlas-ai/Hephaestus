@@ -88,7 +88,7 @@
   "source": {
     "kind": "local_path",
     "package_hash": null,
-    "package_version": "0.7.20",
+    "package_version": "0.7.21",
     "ref": null
   },
   "summary": "Portable three-agent meta-agent team with a local-first ontology runtime for source archive, GraphRAG, Memory Curator tickets, and Agent Working Memory.",

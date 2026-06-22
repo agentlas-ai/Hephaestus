@@ -51,6 +51,7 @@ These files are the public contract surface:
 - `docs/clarify-question-loop.md`
 - `docs/global-command-contract.md`
 - `docs/agentlas-auto-activation.md`
+- `docs/local-credential-store.md`
 - `docs/skill-lifecycle-promotion.md`
 - `docs/super-ontology-candidate-contract.md`
 - `.agentlas/mode-map.json`
@@ -61,6 +62,7 @@ These files are the public contract surface:
 - `.agentlas/memory-map.json`
 - `.agentlas/memory-tickets.jsonl`
 - `.agentlas/vault-references.json`
+- `.agentlas/local-credentials.map.json`
 - `.agentlas/activation.json`
 - `.agentlas/skill-registry.json` in generated packages
 - `.agentlas/skill-trials.jsonl` in generated packages
@@ -103,7 +105,9 @@ These files are the public contract surface:
 - `skills/`
 - `.agents/skills/`
 - `schemas/`
+- `schemas/local-credentials-map.schema.json`
 - `templates/`
+- `templates/local-credentials.map.json.tpl`
 - runtime adapters under `codex/`, `.claude/`, `.gemini/`, and `claude/`
 - global command adapters under `.claude/commands/`,
   `codex/plugins/*/commands/`, and `gemini/extension/commands/`, with optional

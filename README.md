@@ -107,7 +107,7 @@ Fresh installs and updates prune the old visible `/hephaestus` chat command so
 new users see the clean command surface above: three primary commands, plus
 search, call, and upload utilities when they need explicit control.
 
-## New In v0.7.20
+## New In v0.7.21
 
 - **Hub taxonomy cleanup.** Public Hub surfaces now separate Agents, Teams, and
   Plugins, and show invocation credits separately from downloadable packages.
@@ -429,7 +429,7 @@ Claude also supports `claude plugins ...` as an alias, but this README uses
 Open your normal OS terminal, not the Codex chat box, and run:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.7.20
+codex plugin marketplace add agentlas-ai/Hephaestus --ref v0.7.21
 codex plugin add hephaestus@agentlas-core-engine
 ```
 

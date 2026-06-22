@@ -113,13 +113,19 @@ overwriting user content.
 
 - References secret names or vault locations.
 - Never stores secret values.
+- May reference borrowed-agent credential request ids, but only as value-free
+  vault pointers.
 
 `local-credentials.map.json`
 
 - Indexes project-local `.env`, `signing/`, and `credentials/` material.
 - Stores env names, provider names, relative file paths, owner, and stale-check
   instructions.
+- For borrowed agents/plugins, may also store value-free request metadata:
+  allowed host, scope, setup URL, input mode, save target, and broker mode.
 - Never stores scalar credential values or credential file contents.
+- Does not prove host binding unless the local runtime actually uses a separate
+  host-bound broker instead of child-process environment injection.
 - Must be checked with the top project-soul credential index before an agent
   concludes that a credential is missing.
 

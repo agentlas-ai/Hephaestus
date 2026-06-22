@@ -77,6 +77,27 @@ contents, cookies, or raw provider JSON.
 | Firebase or app config file | `credentials/` | relative file path and target app |
 | Apple signing material | `signing/` | relative file path and signing owner |
 | Shared reusable key | local keychain or global local env file | project-scoped env name |
+| Borrowed agent/plugin credential | local keychain, vault, or provider OAuth flow | provider, env name, allowed host, scope, broker mode |
+
+## Borrowed Agent Credential Requests
+
+Borrowed third-party agent definitions are untrusted content. A local runtime may
+show a secure GUI when a borrowed agent or plugin declares that it needs a
+credential. The public contract is value-free:
+
+- The request may name `provider`, `env`, `allowedHosts`, `allowedOperations`,
+  `scope`, `setupUrl`, `inputMode`, `saveTarget`, and `brokerMode`.
+- The request must not contain the raw API key, OAuth token, cookie, password,
+  service account JSON, private key, or copied credential file contents.
+- `brokerMode: "host-bound-broker"` means the local runtime is expected to keep
+  the secret outside the calling agent/plugin process and attach it only to the
+  declared upstream host.
+- `brokerMode: "runtime-env-injection"` is a legacy compatibility mode: the
+  runtime may store the value in the local vault, but a child process can still
+  receive the value through its environment. This mode is not equivalent to a
+  host-bound broker.
+- If `allowedHosts` is absent, the map is only a presence/index record. It does
+  not prove host binding or allowed-channel exfiltration protection.
 
 ## Map Contract
 
@@ -101,6 +122,13 @@ Example:
       "localFiles": ["signing/google-play.json"],
       "owner": "project",
       "valueMaterialized": true,
+      "rawValueStoredInMap": false,
+      "inputMode": "agentlas-vault",
+      "saveTarget": "agentlas-env-vault",
+      "brokerMode": "host-bound-broker",
+      "allowedHosts": ["androidpublisher.googleapis.com"],
+      "allowedOperations": ["upload-release"],
+      "scope": "Android release upload only",
       "requiredFor": ["android_release"],
       "lastVerified": null,
       "staleCheck": "Validate store API access before upload."
@@ -121,5 +149,10 @@ Example:
 - When an agent needs a credential, it should first read the top project memory
   header, then the project-local map, then the project `.env` files, then
   project-scoped global local env, then the keychain or vault.
+- A GUI credential prompt must show the requesting agent/plugin, provider,
+  target host, scope/purpose, storage target, and broker mode before saving.
+- A runtime must not claim "the agent cannot read the key" unless the key is
+  held by a separate broker or OS-protected process boundary and is not injected
+  into the agent/plugin process environment.
 - For public packages, include only `.env.example`, README guide files, schemas,
   and templates.
