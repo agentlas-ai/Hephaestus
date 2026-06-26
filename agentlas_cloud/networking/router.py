@@ -552,6 +552,8 @@ def _hub_task_force_plan(
                 "stage": stage_key,
                 "artifact": artifact_kind,
                 "hub_status": hub.get("status"),
+                "hub_scope": hub.get("scope") or scope,
+                "attempted_scopes": hub.get("attemptedScopes") or [],
                 "hub_query": hub.get("query"),
                 "hub_candidates": candidates,
                 "memory_scope": "public_playbook_or_redacted_summary",
@@ -597,8 +599,8 @@ def route_request(
     #   scope="cloud"   -> /hep-cloud: search ONLY the signed-in user's
     #                     OWN cloud packages (보관함). Owner-scoped Hub query,
     #                     implies hub_only (skip local + public marketplace).
-    #   scope="network" -> /hep-network: search ONLY the public Hub
-    #                     marketplace. Used with hub_only by the network command.
+    #   scope="network" -> /hep-network: search Cloud > Bookmark > public Hub
+    #                     in that order. Used with hub_only by the network command.
     #   operator debug route (hub_only=False, scope="network") → local +
     #                     own-cloud + Hub together, each priced by origin. Public
     #                     command/MCP surfaces default hub_only=True.
@@ -619,12 +621,38 @@ def route_request(
     chain = router_chain or ["hep-cloud" if cloud_only else "hep-network"]
 
     def _search_hub(query_tokens: list[str], *, search_scope: str) -> dict[str, Any]:
-        # Pass `scope` only when it is the non-default owner cloud, so existing
-        # callers and monkeypatched test fakes with the legacy
-        # (query_tokens, home, approved) signature keep working unchanged.
-        if search_scope == "cloud":
-            return search_hub(query_tokens, home=base, approved=True, scope="cloud")
+        if search_scope in {"cloud", "bookmark"}:
+            try:
+                return search_hub(query_tokens, home=base, approved=True, scope=search_scope)
+            except TypeError as exc:
+                if "scope" not in str(exc):
+                    raise
+                return {
+                    "status": "unavailable",
+                    "scope": search_scope,
+                    "query": " ".join(query_tokens),
+                    "results": [],
+                    "note": "search_hub implementation does not support this scope",
+                }
         return search_hub(query_tokens, home=base, approved=True)
+
+    def _search_hub_ordered(query_tokens: list[str], *, search_scope: str) -> dict[str, Any]:
+        if cloud_only or search_scope != "network":
+            return _search_hub(query_tokens, search_scope=search_scope)
+        attempted: list[str] = []
+        last: dict[str, Any] = {}
+        for candidate_scope in ["cloud", "bookmark", "network"]:
+            hub = _search_hub(query_tokens, search_scope=candidate_scope)
+            attempted.append(candidate_scope)
+            hub["attemptedScopes"] = attempted.copy()
+            last = hub
+            if hub.get("status") == "ok" and hub.get("results"):
+                return hub
+            # Cloud/bookmark low-confidence should not block public Hub search.
+            # Public Hub clarify is the final useful prompt to return.
+            if candidate_scope == "network" and hub.get("status") == "clarify":
+                return hub
+        return last
 
     def finish(
         result: dict[str, Any],
@@ -718,7 +746,7 @@ def route_request(
         # stay one code path with two scopes.
         scope_tag = "cloud_only" if cloud_only else "hub_only"
         if use_hub:
-            stagewise = _hub_task_force_plan(query, scope=scope, search_hub_fn=_search_hub)
+            stagewise = _hub_task_force_plan(query, scope=scope, search_hub_fn=_search_hub_ordered)
             if stagewise is not None:
                 return finish(
                     {
@@ -740,7 +768,10 @@ def route_request(
                     blocked_by_axiom=[],
                     fallback_scope=None,
                 )
-            hub = _search_hub(hub_query_tokens, search_scope=scope)
+            hub = _search_hub_ordered(hub_query_tokens, search_scope=scope)
+            hub_scope = str(hub.get("scope") or scope)
+            selected_reason = "hub_only_results_found" if not cloud_only and hub_scope == "network" else f"{scope_tag}_{hub_scope}_results_found"
+            selected_match_reason = "hub_only_hub_results" if not cloud_only and hub_scope == "network" else f"{scope_tag}_{hub_scope}_results"
             if hub.get("status") == "clarify":
                 return finish(
                     {
@@ -748,7 +779,7 @@ def route_request(
                         "selected": None,
                         "candidates": [],
                         "hub": hub,
-                        "scope": scope,
+                        "scope": hub_scope,
                         "suggestions": hub.get("suggestions") or [],
                         "clarify_question": hub.get("questionKo") or hub.get("question"),
                         "local_routing": "skipped",
@@ -769,16 +800,16 @@ def route_request(
                         "selected": None,
                         "candidates": [],
                         "hub": hub,
-                        "scope": scope,
+                        "scope": hub_scope,
                         "suggestions": [],
                         "local_routing": "skipped",
-                        "reasons": [f"{scope_tag}_results_found"],
+                        "reasons": [selected_reason],
                     },
                     [],
-                    [scope_tag, "hub_results_found"],
-                    match_reason=f"{scope_tag}_hub_results",
+                    [scope_tag, f"{hub_scope}_results_found"],
+                    match_reason=selected_match_reason,
                     graph_path=[],
-                    allowed_by=["hub_results", scope_tag],
+                    allowed_by=["hub_results", scope_tag, "route_order:cloud_bookmark_hub", f"selected_scope:{hub_scope}"],
                     blocked_by_axiom=[],
                     fallback_scope=None,
                 )

@@ -4,7 +4,7 @@
 whether a task is single-agent, clarify, or a temporary task force. These
 helpers expose two deliberate advanced moves:
 
-- search: show the top owner-cloud and public-Hub candidates side by side;
+- search: show owner-cloud, saved bookmarks, and public-Hub candidates side by side;
 - call: prepare exactly the agent slugs the user named.
 """
 
@@ -33,15 +33,17 @@ def search_agents(
     runtime: str | None = "terminal",
     limit: int = DEFAULT_SEARCH_LIMIT,
 ) -> dict[str, Any]:
-    """Return owner-cloud and public-Hub search sections without invoking."""
+    """Return owner-cloud, bookmarked, and public-Hub search sections without invoking."""
 
     base = Path(home) if home else networking_home()
     tokens = word_tokens(query)
     limit = _normalize_limit(limit)
     cloud_raw = _search_scope(tokens, query, home=base, scope="cloud")
+    bookmark_raw = _search_scope(tokens, query, home=base, scope="bookmark")
     hub_raw = _search_scope(tokens, query, home=base, scope="network")
     sections = {
         "cloud": _section("cloud", cloud_raw, query, limit),
+        "bookmarks": _section("bookmarks", bookmark_raw, query, limit),
         "hub": _section("hub", hub_raw, query, limit),
     }
     candidates = [
@@ -55,12 +57,12 @@ def search_agents(
         query_tokens=tokens,
         candidates=candidates,
         selected=None,
-        reasons=["cloud_and_hub_sections", "candidate_only"],
+        reasons=["cloud_bookmark_hub_sections", "candidate_only"],
         locale="ko" if has_hangul(query) else "en",
         runtime=runtime,
         router_chain=["hep-search"],
         match_reason="explicit_candidate_search",
-        allowed_by=["redacted_hub_search", "owner_cloud_search"],
+        allowed_by=["redacted_hub_search", "owner_cloud_search", "saved_bookmark_search"],
         fallback_scope=None,
         home=base,
     )
@@ -75,6 +77,7 @@ def search_agents(
         "notes": [
             "No agent was invoked.",
             "cloud = signed-in owner's own saved/shared packages.",
+            "bookmarks = Hub agents the signed-in workspace saved.",
             "hub = public Agentlas Hub marketplace.",
         ],
     }
@@ -229,7 +232,7 @@ def _parse_ref(ref: str) -> dict[str, str]:
     scope = "hub"
     if ":" in value:
         prefix, rest = value.split(":", 1)
-        if prefix.lower() in {"hub", "network", "cloud"}:
+        if prefix.lower() in {"hub", "network", "cloud", "bookmark", "bookmarks"}:
             scope = "cloud" if prefix.lower() == "cloud" else "hub"
             value = rest
     return {"slug": _slug(value), "scope": scope}

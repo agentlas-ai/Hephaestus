@@ -290,6 +290,39 @@ def test_hub_only_skips_strong_local_match(tmp_path, monkeypatch):
     assert result["task_force"]["formation"] == "single_stage_hub_candidates"
 
 
+def test_network_hub_only_prefers_cloud_then_bookmarks_before_public_hub(tmp_path, monkeypatch):
+    home = setup_home(tmp_path)
+    calls = []
+
+    def fake_search_hub(query_tokens, home=None, approved=False, scope="network"):
+        calls.append(scope)
+        if scope == "cloud":
+            return {"status": "ok", "scope": "cloud", "query": " ".join(query_tokens), "results": []}
+        if scope == "bookmark":
+            return {
+                "status": "ok",
+                "scope": "bookmark",
+                "query": " ".join(query_tokens),
+                "results": [{"slug": "saved-report-agent", "name": "Saved Report Agent", "kind": "cloud-callable"}],
+            }
+        return {
+            "status": "ok",
+            "scope": "network",
+            "query": " ".join(query_tokens),
+            "results": [{"slug": "public-report-agent", "name": "Public Report Agent", "kind": "cloud-callable"}],
+        }
+
+    monkeypatch.setattr("agentlas_cloud.networking.router.search_hub", fake_search_hub)
+    result = route_request("시장 보고서 작성해줘", home=home, use_hub=True, hub_only=True)
+
+    assert result["action"] == "hub_candidates"
+    assert result["hub"]["scope"] == "bookmark"
+    assert result["hub"]["results"][0]["slug"] == "saved-report-agent"
+    assert calls == ["cloud", "bookmark"]
+    assert result["reasons"] == ["hub_only_bookmark_results_found"]
+    assert "route_order:cloud_bookmark_hub" in result["allowed_by"]
+
+
 def test_hub_only_composite_request_forms_stagewise_task_force(tmp_path, monkeypatch):
     home = setup_home(tmp_path)
     seen = []

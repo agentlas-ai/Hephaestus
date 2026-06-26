@@ -51,6 +51,12 @@ _RESULT_FIELDS = (
     "rating",
     "clusterSize",
     "alternateSlugs",
+    "source",
+    "entityKind",
+    "perCallCredits",
+    "ownerName",
+    "bookmarkedAt",
+    "manifestId",
 )
 
 
@@ -61,15 +67,16 @@ def _hub_url(home: Path) -> str:
 
 
 # Hub search scopes (three-scope command model — docs/hephaestus-network-2.0.md):
-#   "network" → public Agentlas Hub marketplace (others' published agents).
-#   "cloud"   → the signed-in user's OWN cloud packages only (보관함). These are
-#               owner-scoped: the Hub filters to packages this account owns, and
-#               they are restorable by the owner (call-priced at a flat 1 credit).
+#   "cloud"   → signed-in user's own Agent Cloud packages.
+#   "bookmark"→ signed-in user's saved Hub bookmarks.
+#   "network" → public Agentlas Hub marketplace.
 SCOPE_NETWORK = "network"
 SCOPE_CLOUD = "cloud"
+SCOPE_BOOKMARK = "bookmark"
 _SCOPE_TOOL = {
     SCOPE_NETWORK: "marketplace.search_agents",
     SCOPE_CLOUD: "cargo.search_agents",
+    SCOPE_BOOKMARK: "agent_cloud.search_bookmarks",
 }
 
 
@@ -82,7 +89,7 @@ def search_hub(
     base = Path(home) if home else networking_home()
     _ = approved  # Kept for backwards-compatible callers; routing no longer gates Hub lookup.
     scope = scope if scope in _SCOPE_TOOL else SCOPE_NETWORK
-    owner_scoped = scope == SCOPE_CLOUD
+    owner_scoped = scope in {SCOPE_CLOUD, SCOPE_BOOKMARK}
     safe_tokens = _hub_query_tokens(query_tokens)
     redacted_query = " ".join(dict.fromkeys(safe_tokens))[:200]
     local_terms = _local_inventory_terms(base)
@@ -98,11 +105,11 @@ def search_hub(
         return cached_hit
 
     url = _hub_url(base) + "/api/mcp/v1"
-    # Owner-scoped cloud search asks the Hub to restrict results to the
-    # authenticated owner's own packages (`mine: true`). The marketplace search
-    # has no such filter — it spans every public agent.
+    # Owner cloud search asks the Hub to restrict results to the authenticated
+    # owner's own packages (`mine: true`). Bookmark search is also authenticated,
+    # but it reads saved Hub refs rather than cloud package ownership.
     arguments: dict[str, Any] = {"q": redacted_query, "limit": _HUB_RESULT_LIMIT}
-    if owner_scoped:
+    if scope == SCOPE_CLOUD:
         arguments["mine"] = True
         arguments["scope"] = "owner"
     body = json.dumps(
@@ -116,9 +123,9 @@ def search_hub(
             },
         }
     ).encode("utf-8")
-    # The owner cloud is a sign-in-gated surface (cargo.*); send the stored
-    # bearer token when this is an owner-scoped lookup so the Hub can resolve
-    # "mine". Marketplace search stays anonymous (token omitted).
+    # Cloud and bookmarks are sign-in-gated surfaces; send the stored bearer
+    # token so Agentlas Web can resolve the caller workspace. Marketplace
+    # search stays anonymous (token omitted).
     token = ensure_access_token(_hub_url(base), interactive=False) if owner_scoped else None
     request = urllib.request.Request(
         url,

@@ -1,7 +1,7 @@
 from agentlas_cloud.networking.search_call import call_agents, parse_agent_refs, search_agents
 
 
-def test_search_agents_returns_cloud_and_hub_sections(tmp_path, monkeypatch):
+def test_search_agents_returns_cloud_bookmark_and_hub_sections(tmp_path, monkeypatch):
     calls = []
 
     def fake_search_hub(tokens, home=None, approved=False, scope="network"):
@@ -27,10 +27,11 @@ def test_search_agents_returns_cloud_and_hub_sections(tmp_path, monkeypatch):
 
     assert result["action"] == "agent_search"
     assert result["sections"]["cloud"]["results"][0]["slug"] == "cloud-analyst"
+    assert result["sections"]["bookmarks"]["results"][0]["slug"] == "bookmark-analyst"
     assert result["sections"]["hub"]["results"][0]["slug"] == "network-analyst"
     assert result["sections"]["hub"]["results"][0]["description"] == "Builds market report briefs."
     assert result["receipt_id"]
-    assert [scope for _, scope in calls] == ["cloud", "network"]
+    assert [scope for _, scope in calls] == ["cloud", "bookmark", "network"]
 
 
 def test_search_agents_retries_with_expanded_intent_when_hub_clarifies(tmp_path, monkeypatch):
