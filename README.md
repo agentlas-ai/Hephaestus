@@ -27,7 +27,7 @@
 <p align="center">
   <a href="README.md">English</a>
   ·
-  <a href="README.ko.md">한국어</a>
+  <a href="README.ko.md">Korean</a>
   ·
   <a href="README.zh-CN.md">中文</a>
   ·
@@ -99,8 +99,8 @@ surface to six commands; everything else is selected by context.
 | Create | `/hep-build` | `/hep-build create a customer support agent for Shopify refunds` |
 | Borrow | `/hep-network` | `/hep-network split this launch plan into research, copy, QA, and release agents` |
 | Share | `/hep-cloud` | `/hep-cloud use my saved finance analyst agent to review this report` |
-| Search | `/hep-search` | `/hep-search 시장 리포트 써야 하는데 쓸만한 에이전트 찾아줘` |
-| Call | `/hep-call` | `/hep-call market-researcher, report-writer {시장 리포트 초안 만들어줘}` |
+| Search | `/hep-search` | `/hep-search find agents for a market report workflow` |
+| Call | `/hep-call` | `/hep-call market-researcher, report-writer {draft a market report}` |
 | Upload | `/hep-upload` | `/hep-upload ./agents/customer-support-hq` |
 
 Fresh installs and updates prune the old visible `/hephaestus` chat command so
