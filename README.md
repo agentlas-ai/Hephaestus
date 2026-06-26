@@ -179,9 +179,18 @@ One command, every runtime, all local:
 - **Local first.** Explicit commands → project overrides → your local cards.
   The Agentlas Hub is a fallback that only ever receives redacted keywords —
   never your raw prompt.
-- **Memory stays local.** Agent capability can come from the Hub; your
-  user/project memory lives in `~/.agentlas/networking/` and never leaves the
-  machine without an explicit export approval.
+- **Remote Cloud > Bookmark > Hub order.** On signed-in Agentlas Web and
+  connector surfaces, `/hep-network` first searches your own Agent Cloud
+  packages, then Hub agents you bookmarked, then the public Hub. `/hep-cloud`
+  remains Cloud-only, and owner Cloud single-agent reuse is priced separately
+  from public Hub calls.
+- **Two memory boundaries.** Local project memory lives in
+  `~/.agentlas/networking/` and never leaves the machine without explicit
+  export approval. Agentlas Web can also keep compact workspace-scoped
+  personalization records for borrowed Cloud/Hub agents: promoted memory
+  summaries, promoted playbooks, plugin locks, retrieval receipts, and
+  self-evolution proposals. It never stores raw prompts, transcripts, secrets,
+  credential values, or private local files as durable personalization.
 - **Receipts, not execution.** Every routing decision writes a receipt. The
   router only selects agents or Hub bundles; the host runtime enforces
   permissions when tools actually execute.
@@ -747,6 +756,13 @@ For knowledge-heavy personal or company agents, Hephaestus now ships a real loca
 - **`hephaestus_hub_invoke` MCP tool.** Hephaestus Network now has a real Hub invocation surface, not only Hub candidate search. The tool skips local routing, calls Agentlas Hub MCP (`marketplace.search_agents`, `agentlas.get_runtime_bundle`, `agentlas.resolve_plugins`), and writes execution receipts under `~/.agentlas/networking/ledgers/executions.jsonl`.
 - **Hub-only local bypass.** `hub_only` routing with `local_inventory: []` and `hub_only: true` ensures local private/restricted/plugin cards are not selected or executed.
 - **Global Agentlas memory bootstrap.** Hub invocation can create the missing shared files under `~/.agentlas/` (`memory-map.json`, `project-soul-memory.md`, `invocation-ledger.jsonl`, etc.) and appends invocation evidence without storing raw prompts or secrets.
+- **Workspace personalization on Agentlas Web.** `agentlas.get_runtime_bundle`
+  accepts optional task context for retrieval ranking and can return a
+  `personalization` block with promoted memory, promoted playbooks, plugin
+  locks, and a retrieval receipt id. `agentlas.record_agent_memory`,
+  `agentlas.record_agent_playbook`, and `agentlas.propose_agent_evolution`
+  save candidates only; a curator or explicit approval promotes durable
+  behavior.
 - **Installed-runtime verification.** The one-touch installer now verifies five runtime surfaces and keeps the neutral runner at `~/.agentlas/runtime/current/bin/hephaestus`.
 
 **Ontology runtime upgrades:**

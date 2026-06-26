@@ -22,6 +22,9 @@ it.
   Agentlas Cloud, `/hep-search` compares Cloud/Hub candidates without invoking,
   `/hep-call` prepares exact named agents, and `/hep-upload` gates Cloud-vs-Hub
   upload decisions.
+- On Agentlas Web and connector surfaces, signed-in `/hep-network` resolves
+  remote candidates in this order: the user's own Agent Cloud packages, saved
+  Hub bookmarks, then public Hub. `/hep-cloud` remains owner Cloud only.
 - A global, local-only structure at `~/.agentlas/networking/`:
   `cards/` (routing cards), `policies/`, `memory/` (routing preferences only),
   `ledgers/` (routing receipts, executions, capability grants), `cache/`,
@@ -43,6 +46,11 @@ it.
 2. **Memory stays local.** Agent capability can come from the Hub; your
    user/project memory never leaves the machine unless you explicitly approve
    an export. Hub searches send redacted keywords, never raw prompts.
+   Agentlas Web personalization is a separate workspace-scoped Cloud record:
+   promoted memory summaries, promoted playbook cards, plugin locks, retrieval
+   receipts, and self-evolution proposals for Cloud/Hub bundles. It is never a
+   raw prompt, transcript, secret, credential value, or private local file
+   archive.
 3. **No card, no auto-routing.** A card below `routing_ready` can appear in
    search results but is never auto-executed. Malformed cards are quarantined
    individually.
@@ -114,6 +122,19 @@ redacted tokens — never the raw prompt.
   `candidate_only`.
 - `memory_playbook`: candidate-first operational memory/playbook notes. The
   router never writes durable/global memory directly.
+
+On Agentlas Web, runtime bundle preparation can also include:
+
+- `personalization.binding`: `workspaceId + sourceScope + baseAgentId`, with
+  package compatibility checked by `packageHash`.
+- `personalization.memoryItems`: promoted, bounded summaries only.
+- `personalization.playbookCards`: promoted recipes selected by task context.
+- `personalization.pluginLocks`: resolved plugin slug/version/permission state.
+- `personalization.retrievalReceiptId`: audit id for exactly what was included.
+
+Candidate write tools are explicit: `agentlas.record_agent_memory`,
+`agentlas.record_agent_playbook`, and `agentlas.propose_agent_evolution`.
+They save candidates only. Promotion remains curator/user-policy controlled.
 
 ## Benchmarks gate quality claims
 

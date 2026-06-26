@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **Agentlas Cloud/Network personalization contract.** Documented the remote
+  Agentlas Web/MCP behavior where signed-in `/hep-network` searches Cloud,
+  then bookmarks, then public Hub, while `/hep-cloud` remains Cloud-only.
+- **Workspace-scoped borrowed-agent memory.** Added the implemented storage
+  contract for Agentlas Web agent bindings, overlays, promoted memory items,
+  promoted playbook cards, plugin locks, retrieval receipts, run events, and
+  self-evolution proposals. Public Hub packages are not mutated by one
+  workspace's personalization.
+- **Runtime bundle overlay boundary.** Clarified that Cloud/Hub bundles may
+  receive bounded workspace overlays and receipt ids, but raw prompts,
+  transcripts, secrets, credential values, and private local files are not
+  durable personalization records.
+
 ## v0.7.27 - 2026-06-25
 
 - **Update fallback is the first command body line.** The `/hep-*` chat

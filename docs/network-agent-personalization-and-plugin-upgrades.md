@@ -1,6 +1,6 @@
 # Network Agent Personalization And Plugin Upgrades
 
-Status: design proposal for the `/hep-network` Cloud > Bookmark > Hub routing model.
+Status: implemented in Agentlas Web runtime for the `/hep-network` Cloud > Bookmark > Hub routing model; plugin drift automation remains a follow-up.
 
 ## Problem
 
@@ -39,20 +39,28 @@ effective_agent = immutable_base_bundle + workspace_personal_overlay
 
 The overlay is account/workspace scoped and never uploaded back to public Hub unless the user explicitly publishes a derived agent.
 
-Recommended identity:
+Implemented identity:
 
 ```text
-agent_instance_id =
-  workspaceId + sourceScope(cloud|bookmark|hub) + slug + packageHash
+agent_binding_id =
+  workspaceId + sourceScope(cloud|bookmark|hub) + baseAgentId
 ```
 
-Recommended stores:
+`packageHash` is not part of the binding id. It is stored on the binding as
+`currentPackageHash` and on memory/playbook records under `appliesTo` so a
+workspace keeps one stable personal agent identity while still filtering hints
+by compatible package version.
 
-- `agent_personalization_profiles`: custom rules, output preferences, allowed memory scopes.
-- `agent_playbook_events`: compact run lessons, failure recoveries, successful recipes.
-- `agent_memory_tickets`: proposed durable memory updates emitted after runs.
-- `agent_rule_overrides`: workspace-specific soft rules and opt-out flags.
+Implemented stores in Agentlas Web:
+
+- `agent_bindings`: one workspace-scoped identity per Cloud, Bookmark, or Hub agent.
+- `agent_overlays`: custom rules, output preferences, allowed memory scopes, opt-out.
+- `agent_memory_items`: compact memory summaries; `candidate` by default, injected only when `promoted`.
+- `agent_playbook_cards`: compact successful recipes; `candidate` by default, injected only when `promoted`.
 - `agent_plugin_locks`: resolved plugin slugs, versions, checksums, and permission snapshots.
+- `agent_retrieval_receipts`: what memory/playbook/plugin-lock ids were included in a runtime bundle.
+- `agent_run_events`: short-lived bundle, memory, playbook, failure, success, and evolution events.
+- `agent_evolution_proposals`: candidate self-evolution patches; never applied automatically.
 
 Merge precedence:
 
@@ -69,7 +77,7 @@ If a lower layer conflicts with a higher layer, higher layer wins and the confli
 
 1. Route the request: Cloud > Bookmark > Hub.
 2. Fetch the base bundle from the chosen scope.
-3. Resolve personalization overlay by `agent_instance_id`.
+3. Resolve personalization overlay by `agent_binding_id`.
 4. Resolve plugins from local inventory and Hub.
 5. Compile the effective runtime context:
    - base instructions;
@@ -79,10 +87,18 @@ If a lower layer conflicts with a higher layer, higher layer wins and the confli
    - plugin lock/update plan.
 6. Execute in the caller runtime.
 7. Emit events:
-   - `Memory Events` for candidate memory updates;
+   - `agentlas.record_agent_memory` for candidate memory summaries;
+   - `agentlas.record_agent_playbook` for candidate playbook cards;
+   - `agentlas.propose_agent_evolution` for candidate rule/playbook/skill/setup/plugin changes;
    - `Skill Trial Events` for reusable skill evidence;
    - `Plugin Update Events` for dependency drift.
 8. Curator promotes or rejects updates. Public Hub packages are not mutated.
+
+Runtime bundle preparation now accepts an optional `context` string and uses it
+only for workspace-scoped retrieval ranking. The response includes a
+`personalization` block and prepends a bounded "Workspace Personalization
+Overlay" directive to the entry instructions. Raw prompts, transcripts, secrets,
+credential values, and private local files are not stored in these records.
 
 ## Self-Evolution
 
@@ -148,5 +164,5 @@ This is better than manual one-by-one checks because the update decision is tied
 - Agent Cloud page shows two sections: own Cloud packages and saved Hub bookmarks.
 - Hub cards and profile pages expose a save/bookmark button.
 - Bookmarks are searchable through authenticated MCP.
-- Runtime bundle preparation includes overlay and plugin preflight metadata.
+- Runtime bundle preparation includes overlay, promoted memory, promoted playbooks, plugin locks, and a retrieval receipt id.
 - Plugin update automation never widens permissions without approval and always records a rollback path.
