@@ -293,9 +293,9 @@ def _prepare_results(
             key=lambda pair: (
                 _combined_score(pair[1], query_tokens, local_terms, recommendation_intent),
                 _result_score(pair[1], query_tokens),
-                _local_context_score(pair[1], local_terms, query_tokens),
                 1 if pair[1].get("routingReady") else 0,
                 1 if pair[1].get("callable") else 0,
+                _local_context_score(pair[1], local_terms, query_tokens),
                 int(pair[1].get("verifiedInvocations") or 0),
                 int(pair[1].get("installCount") or 0),
                 -pair[0],
@@ -338,17 +338,37 @@ def _combined_score(
     local = float(_local_context_score(item, local_terms, query_tokens))
     if recommendation_intent:
         return base + min(local, 5.0)
-    return base + min(local, 1.0) * 0.15
+    return base
 
 
-def _result_score(item: dict[str, Any], query_tokens: set[str]) -> int:
+def _result_score(item: dict[str, Any], query_tokens: set[str]) -> float:
     if not query_tokens:
-        return 0
+        return 0.0
     haystack = " ".join(
         str(item.get(field) or "")
         for field in ("slug", "name", "nameEn", "tagline", "taglineEn")
     )
-    return len(query_tokens & token_set(haystack))
+    haystack_tokens = token_set(haystack)
+    score = float(len(query_tokens & haystack_tokens))
+    bridged = _bridged_query_tokens(query_tokens)
+    if bridged:
+        score += 0.75 * len(bridged & haystack_tokens)
+    return score
+
+
+def _bridged_query_tokens(query_tokens: set[str]) -> set[str]:
+    bridges: set[str] = set()
+    if query_tokens & {"카피", "카피라이터", "문구"}:
+        bridges.update({"copy", "copywriter", "writer"})
+    if query_tokens & {"한국어", "한글"}:
+        bridges.add("korean")
+    if query_tokens & {"영어", "영문"}:
+        bridges.add("english")
+    if query_tokens & {"근거", "주장"}:
+        bridges.add("claim")
+    if query_tokens & {"원장"}:
+        bridges.add("ledger")
+    return bridges - query_tokens
 
 
 def _local_context_score(item: dict[str, Any], local_terms: set[str], query_tokens: set[str]) -> int:

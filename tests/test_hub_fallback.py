@@ -250,3 +250,52 @@ def test_hub_local_inventory_is_only_a_tiebreaker_for_direct_task_queries(tmp_pa
 
     assert result["status"] == "ok"
     assert result["results"][0]["slug"] == "shop-product-writer"
+
+
+def test_hub_direct_task_bridges_korean_copy_query_over_local_context(tmp_path, monkeypatch):
+    home = tmp_path / "networking"
+    init_networking(home)
+    card_dir = home / "cards" / "agents"
+    card_dir.mkdir(parents=True, exist_ok=True)
+    (card_dir / "local-research-ledger.json").write_text(
+        json.dumps(
+            {
+                "id": "local-research-ledger",
+                "type": "agent",
+                "name": "Local Research Ledger",
+                "summary": "Research memory ledger and safety evidence workflow",
+                "capabilities": ["research ledger", "safety ledger", "memory ledger"],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    results = [
+        {
+            "slug": "researcher-009-multimodal-safety-ledger",
+            "name": "멀티모달 안전 원장 에이전트",
+            "nameEn": "Multimodal Safety Ledger",
+            "kind": "cloud-callable",
+            "callable": True,
+            "routingReady": False,
+        },
+        {
+            "slug": "no-ai-slop-copywriter",
+            "name": "AI 티 제거 카피라이터",
+            "nameEn": "No-AI-Slop Copywriter",
+            "kind": "cloud-callable",
+            "callable": True,
+            "routingReady": False,
+        },
+    ]
+
+    def fake_urlopen(request, timeout):
+        return FakeResponse(mcp_payload(results))
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    result = search_hub(tokenize("AI처럼 보이는 한국어 영어 카피를 claim ledger로 고쳐주는 에이전트"), home=home)
+
+    assert result["status"] == "ok"
+    assert result["results"][0]["slug"] == "no-ai-slop-copywriter"
+    assert result["results"][1]["localContextScore"] > result["results"][0].get("localContextScore", 0)
