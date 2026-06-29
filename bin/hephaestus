@@ -130,11 +130,11 @@ run_upload_gate() {
       ;;
   esac
   if [[ -n "${visibility:-}" ]]; then
-    if ! target="$(resolve_upload_folder "${folder_args[@]}")"; then
+    if ! target="$(resolve_upload_folder ${folder_args[@]+"${folder_args[@]}"})"; then
       echo "업로드 대상 에이전트 폴더를 찾지 못했습니다. /hep-upload <agent-folder> --visibility <private-link|marketplace> 형태로 다시 실행하세요." >&2
       return 2
     fi
-    run_python_module agentlas_cloud publish "$target" --visibility "$visibility" "${publish_args[@]}"
+    run_python_module agentlas_cloud publish "$target" --visibility "$visibility" ${publish_args[@]+"${publish_args[@]}"}
     return $?
   fi
   upload_question
@@ -146,16 +146,16 @@ run_upload_gate() {
   fi
   printf 'Select 1 or 2: ' >&2
   read -r choice
-  if ! target="$(resolve_upload_folder "${folder_args[@]}")"; then
+  if ! target="$(resolve_upload_folder ${folder_args[@]+"${folder_args[@]}"})"; then
     echo "업로드 대상 에이전트 폴더를 찾지 못했습니다. /hep-upload <agent-folder> 형태로 다시 실행하세요." >&2
     return 2
   fi
   case "$(printf '%s' "$choice" | tr '[:upper:]' '[:lower:]')" in
     1|cloud|c)
-      run_python_module agentlas_cloud publish "$target" --visibility private-link "${publish_args[@]}"
+      run_python_module agentlas_cloud publish "$target" --visibility private-link ${publish_args[@]+"${publish_args[@]}"}
       ;;
     2|hub|agentlas\ hub|agentlas|h)
-      run_python_module agentlas_cloud publish "$target" --visibility marketplace "${publish_args[@]}"
+      run_python_module agentlas_cloud publish "$target" --visibility marketplace ${publish_args[@]+"${publish_args[@]}"}
       ;;
     *)
       echo "Upload cancelled. Choose 1 for Cloud or 2 for Agentlas Hub." >&2
