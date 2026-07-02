@@ -7,8 +7,8 @@
 <h1 align="center">Hephaestus — 模型无关的 Agent OS</h1>
 
 <p align="center">
-  <strong>不是又一个智能体框架 —— 而是一个即使更换底层模型，你的智能体、记忆与自动化也能完整存活的 Agent OS。</strong><br>
-  本地优先，兼容 Claude Code、Codex、Gemini、Cursor 与本地模型。
+  <strong>别再为每个任务重新搭建和配置智能体了。Hephaestus 把专家智能体沉淀在 Hub 里，为每个任务即时生成一个临时编排器。</strong><br>
+  本地优先，可搭配任意模型使用 —— Claude Code、Codex、Gemini、Cursor 与本地模型皆可。
 </p>
 
 <p align="center">
@@ -38,7 +38,7 @@
 </p>
 
 <p align="center">
-  <sub>同一支智能体劳动力被实时路由——更换底层模型，其余一切照常运行。</sub>
+  <sub>从 Hub 调取的专家智能体被组装成临时任务组，通过 MCP 实时路由——无需为每个任务单独配置智能体。</sub>
 </p>
 
 ## 快速上手

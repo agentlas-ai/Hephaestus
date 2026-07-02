@@ -7,8 +7,8 @@
 <h1 align="center">Hephaestus — Model-Agnostic Agent OS</h1>
 
 <p align="center">
-  <strong>Not another agent framework — an Agent OS where your agents, memory, and automations survive a model swap.</strong><br>
-  Local-first, and compatible with Claude Code, Codex, Gemini, Cursor, and local models.
+  <strong>Stop building and configuring a new agent for every task. Hephaestus keeps specialist agents in a hub and spins up a temporary orchestrator per task.</strong><br>
+  Local-first, works with any model — Claude Code, Codex, Gemini, Cursor, and local models.
 </p>
 
 <p align="center">
@@ -38,7 +38,7 @@
 </p>
 
 <p align="center">
-  <sub>Same agent workforce, routed live — swap the model underneath and nothing else changes.</sub>
+  <sub>Specialists pulled from the hub, assembled into a temporary task force, and routed live over MCP — no per-task agent setup.</sub>
 </p>
 
 ## Quickstart
