@@ -6,12 +6,17 @@
 
 <h1 align="center">Hephaestus — Model-Agnostic Agent OS</h1>
 
+<p align="center"><sub><strong>Persistent Agents, Temporary Orchestrators</strong></sub></p>
+
 <p align="center">
   <strong>Stop building and configuring a new agent for every task. Hephaestus keeps specialist agents in a hub and spins up a temporary orchestrator per task.</strong><br>
   Local-first, works with any model — Claude Code, Codex, Gemini, Cursor, and local models.
 </p>
 
 <p align="center">
+  <a href="https://github.com/agentlas-ai/Hephaestus/stargazers">
+    <img alt="GitHub stars" src="https://img.shields.io/github/stars/agentlas-ai/Hephaestus?style=social">
+  </a>
   <a href="https://github.com/agentlas-ai/Hephaestus/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/agentlas-ai/Hephaestus?label=release">
   </a>
@@ -39,6 +44,10 @@
 
 <p align="center">
   <sub>Specialists pulled from the hub, assembled into a temporary task force, and routed live over MCP — no per-task agent setup.</sub>
+</p>
+
+<p align="center">
+  <sub>⭐ <a href="https://github.com/agentlas-ai/Hephaestus/stargazers">Star this repo</a> to get notified when new hub agents and releases ship.</sub>
 </p>
 
 ## Quickstart
@@ -384,3 +393,9 @@ scripts/public_safety_check.sh
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
+
+---
+
+<p align="center">
+  If persistent agents with a temporary orchestrator is useful to you, <a href="https://github.com/agentlas-ai/Hephaestus/stargazers"><strong>star the repo</strong></a> — it's the only way new visitors find it.
+</p>

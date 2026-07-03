@@ -6,12 +6,17 @@
 
 <h1 align="center">Hephaestus — 模型无关的 Agent OS</h1>
 
+<p align="center"><sub><strong>智能体常驻，编排器临时</strong></sub></p>
+
 <p align="center">
   <strong>别再为每个任务重新搭建和配置智能体了。Hephaestus 把专家智能体沉淀在 Hub 里，为每个任务即时生成一个临时编排器。</strong><br>
   本地优先，可搭配任意模型使用 —— Claude Code、Codex、Gemini、Cursor 与本地模型皆可。
 </p>
 
 <p align="center">
+  <a href="https://github.com/agentlas-ai/Hephaestus/stargazers">
+    <img alt="GitHub stars" src="https://img.shields.io/github/stars/agentlas-ai/Hephaestus?style=social">
+  </a>
   <a href="https://github.com/agentlas-ai/Hephaestus/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/agentlas-ai/Hephaestus?label=release">
   </a>
@@ -39,6 +44,10 @@
 
 <p align="center">
   <sub>从 Hub 调取的专家智能体被组装成临时任务组，通过 MCP 实时路由——无需为每个任务单独配置智能体。</sub>
+</p>
+
+<p align="center">
+  <sub>⭐ <a href="https://github.com/agentlas-ai/Hephaestus/stargazers">Star 本仓库</a>，第一时间获取新的 Hub 智能体和版本更新。</sub>
 </p>
 
 ## 快速上手
@@ -384,3 +393,9 @@ scripts/public_safety_check.sh
 ## 许可证
 
 Apache-2.0。参见 [LICENSE](LICENSE)。
+
+---
+
+<p align="center">
+  如果“智能体常驻，编排器临时”这个思路对你有用，<a href="https://github.com/agentlas-ai/Hephaestus/stargazers"><strong>请 star 本仓库</strong></a>——这是新访客发现这个项目的唯一方式。
+</p>

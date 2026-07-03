@@ -6,12 +6,17 @@
 
 <h1 align="center">Hephaestus — हर model पर चलने वाला Agent OS</h1>
 
+<p align="center"><sub><strong>Agents स्थायी, Orchestrator अस्थायी</strong></sub></p>
+
 <p align="center">
   <strong>हर task के लिए नया agent बनाना और configure करना बंद कीजिए। Hephaestus specialist agents को एक hub में रखता है और हर task के लिए एक temporary orchestrator तुरंत बना देता है।</strong><br>
   Local-first, और हर model के साथ चलता है — Claude Code, Codex, Gemini, Cursor तथा local models।
 </p>
 
 <p align="center">
+  <a href="https://github.com/agentlas-ai/Hephaestus/stargazers">
+    <img alt="GitHub stars" src="https://img.shields.io/github/stars/agentlas-ai/Hephaestus?style=social">
+  </a>
   <a href="https://github.com/agentlas-ai/Hephaestus/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/agentlas-ai/Hephaestus?label=release">
   </a>
@@ -39,6 +44,10 @@
 
 <p align="center">
   <sub>Hub से लाए गए specialist agents एक temporary task force में जुड़ते हैं और MCP के जरिए live route होते हैं — हर task के लिए अलग agent setup की जरूरत नहीं।</sub>
+</p>
+
+<p align="center">
+  <sub>⭐ <a href="https://github.com/agentlas-ai/Hephaestus/stargazers">इस repo को star कीजिए</a>, ताकि नए hub agents और releases की जानकारी मिलती रहे।</sub>
 </p>
 
 ## क्विकस्टार्ट
@@ -384,3 +393,9 @@ scripts/public_safety_check.sh
 ## लाइसेंस
 
 Apache-2.0। देखें: [LICENSE](LICENSE)।
+
+---
+
+<p align="center">
+  अगर "Agents स्थायी, Orchestrator अस्थायी" वाला यह तरीका आपके काम आया, तो <a href="https://github.com/agentlas-ai/Hephaestus/stargazers"><strong>repo को star कीजिए</strong></a> — नए विज़िटर्स के लिए इसे खोजने का यही एकमात्र तरीका है।
+</p>

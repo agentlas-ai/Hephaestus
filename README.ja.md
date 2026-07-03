@@ -6,12 +6,17 @@
 
 <h1 align="center">Hephaestus — モデル非依存のエージェント OS</h1>
 
+<p align="center"><sub><strong>永続するエージェント、一時的なオーケストレーター</strong></sub></p>
+
 <p align="center">
   <strong>タスクのたびにエージェントを作って設定し直すのは、もうやめましょう。Hephaestus は専門エージェントをハブに蓄え、タスクごとに一時的なオーケストレーターをその場で生成します。</strong><br>
   ローカルファーストで、どのモデルとも組み合わせられます — Claude Code、Codex、Gemini、Cursor、ローカルモデルに対応。
 </p>
 
 <p align="center">
+  <a href="https://github.com/agentlas-ai/Hephaestus/stargazers">
+    <img alt="GitHub stars" src="https://img.shields.io/github/stars/agentlas-ai/Hephaestus?style=social">
+  </a>
   <a href="https://github.com/agentlas-ai/Hephaestus/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/agentlas-ai/Hephaestus?label=release">
   </a>
@@ -39,6 +44,10 @@
 
 <p align="center">
   <sub>ハブから呼び出された専門エージェントが臨時タスクフォースとして編成され、MCP 経由でリアルタイムにルーティングされます — タスクごとのエージェント設定は不要です。</sub>
+</p>
+
+<p align="center">
+  <sub>⭐ <a href="https://github.com/agentlas-ai/Hephaestus/stargazers">このリポジトリにスター</a>をつけると、新しいハブエージェントやリリースの通知が届きます。</sub>
 </p>
 
 ## クイックスタート
@@ -384,3 +393,9 @@ scripts/public_safety_check.sh
 ## ライセンス
 
 Apache-2.0 です。[LICENSE](LICENSE) を参照してください。
+
+---
+
+<p align="center">
+  「永続するエージェント、一時的なオーケストレーター」が役に立ったなら、<a href="https://github.com/agentlas-ai/Hephaestus/stargazers"><strong>スターをお願いします</strong></a> — 新しい訪問者がこのプロジェクトを見つける唯一の手段です。
+</p>

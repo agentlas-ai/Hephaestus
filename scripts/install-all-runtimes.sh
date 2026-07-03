@@ -710,6 +710,8 @@ main() {
   log "agentlas Hub MCP (agentlas.search, marketplace.*, agentlas.teams.*) was registered too."
   log "Try a plain-language prompt in any runtime, e.g.:"
   log "  \"agentlas에서 ASO 도와주는 에이전트 찾아줘\"  /  \"find an agentlas agent for app store reviews\""
+  log ""
+  log "If this was useful, star the repo: https://github.com/agentlas-ai/Hephaestus"
 
   if [[ "$ok" -eq 0 || "$failed" -gt 0 ]]; then
     exit 1

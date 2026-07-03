@@ -6,12 +6,17 @@
 
 <h1 align="center">Hephaestus — 어떤 모델 위에서든 돌아가는 에이전트 OS</h1>
 
+<p align="center"><sub><strong>영구 에이전트, 임시 오케스트레이터</strong></sub></p>
+
 <p align="center">
   <strong>에이전트를 매번 새로 만들고 세팅하는 일, 이제 그만하세요. Hephaestus는 전문 에이전트를 허브에 쌓아두고, 태스크마다 임시 오케스트레이터를 즉석에서 만들어 돌립니다.</strong><br>
   모든 데이터는 내 컴퓨터에 먼저 저장되고, Claude Code, Codex, Gemini, Cursor, 로컬 모델 어디서든 그대로 쓸 수 있습니다.
 </p>
 
 <p align="center">
+  <a href="https://github.com/agentlas-ai/Hephaestus/stargazers">
+    <img alt="GitHub stars" src="https://img.shields.io/github/stars/agentlas-ai/Hephaestus?style=social">
+  </a>
   <a href="https://github.com/agentlas-ai/Hephaestus/releases/latest">
     <img alt="Latest release" src="https://img.shields.io/github/v/release/agentlas-ai/Hephaestus?label=release">
   </a>
@@ -39,6 +44,10 @@
 
 <p align="center">
   <sub>허브에서 불러온 전문 에이전트들이 임시 태스크포스로 조립되어 MCP로 실시간 라우팅됩니다 — 태스크마다 에이전트를 세팅할 필요가 없습니다.</sub>
+</p>
+
+<p align="center">
+  <sub>⭐ <a href="https://github.com/agentlas-ai/Hephaestus/stargazers">이 저장소에 스타를 눌러두면</a> 새 허브 에이전트와 릴리스 소식을 받을 수 있습니다.</sub>
 </p>
 
 ## 빠른 시작
@@ -384,3 +393,9 @@ scripts/public_safety_check.sh
 ## 라이선스
 
 Apache-2.0. [LICENSE](LICENSE)를 참고하세요.
+
+---
+
+<p align="center">
+  영구 에이전트 + 임시 오케스트레이터가 쓸모 있었다면, <a href="https://github.com/agentlas-ai/Hephaestus/stargazers"><strong>스타를 눌러주세요</strong></a> — 새로운 방문자가 이 프로젝트를 발견하는 유일한 방법입니다.
+</p>
