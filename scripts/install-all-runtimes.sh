@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-version="${HEPHAESTUS_REF:-v1.1.4}"
+version="${HEPHAESTUS_REF:-v1.1.5}"
 repo="${HEPHAESTUS_REPO:-agentlas-ai/Hephaestus}"
 github_url="${HEPHAESTUS_GITHUB_URL:-https://github.com/$repo}"
 marketplace_name="${HEPHAESTUS_MARKETPLACE:-agentlas-core-engine}"
@@ -184,6 +184,28 @@ install_runtime_home() {
   fi
   ln -sfn "$home_dir" "$current_link"
   log "Installed runner: $HOME/.agentlas/runtime/current/bin/hephaestus"
+
+  local user_bin="$HOME/.local/bin"
+  if mkdir -p "$user_bin" 2>/dev/null; then
+    local -a shell_commands=(
+      hephaestus hep-build hep-network hep-cloud hep-search hep-call hep-upload hep-storm
+    )
+    local command
+    for command in "${shell_commands[@]}"; do
+      rm -f "$user_bin/$command" 2>/dev/null || true
+      cat > "$user_bin/$command" <<EOF
+#!/usr/bin/env bash
+exec "$current_link/bin/$command" "\$@"
+EOF
+      chmod +x "$user_bin/$command" 2>/dev/null || true
+    done
+    if [[ -x "$user_bin/hephaestus" ]]; then
+      case ":$PATH:" in
+        *":$user_bin:"*) log "Installed shell commands: hephaestus, hep-build, hep-network, hep-cloud, hep-search, hep-call, hep-upload, hep-storm" ;;
+        *) log "Installed shell commands in $user_bin (add ~/.local/bin to PATH to use them)" ;;
+      esac
+    fi
+  fi
 }
 
 write_python3_shim() {

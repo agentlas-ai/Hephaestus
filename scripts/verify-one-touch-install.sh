@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo="${HEPHAESTUS_REPO:-https://github.com/agentlas-ai/Hephaestus}"
 codex_repo="${HEPHAESTUS_CODEX_REPO:-agentlas-ai/Hephaestus}"
-version="${HEPHAESTUS_VERSION:-v1.1.4}"
+version="${HEPHAESTUS_VERSION:-v1.1.5}"
 keep="${HEPHAESTUS_KEEP_SMOKE_DIR:-0}"
 
 fail() {
@@ -97,6 +97,9 @@ echo
 echo "6/7 First-run Agentlas sign-in surface"
 runtime_runner="$shell_home/.agentlas/runtime/current/bin/hephaestus"
 [[ -x "$runtime_runner" ]] || fail "runtime runner is not executable: $runtime_runner"
+for shell_command in hephaestus hep-build hep-network hep-cloud hep-search hep-call hep-upload hep-storm; do
+  [[ -x "$shell_home/.local/bin/$shell_command" ]] || fail "short shell command shim was not installed: $shell_command"
+done
 grep -qx "$version" "$shell_home/.agentlas/runtime/current/RELEASE" || fail "runtime current RELEASE marker is not $version"
 HOME="$shell_home" CODEX_HOME="$codex_home" "$runtime_runner" update --check | tee "$tmp/update-check.json"
 python3 - "$tmp/update-check.json" "$version" <<'PY'
@@ -111,6 +114,7 @@ if payload.get("current") != expected:
 if payload.get("status") != "current":
     raise SystemExit(f"unexpected update status: {payload.get('status')}")
 PY
+HOME="$shell_home" CODEX_HOME="$codex_home" PATH="$shell_home/.local/bin:$PATH" hephaestus update --check >/dev/null
 rg -q 'auth ensure --timeout' "$shell_home/.agents/skills/hephaestus-network/SKILL.md" || fail "universal skill does not auto-trigger Agentlas sign-in"
 rg -q 'auth ensure --timeout' "$shell_home/.agents/skills/hephaestus-cloud/SKILL.md" || fail "universal cloud skill does not auto-trigger Agentlas sign-in"
 rg -q 'auth ensure --timeout' "$shell_home/.agents/skills/hephaestus-storm/SKILL.md" || fail "universal storm skill does not auto-trigger Agentlas sign-in"
