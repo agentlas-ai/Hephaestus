@@ -164,16 +164,19 @@ def _contract_for_adapter(adapter: ResearchAdapter) -> dict[str, Any]:
             },
             "command_sequence": [
                 "agent-browser open <url>",
+                "agent-browser chat <instruction>",
                 "agent-browser snapshot -i",
                 "agent-browser close",
             ],
             "output_contract": {
                 "accepted_formats": ["plain_text"],
-                "snapshot_source": "stdout from agent-browser snapshot -i",
+                "automation_source": "stdout from agent-browser chat <instruction>",
+                "snapshot_source": "stdout from agent-browser snapshot -i after automation",
                 "title_detection": "first heading/title-like line, otherwise first non-empty line",
             },
             "security_boundary": {
                 "command_receives_url": True,
+                "automation_requires_explicit_instruction": True,
                 "browser_session_closed_after_snapshot": True,
                 "secrets_are_not_printed_by_contract": True,
             },

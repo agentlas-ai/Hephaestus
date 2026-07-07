@@ -339,6 +339,13 @@ def main(argv: list[str] | None = None) -> int:
     hep_browser.add_argument("--follow-results", type=int, default=2, help="Read top N result URLs in query mode, bounded by request budget")
     hep_browser.add_argument("--max-requests", type=int, default=None, help="Optional request budget for search and follow-up reads")
     hep_browser.add_argument("--home", default=None, help="Networking home for hardpoint config and receipts")
+    hep_browser.add_argument("--act", action="append", default=[], help="Browser automation instruction. If omitted, non-URL words after a URL become the instruction.")
+    hep_browser.add_argument("--read", action="store_true", help="Force read-only browser snapshot even when URL text includes extra words")
+    hep_browser.add_argument("--cdp", default=None, help="Pass a Chrome DevTools Protocol port or URL to agent-browser")
+    hep_browser.add_argument("--profile", default=None, help="Pass an agent-browser Chrome profile name/path")
+    hep_browser.add_argument("--auto-connect", action="store_true", help="Ask agent-browser to auto-connect to a running browser")
+    hep_browser.add_argument("--headed", action="store_true", help="Run agent-browser headed when it launches a browser")
+    hep_browser.add_argument("--keep-open", action="store_true", help="Keep the agent-browser session open after automation")
     hep_browser_mode = hep_browser.add_mutually_exclusive_group()
     hep_browser_mode.add_argument("--setup", action="store_true", help="Arm the approved npx agent-browser hardpoint recipe")
     hep_browser_mode.add_argument("--check", action="store_true", help="Run one configured Agentlas browser hardpoint check")
@@ -1214,6 +1221,7 @@ def main(argv: list[str] | None = None) -> int:
 
 def _run_hep_browser(args: argparse.Namespace) -> int:
     from .research import run_research, run_research_bridge_check, run_research_hardpoints
+    from .research.adapters.agent_browser_cli import AgentBrowserCliAdapter
 
     urls, query_parts = _split_hep_browser_targets(args.target, args.url)
     if args.setup:
@@ -1244,6 +1252,42 @@ def _run_hep_browser(args: argparse.Namespace) -> int:
                 "default_browser_module": AGENTLAS_BROWSER_MODULE,
             }
         ) or 2
+
+    action = " ".join([str(item).strip() for item in getattr(args, "act", []) if str(item).strip()]).strip()
+    if urls and not action and query and not args.read:
+        action = query
+    if urls and action and not args.read:
+        adapter = AgentBrowserCliAdapter(home=args.home)
+        runs = [
+            adapter.automate(
+                url,
+                action,
+                browser_args=_agent_browser_args_from_hep_browser(args),
+                keep_open=bool(args.keep_open),
+            )
+            for url in urls
+        ]
+        status = "ok" if all(item.get("status") == "ok" for item in runs) else "error"
+        return emit(
+            {
+                "schema": "agentlas.research.hep_browser.v0",
+                "status": status,
+                "mode": "automation",
+                "surface": {
+                    "command": "hep-browser",
+                    "default_browser_module": AGENTLAS_BROWSER_MODULE,
+                    "agentlas_browser_first": True,
+                    "automation": True,
+                },
+                "request": {
+                    "urls": urls,
+                    "instruction": action,
+                    "browser_args": _agent_browser_args_from_hep_browser(args),
+                    "keep_open": bool(args.keep_open),
+                },
+                "runs": runs,
+            }
+        ) or (0 if status == "ok" else 1)
 
     if urls:
         request = {
@@ -1284,6 +1328,19 @@ def _run_hep_browser(args: argparse.Namespace) -> int:
         "agentlas_browser_first": True,
     }
     return emit(result)
+
+
+def _agent_browser_args_from_hep_browser(args: argparse.Namespace) -> list[str]:
+    browser_args: list[str] = []
+    if getattr(args, "cdp", None):
+        browser_args.extend(["--cdp", str(args.cdp)])
+    if getattr(args, "profile", None):
+        browser_args.extend(["--profile", str(args.profile)])
+    if getattr(args, "auto_connect", False):
+        browser_args.append("--auto-connect")
+    if getattr(args, "headed", False):
+        browser_args.append("--headed")
+    return browser_args
 
 
 def _split_hep_browser_targets(targets: list[str], explicit_urls: list[str]) -> tuple[list[str], list[str]]:

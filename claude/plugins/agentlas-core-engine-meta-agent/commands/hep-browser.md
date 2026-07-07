@@ -12,6 +12,16 @@ click/form behavior, or JS-heavy evidence. Prefer the Agentlas browser hardpoint
 first; do not route browser work through generic research commands unless this
 command reports that the hardpoint is unavailable.
 
+Behavior:
+- `/hep-browser <url>` reads a rendered browser snapshot.
+- `/hep-browser <url> "<instruction>"` or `/hep-browser <url> --act "<instruction>"`
+  performs browser automation through `browser.agent_cli`, then captures a
+  snapshot.
+- Add `--read` to force snapshot-only mode when extra text is context rather
+  than an action.
+- Pass `--cdp`, `--profile`, `--auto-connect`, or `--headed` only when the user
+  needs an existing Desktop/browser session or a specific browser launch mode.
+
 Raw arguments: `$ARGUMENTS`
 
 ## Run
@@ -40,6 +50,9 @@ done
 
 ```text
 /hep-browser https://example.com
+/hep-browser https://example.com "click the Docs link and report what changed"
+/hep-browser https://example.com --act "open the pricing section" --cdp 9222 --keep-open
+/hep-browser https://example.com "summarize this page" --read
 /hep-browser login page render check
 /hep-browser --setup
 /hep-browser --check

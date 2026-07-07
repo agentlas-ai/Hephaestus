@@ -17,5 +17,13 @@ done
 ```
 
 Use this for rendered/browser-required work and report the `browser.agent_cli`
-status plus receipt id. If setup is needed, show `hep-browser --setup` and
-`hep-browser --check`.
+status plus receipt id. With a URL and an explicit instruction, this performs
+browser automation before taking the final snapshot:
+
+```text
+/hep-browser https://example.com "click the Docs link and report what changed"
+/hep-browser https://example.com --act "open pricing" --cdp 9222 --keep-open
+/hep-browser https://example.com "extra context only" --read
+```
+
+If setup is needed, show `hep-browser --setup` and `hep-browser --check`.

@@ -15,6 +15,14 @@ Use this when the task needs a real browser, page rendering, login-visible state
 click/form behavior, or JS-heavy evidence. Prefer the Agentlas browser hardpoint
 first.
 
+Behavior:
+- `/prompts:hep-browser <url>` reads a rendered browser snapshot.
+- `/prompts:hep-browser <url> "<instruction>"` or
+  `/prompts:hep-browser <url> --act "<instruction>"` performs browser
+  automation through `browser.agent_cli`, then captures a snapshot.
+- Add `--read` to force snapshot-only mode when extra text is context rather
+  than an action.
+
 ```bash
 RUNNER=""
 for c in "$HOME/.agentlas/runtime/current/bin/hephaestus" ./bin/hephaestus; do
@@ -25,5 +33,6 @@ done
 ```
 
 Report whether `browser.agent_cli` mounted, whether setup is needed, and the
-receipt id. If setup is needed, show `hep-browser --setup` and
-`hep-browser --check`.
+receipt id. For automation, also report the action, whether CDP/profile flags
+were used, and the final snapshot status. If setup is needed, show
+`hep-browser --setup` and `hep-browser --check`.

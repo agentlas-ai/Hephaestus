@@ -13,6 +13,7 @@ import shlex
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit
 
 from agentlas_cloud.networking.bootstrap import utc_now
@@ -25,7 +26,7 @@ from ..redaction import redact_secret_values, redacted_exception_reason
 
 class AgentBrowserCliAdapter:
     module_id = "browser.agent_cli"
-    capabilities = ("browser.snapshot", "read.url")
+    capabilities = ("browser.snapshot", "browser.automation", "read.url")
     weight = "browser_heavy"
     manifest = ResearchModuleManifest(
         module_id=module_id,
@@ -123,6 +124,100 @@ class AgentBrowserCliAdapter:
         )
         return result, ResearchAttempt(self.module_id, "ok", "snapshot", source_hint, weight=self.weight)
 
+    def automate(
+        self,
+        source_hint: str,
+        instruction: str,
+        *,
+        browser_args: list[str] | None = None,
+        keep_open: bool = False,
+    ) -> dict[str, Any]:
+        """Run the real agent-browser automation surface for one public URL."""
+
+        safe, reason = classify_url(source_hint)
+        if not safe:
+            return {
+                "status": "blocked",
+                "reason": f"ssrf_blocked:{reason}",
+                "url": source_hint,
+                "module": self.module_id,
+                "steps": [],
+            }
+
+        command = instruction.strip()
+        if not command:
+            return {
+                "status": "needs_instruction",
+                "reason": "automation_instruction_required",
+                "url": source_hint,
+                "module": self.module_id,
+                "steps": [],
+            }
+
+        binary = self._find_binary()
+        if not binary:
+            return {
+                "status": "module_unavailable",
+                "reason": "agent-browser binary not found",
+                "url": source_hint,
+                "module": self.module_id,
+                "steps": [],
+            }
+
+        base = binary + list(browser_args or [])
+        steps: list[dict[str, Any]] = []
+        snapshot_text = ""
+        chat_text = ""
+        status = "ok"
+        reason = ""
+        try:
+            opened = self._run_step(steps, "open", base + ["open", source_hint])
+            if opened.returncode != 0:
+                return _automation_payload(
+                    status="error",
+                    reason=_stderr_reason(opened.stderr),
+                    url=source_hint,
+                    module=self.module_id,
+                    steps=steps,
+                )
+
+            chat = self._run_step(steps, "chat", base + ["-q", "chat", command])
+            chat_text = _bounded_text(chat.stdout or "")
+            if chat.returncode != 0:
+                status = "error"
+                reason = _stderr_reason(chat.stderr)
+
+            snapshot = self._run_step(steps, "snapshot", base + ["snapshot", "-i"])
+            snapshot_text = _bounded_text(snapshot.stdout or "")
+            if snapshot.returncode != 0 and status == "ok":
+                status = "error"
+                reason = _stderr_reason(snapshot.stderr)
+        except subprocess.TimeoutExpired:
+            status = "error"
+            reason = "timeout"
+        except OSError as exc:
+            status = "error"
+            reason = _exception_reason(exc)
+        finally:
+            if not keep_open:
+                try:
+                    self._run_step(steps, "close", base + ["close"], timeout=10)
+                except Exception:
+                    pass
+
+        return _automation_payload(
+            status=status,
+            reason=reason,
+            url=source_hint,
+            module=self.module_id,
+            steps=steps,
+            instruction=command,
+            chat_text=chat_text,
+            snapshot_text=snapshot_text,
+            keep_open=keep_open,
+            browser_args=list(browser_args or []),
+        )
+
     def _find_binary(self) -> list[str] | None:
         override = os.environ.get("AGENTLAS_AGENT_BROWSER_BIN")
         if override:
@@ -142,6 +237,26 @@ class AgentBrowserCliAdapter:
             timeout=timeout or self.timeout_seconds,
         )
 
+    def _run_step(
+        self,
+        steps: list[dict[str, Any]],
+        label: str,
+        argv: list[str],
+        *,
+        timeout: int | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        result = self._run(argv, timeout=timeout)
+        steps.append(
+            {
+                "label": label,
+                "argv": _argv_summary(argv),
+                "returncode": result.returncode,
+                "stdout": _bounded_text(result.stdout or ""),
+                "stderr": _bounded_text(_stderr_reason(result.stderr or "")) if result.stderr else "",
+            }
+        )
+        return result
+
 
 def _stderr_reason(stderr: str) -> str:
     return re.sub(r"\s+", " ", redact_secret_values(stderr or "browser_error").strip())[:180]
@@ -160,3 +275,52 @@ def _title_from_snapshot(snapshot: str) -> str:
         if clean:
             return clean[:80]
     return ""
+
+
+def _automation_payload(
+    *,
+    status: str,
+    reason: str,
+    url: str,
+    module: str,
+    steps: list[dict[str, Any]],
+    instruction: str = "",
+    chat_text: str = "",
+    snapshot_text: str = "",
+    keep_open: bool = False,
+    browser_args: list[str] | None = None,
+) -> dict[str, Any]:
+    return {
+        "schema": "agentlas.research.browser_automation.v0",
+        "status": status,
+        "reason": reason,
+        "module": module,
+        "url": url,
+        "instruction": instruction,
+        "browser_args": list(browser_args or []),
+        "keep_open": keep_open,
+        "steps": steps,
+        "chat_text": chat_text,
+        "snapshot": snapshot_text,
+        "browser_execution": {
+            "engine": "agent-browser",
+            "mode": "automation",
+            "cdp_capable": True,
+            "commands": ["open", "chat", "snapshot", "close" if not keep_open else "keep-open"],
+        },
+    }
+
+
+def _argv_summary(argv: list[str]) -> list[str]:
+    out: list[str] = []
+    for item in argv:
+        if len(item) > 180:
+            out.append(item[:177] + "...")
+        else:
+            out.append(item)
+    return out
+
+
+def _bounded_text(value: str, limit: int = 4000) -> str:
+    text = redact_secret_values(str(value or "").strip())
+    return text if len(text) <= limit else text[: limit - 3] + "..."

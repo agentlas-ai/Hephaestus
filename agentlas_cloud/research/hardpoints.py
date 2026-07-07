@@ -17,7 +17,7 @@ HARDPOINT_RECIPES: dict[str, dict[str, Any]] = {
         "command_display": "npx -y agent-browser",
         "notes": [
             "Uses npm's npx cache instead of a global install.",
-            "The hardpoint receives only the requested public URL after SSRF checks.",
+            "The hardpoint receives only the requested public URL after SSRF checks and an explicit browser instruction when automation is requested.",
         ],
     }
 }

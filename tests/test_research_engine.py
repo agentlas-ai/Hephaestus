@@ -1668,9 +1668,11 @@ def test_research_cli_bridge_contract_filters_module(capsys):
     }
     assert payload["contracts"][0]["command_sequence"] == [
         "agent-browser open <url>",
+        "agent-browser chat <instruction>",
         "agent-browser snapshot -i",
         "agent-browser close",
     ]
+    assert payload["contracts"][0]["capabilities"] == ["browser.snapshot", "browser.automation", "read.url"]
     recipes = {item["name"]: item for item in payload["contracts"][0]["setup_recipes"]}
     assert recipes["installed_binary"]["command"] == "npm install -g agent-browser"
     assert recipes["npx_agent_browser_hardpoint"]["command"] == "bin/hephaestus research hardpoints --arm browser.agent_cli --recipe npx-agent-browser"
@@ -1905,6 +1907,50 @@ def test_hep_browser_cli_reads_url_with_agent_browser_first(tmp_path, monkeypatc
     assert payload["results"][0]["platform"] == "browser"
     assert payload["results"][0]["title"] == "Agentlas Browser Page"
     assert payload["receipt"]["module_chain"] == ["browser.agent_cli"]
+
+
+def test_hep_browser_cli_automates_url_when_instruction_is_present(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("AGENTLAS_AGENT_BROWSER_BIN", "agent-browser")
+    calls = []
+
+    def fake_run(self, argv, *, timeout=None):
+        calls.append(argv)
+        if argv[-1] == "close":
+            return subprocess.CompletedProcess(argv, 0, "", "")
+        if "snapshot" in argv:
+            return subprocess.CompletedProcess(argv, 0, '- button "Done" [ref=e2]', "")
+        if "chat" in argv:
+            return subprocess.CompletedProcess(argv, 0, "Clicked the CTA.", "")
+        assert argv == ["agent-browser", "--cdp", "9222", "open", "https://example.com"]
+        return subprocess.CompletedProcess(argv, 0, "opened", "")
+
+    monkeypatch.setattr(AgentBrowserCliAdapter, "_run", fake_run)
+
+    code = main([
+        "hep-browser",
+        "https://example.com",
+        "click the CTA",
+        "--cdp",
+        "9222",
+        "--home",
+        str(tmp_path),
+    ])
+
+    assert code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["schema"] == "agentlas.research.hep_browser.v0"
+    assert payload["status"] == "ok"
+    assert payload["mode"] == "automation"
+    assert payload["surface"]["automation"] is True
+    assert payload["request"]["instruction"] == "click the CTA"
+    assert payload["request"]["browser_args"] == ["--cdp", "9222"]
+    assert payload["runs"][0]["status"] == "ok"
+    assert payload["runs"][0]["chat_text"] == "Clicked the CTA."
+    assert payload["runs"][0]["snapshot"] == '- button "Done" [ref=e2]'
+    assert calls[0] == ["agent-browser", "--cdp", "9222", "open", "https://example.com"]
+    assert calls[1] == ["agent-browser", "--cdp", "9222", "-q", "chat", "click the CTA"]
+    assert calls[2] == ["agent-browser", "--cdp", "9222", "snapshot", "-i"]
+    assert calls[3] == ["agent-browser", "--cdp", "9222", "close"]
 
 
 def test_research_browser_candidates_prefers_agent_browser_for_structured_extract(monkeypatch):

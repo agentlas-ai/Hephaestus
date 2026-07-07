@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **`hep-browser` automation contract.** URL requests with an explicit action
+  now drive the Agentlas browser hardpoint through `open -> chat -> snapshot`
+  instead of stopping at a read-only page snapshot. Use
+  `hep-browser <url> "click the CTA"` or `--act "<instruction>"`; pass
+  `--read` to force the old snapshot-only behavior. CDP/profile flags can be
+  forwarded to `agent-browser` for Desktop/browser attach flows.
+
 ## v1.1.8 - 2026-07-07
 
 - **`hep-browser` browser hardpoint surface.** Added the short

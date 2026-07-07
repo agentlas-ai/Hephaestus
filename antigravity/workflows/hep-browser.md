@@ -10,6 +10,12 @@ Use this for rendered pages, JS-heavy sites, click/form flows, login-visible
 state, or browser evidence. The request is the exact text the user typed after
 `/hep-browser`.
 
+Behavior:
+- `<url>` reads a rendered browser snapshot.
+- `<url> "<instruction>"` or `<url> --act "<instruction>"` performs browser
+  automation through `browser.agent_cli`, then captures a snapshot.
+- Add `--read` to force snapshot-only mode when extra text is context.
+
 ## How to run
 
 Run the shell block below verbatim, replacing only the `REQUEST` value.
@@ -40,4 +46,4 @@ fi
 ```
 
 Report whether `browser.agent_cli` mounted, whether setup is needed, the module
-chain, and the receipt id.
+chain, the receipt id, and the action/snapshot result for automation runs.

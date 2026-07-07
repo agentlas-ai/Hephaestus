@@ -13,7 +13,11 @@ state, or browser evidence. Find the Hephaestus runner at
 
 `hephaestus hep-browser "{{args}}"`
 
+With a URL plus an explicit instruction, this performs browser automation
+through `browser.agent_cli` before taking the final snapshot. Use `--read` to
+force snapshot-only mode.
+
 Report whether `browser.agent_cli` mounted, whether setup is needed, the module
-chain, and the receipt id. If setup is needed, show `hep-browser --setup` and
-`hep-browser --check`.
+chain, the receipt id, and the action/snapshot result for automation runs. If
+setup is needed, show `hep-browser --setup` and `hep-browser --check`.
 """
