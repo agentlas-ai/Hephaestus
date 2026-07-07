@@ -22,6 +22,10 @@ Behavior:
   automation through `browser.agent_cli`, then captures a snapshot.
 - If the Agentlas Browser CDP port is already live, the command attaches to it
   by default so logged-in Desktop/browser state is reused.
+- Prefer the human-facing URL a person would type over app-shell automation
+  URLs. For example, use `https://mail.google.com/` instead of
+  `https://mail.google.com/mail/u/0/#inbox` unless that exact deep route is
+  required. Add `--raw-url` to preserve the exact URL.
 - Use `--click @e1` or `--click-text "Compose"` for LLM-free browser
   primitives after the host has selected a ref/text target.
 - Add `--wait-ms 2000` when a dynamic app opens dialogs after a short delay.

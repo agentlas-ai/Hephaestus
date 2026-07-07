@@ -340,6 +340,7 @@ def main(argv: list[str] | None = None) -> int:
     hep_browser.add_argument("--follow-results", type=int, default=2, help="Read top N result URLs in query mode, bounded by request budget")
     hep_browser.add_argument("--max-requests", type=int, default=None, help="Optional request budget for search and follow-up reads")
     hep_browser.add_argument("--home", default=None, help="Networking home for hardpoint config and receipts")
+    hep_browser.add_argument("--raw-url", action="store_true", help="Do not normalize known app-shell URLs to human-facing entry URLs")
     hep_browser.add_argument("--act", action="append", default=[], help="Browser automation instruction. If omitted, non-URL words after a URL become the instruction.")
     hep_browser.add_argument("--read", action="store_true", help="Force read-only browser snapshot even when URL text includes extra words")
     hep_browser.add_argument("--cdp", default=None, help="Pass a Chrome DevTools Protocol port or URL to agent-browser")
@@ -1227,7 +1228,8 @@ def _run_hep_browser(args: argparse.Namespace) -> int:
     from .research import run_research, run_research_bridge_check, run_research_hardpoints
     from .research.adapters.agent_browser_cli import AgentBrowserCliAdapter
 
-    urls, query_parts = _split_hep_browser_targets(args.target, args.url)
+    raw_urls, query_parts = _split_hep_browser_targets(args.target, args.url)
+    urls, url_rewrites = _humanize_hep_browser_urls(raw_urls, raw=bool(getattr(args, "raw_url", False)))
     if args.setup:
         return emit(
             run_research_hardpoints(
@@ -1284,7 +1286,9 @@ def _run_hep_browser(args: argparse.Namespace) -> int:
                     "llm_required": False,
                 },
                 "request": {
+                    "original_urls": raw_urls,
                     "urls": urls,
+                    "url_rewrites": url_rewrites,
                     "actions": primitive_actions,
                     "browser_args": _agent_browser_args_from_hep_browser(args),
                     "keep_open": bool(args.keep_open),
@@ -1321,7 +1325,9 @@ def _run_hep_browser(args: argparse.Namespace) -> int:
                     "automation": True,
                 },
                 "request": {
+                    "original_urls": raw_urls,
                     "urls": urls,
+                    "url_rewrites": url_rewrites,
                     "instruction": action,
                     "browser_args": _agent_browser_args_from_hep_browser(args),
                     "keep_open": bool(args.keep_open),
@@ -1369,6 +1375,8 @@ def _run_hep_browser(args: argparse.Namespace) -> int:
         "command": "hep-browser",
         "default_browser_module": AGENTLAS_BROWSER_MODULE,
         "agentlas_browser_first": True,
+        "original_urls": raw_urls,
+        "url_rewrites": url_rewrites,
     }
     return emit(result)
 
@@ -1428,6 +1436,30 @@ def _split_hep_browser_targets(targets: list[str], explicit_urls: list[str]) -> 
         else:
             query_parts.append(item)
     return _dedupe(urls), query_parts
+
+
+def _humanize_hep_browser_urls(urls: list[str], *, raw: bool = False) -> tuple[list[str], list[dict[str, str]]]:
+    if raw:
+        return urls, []
+    rewritten: list[str] = []
+    changes: list[dict[str, str]] = []
+    for url in urls:
+        human_url = _human_browser_url(url)
+        rewritten.append(human_url)
+        if human_url != url:
+            changes.append({"from": url, "to": human_url, "reason": "human_entry_url"})
+    return _dedupe(rewritten), changes
+
+
+def _human_browser_url(value: str) -> str:
+    parsed = urlsplit(value)
+    host = parsed.netloc.lower()
+    path = parsed.path.rstrip("/")
+    fragment = parsed.fragment.lower().strip("/")
+    if host == "mail.google.com" and path in {"", "/mail", "/mail/u/0", "/mail/u/1", "/mail/u/2"}:
+        if fragment in {"", "inbox"}:
+            return "https://mail.google.com/"
+    return value
 
 
 def _is_http_url(value: str) -> bool:

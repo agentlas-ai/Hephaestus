@@ -19,6 +19,10 @@ Behavior:
   snapshot.
 - If the Agentlas Browser CDP port is already live, the command attaches to it
   by default so logged-in Desktop/browser state is reused.
+- Prefer the human-facing URL a person would type over app-shell automation
+  URLs. For example, use `https://mail.google.com/` instead of
+  `https://mail.google.com/mail/u/0/#inbox` unless that exact deep route is
+  required. Add `--raw-url` to preserve the exact URL.
 - `/hep-browser <url> --click @e1` clicks an explicit snapshot ref.
 - `/hep-browser <url> --click-text "Compose"` clicks visible text without an
   LLM provider.
@@ -58,7 +62,7 @@ done
 /hep-browser https://example.com
 /hep-browser https://example.com "click the Docs link and report what changed"
 /hep-browser https://example.com --act "open the pricing section" --cdp 9222 --keep-open
-/hep-browser https://mail.google.com/mail/u/0/#inbox --click-text "Compose" --wait-ms 2000 --keep-open
+/hep-browser https://mail.google.com/ --click-text "Compose" --wait-ms 2000 --keep-open
 /hep-browser https://example.com "summarize this page" --read
 /hep-browser login page render check
 /hep-browser --setup

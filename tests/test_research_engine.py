@@ -1910,6 +1910,69 @@ def test_hep_browser_cli_reads_url_with_agent_browser_first(tmp_path, monkeypatc
     assert payload["receipt"]["module_chain"] == ["browser.agent_cli"]
 
 
+def test_hep_browser_cli_prefers_human_gmail_url(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("AGENTLAS_AGENT_BROWSER_BIN", "agent-browser")
+    monkeypatch.setenv("HEPHAESTUS_BROWSER_AUTO_CDP", "0")
+    calls = []
+
+    def fake_run(self, argv, *, timeout=None):
+        calls.append(argv)
+        if argv[-1] == "close":
+            return subprocess.CompletedProcess(argv, 0, "", "")
+        if "snapshot" in argv:
+            return subprocess.CompletedProcess(argv, 0, '- button "Compose" [ref=e1]', "")
+        assert argv == ["agent-browser", "open", "https://mail.google.com/"]
+        return subprocess.CompletedProcess(argv, 0, "opened", "")
+
+    monkeypatch.setattr(AgentBrowserCliAdapter, "_run", fake_run)
+
+    code = main(["hep-browser", "https://mail.google.com/mail/u/0/#inbox", "--home", str(tmp_path)])
+
+    assert code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["request"]["source_hints"] == ["https://mail.google.com/"]
+    assert payload["surface"]["original_urls"] == ["https://mail.google.com/mail/u/0/#inbox"]
+    assert payload["surface"]["url_rewrites"] == [
+        {
+            "from": "https://mail.google.com/mail/u/0/#inbox",
+            "to": "https://mail.google.com/",
+            "reason": "human_entry_url",
+        }
+    ]
+    assert calls[0] == ["agent-browser", "open", "https://mail.google.com/"]
+
+
+def test_hep_browser_cli_raw_url_preserves_gmail_shell_url(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("AGENTLAS_AGENT_BROWSER_BIN", "agent-browser")
+    monkeypatch.setenv("HEPHAESTUS_BROWSER_AUTO_CDP", "0")
+    calls = []
+
+    def fake_run(self, argv, *, timeout=None):
+        calls.append(argv)
+        if argv[-1] == "close":
+            return subprocess.CompletedProcess(argv, 0, "", "")
+        if "snapshot" in argv:
+            return subprocess.CompletedProcess(argv, 0, '- button "Compose" [ref=e1]', "")
+        assert argv == ["agent-browser", "open", "https://mail.google.com/mail/u/0/#inbox"]
+        return subprocess.CompletedProcess(argv, 0, "opened", "")
+
+    monkeypatch.setattr(AgentBrowserCliAdapter, "_run", fake_run)
+
+    code = main([
+        "hep-browser",
+        "https://mail.google.com/mail/u/0/#inbox",
+        "--raw-url",
+        "--home",
+        str(tmp_path),
+    ])
+
+    assert code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["request"]["source_hints"] == ["https://mail.google.com/mail/u/0/#inbox"]
+    assert payload["surface"]["url_rewrites"] == []
+    assert calls[0] == ["agent-browser", "open", "https://mail.google.com/mail/u/0/#inbox"]
+
+
 def test_hep_browser_cli_read_forwards_cdp_and_keep_open(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("AGENTLAS_AGENT_BROWSER_BIN", "agent-browser")
     calls = []

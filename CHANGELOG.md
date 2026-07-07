@@ -14,6 +14,10 @@
   modes both forward CDP/profile flags. `--click` and `--click-text` provide
   LLM-free browser primitives for host-selected refs and visible text, with
   `--wait-ms` for dynamic app UI before the final snapshot.
+- **Human-facing app URLs.** `hep-browser` now prefers human entry URLs for
+  known browser apps such as Gmail, rewriting automation shell URLs like
+  `https://mail.google.com/mail/u/0/#inbox` to `https://mail.google.com/`.
+  `--raw-url` keeps the exact URL when a deep route is intentional.
 
 ## v1.1.8 - 2026-07-07
 
