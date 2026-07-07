@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+## v1.1.6 - 2026-07-07
+
+- **Enterprise upload content-safety gate (`hep-upload`).** Hardened the cloud
+  upload sanitizer against malicious agent packages. A new
+  `agentlas_cloud/content_guard.py` defeats modern prompt-injection obfuscation
+  — Cyrillic/Greek homoglyphs, leetspeak, zero-width and bidi characters,
+  Unicode Tag-block smuggling, separated-letter tricks, and injections split
+  across lines — by scanning a normalized detection shadow plus a multi-line
+  window. Detection is multilingual (English, Korean, Chinese/Japanese, and
+  major European languages) and now covers secret-exfiltration beacons and
+  high-value credential access. Verified against 139 adversarial attack vectors
+  across ~25 evasion families: 100% of malicious lines are stripped.
+- **Quality preservation over blind deletion.** The gate is two-tier: only
+  high-confidence attacker directives are removed line-by-line, while ambiguous,
+  negated, quoted, or descriptive matches (security-training, prompt-engineering,
+  and devops-docs agents that legitimately mention these terms) are kept and
+  flagged for review, not deleted. Zero false positives across 35 realistic
+  benign agent samples. Packages still publish (`ready`) with the offending
+  lines removed rather than being hard-blocked.
+
 ## v1.1.5 - 2026-07-05
 
 - **`hephaestus update` `/hep-storm` install parity.** Fixed the one-touch

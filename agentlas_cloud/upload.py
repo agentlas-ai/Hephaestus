@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from . import content_guard
 from .auth import ensure_access_token, normalize_base_url
 from .networking.card_lint import lint_card
 from .runtime import collect_package_files, package_hash, run_setup_wizard
@@ -104,12 +105,18 @@ def package_agent(
     }
     if routing.get("card"):
         manifest["routingCard"] = routing["card"]
+    manifest, manifest_findings = sanitize_structured_payload(manifest, "manifest")
+    findings.extend(manifest_findings)
+    sanitized_line_count = sum(1 for finding in findings if finding["id"].startswith("sanitized-upload-line"))
+    manifest["sanitizationApplied"] = sanitized_line_count > 0
+    manifest["sanitizedLineCount"] = sanitized_line_count
 
     review = static_review(findings)
     bundle = {
         "manifest": manifest,
         "files": [item.__dict__ for item in files],
         "source": {"packagedBy": "hephaestus-runtime", "packagedAt": manifest["createdAt"], "costOwner": "none"},
+        "sanitization": {"removedLineCount": sanitized_line_count},
     }
     status = "blocked" if review["verdict"] == "fail" else "ready"
     return {
@@ -281,6 +288,8 @@ def validate_routing_card_for_upload(base: Path, visibility: str = "marketplace"
         )
 
     findings: list[dict[str, Any]] = []
+    card, card_findings = sanitize_structured_payload(card, ".agentlas/routing-card.json")
+    findings.extend(card_findings)
     server_problem = _server_routing_problem(card)
     if server_problem:
         findings.append(_finding("routing-card-server-invalid", "blocker", "structure", f"Routing card is invalid: {server_problem}", ".agentlas/routing-card.json", "Fix the routing card before upload."))
@@ -366,6 +375,91 @@ def validate_public_profile_for_upload(base: Path, visibility: str) -> list[dict
     return findings
 
 
+def sanitize_structured_payload(payload: Any, file_label: str) -> tuple[Any, list[dict[str, Any]]]:
+    findings: list[dict[str, Any]] = []
+
+    def _walk(value: Any, path: str) -> Any:
+        if isinstance(value, str):
+            sanitized, value_findings = sanitize_upload_text(path, value)
+            findings.extend(value_findings)
+            return sanitized
+        if isinstance(value, list):
+            return [_walk(item, f"{path}[{index}]") for index, item in enumerate(value)]
+        if isinstance(value, dict):
+            return {key: _walk(item, f"{path}.{key}") for key, item in value.items()}
+        return value
+
+    return _walk(payload, file_label), findings
+
+
+def sanitize_upload_text(file_path: str, text: str) -> tuple[str, list[dict[str, Any]]]:
+    """Enterprise upload guard.
+
+    Removes only high-confidence malicious lines (prompt-injection, secret
+    exfiltration, encoded execution, destructive commands, persistence, hidden
+    control characters, hard-coded credentials, spanning private keys) so the
+    package can still be published. Ambiguous/advisory/quoted matches are FLAGGED
+    for review but KEPT, preserving agent quality. Obfuscation (homoglyphs,
+    leetspeak, zero-width, bidi, separators, non-English) is defeated via a
+    normalized detection shadow, and split injections via a multi-line window.
+    """
+    findings: list[dict[str, Any]] = []
+    lines = text.splitlines(keepends=True)
+    remove = [False] * len(lines)
+    dropping_private_key = False
+
+    for idx, line in enumerate(lines):
+        line_number = idx + 1
+
+        # 1) private-key material may span multiple lines
+        if "-----BEGIN" in line and "PRIVATE KEY-----" in line.upper():
+            dropping_private_key = True
+        if dropping_private_key:
+            remove[idx] = True
+            findings.append(_line_finding("sanitized-upload-line", "high", "sanitized-content", "Removed private key material before upload.", file_path, line_number, "private-key", "Publish setup instructions or env key names, never key material."))
+            if "-----END" in line and "PRIVATE KEY-----" in line.upper():
+                dropping_private_key = False
+            continue
+
+        # 2) hard-coded credentials / tokens on this line
+        secret = _secret_line_reason(line)
+        if secret:
+            rule, message = secret
+            remove[idx] = True
+            findings.append(_line_finding("sanitized-upload-line", "high", "sanitized-content", message, file_path, line_number, rule, "Require each user to configure their own credentials."))
+            continue
+
+        # 3) content-safety verdict (injection / exfil / danger / obfuscation)
+        verdict = content_guard.evaluate_line(line)
+        if verdict is None:
+            continue
+        if verdict.action == "redact":
+            remove[idx] = True
+            findings.append(_line_finding("sanitized-upload-line", verdict.severity, "sanitized-content", verdict.message, file_path, line_number, verdict.rule, "Keep package content instructional; never embed attacker directives."))
+        else:  # flag: keep the line, surface for review (quality preserved)
+            findings.append(_line_finding("flagged-upload-line", verdict.severity, "flagged-content", verdict.message, file_path, line_number, verdict.rule, "Reviewed as advisory/quoted; kept to preserve agent quality."))
+
+    # 4) split injections spanning consecutive lines (per-line scan evades these)
+    for span in content_guard.find_multiline_spans(lines):
+        if span.action == "redact":
+            for k in range(span.start, span.end + 1):
+                if not remove[k] and lines[k].strip():
+                    remove[k] = True
+                    findings.append(_line_finding("sanitized-upload-line", "high", "sanitized-content", span.message, file_path, k + 1, span.rule, "Keep package content instructional; never embed attacker directives."))
+        else:  # flag: keep the split window, surface for review
+            findings.append(_line_finding("flagged-upload-line", span.severity, "flagged-content", span.message, file_path, span.start + 1, span.rule, "Reviewed as descriptive/quoted; kept to preserve agent quality."))
+
+    kept = [lines[i] for i in range(len(lines)) if not remove[i]]
+    return "".join(kept), findings
+
+
+def _secret_line_reason(line: str) -> tuple[str, str] | None:
+    for finding_id, pattern, message in SECRET_PATTERNS:
+        if pattern.search(line):
+            return finding_id, f"Removed possible {message} before upload."
+    return None
+
+
 def collect_upload_files(base: Path) -> tuple[list[UploadFile], int, list[dict[str, Any]]]:
     files: list[UploadFile] = []
     findings: list[dict[str, Any]] = []
@@ -402,6 +496,9 @@ def collect_upload_files(base: Path) -> tuple[list[UploadFile], int, list[dict[s
             text = raw.decode("utf-8")
         except UnicodeDecodeError:
             continue
+        text, sanitized_findings = sanitize_upload_text(rel, text)
+        findings.extend(sanitized_findings)
+        raw = text.encode("utf-8")
         for finding_id, pattern, label in SECRET_PATTERNS:
             if pattern.search(text):
                 findings.append(_finding(finding_id, "blocker", "secret", f"Possible {label} found in package content.", rel, "Remove the value and require each user to configure their own key."))
@@ -463,6 +560,14 @@ def _finding(finding_id: str, severity: str, category: str, message: str, file: 
         payload["file"] = file
     if remediation:
         payload["remediation"] = remediation
+    return payload
+
+
+def _line_finding(finding_id: str, severity: str, category: str, message: str, file: str, line: int, rule: str, remediation: str | None = None) -> dict[str, Any]:
+    payload = _finding(finding_id, severity, category, message, file, remediation)
+    payload["id"] = f"{finding_id}-{_sha256_text(f'{file}:{line}:{rule}:{message}')[:10]}"
+    payload["line"] = line
+    payload["rule"] = rule
     return payload
 
 
