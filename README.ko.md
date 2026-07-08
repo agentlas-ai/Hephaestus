@@ -4,11 +4,12 @@
   </a>
 </p>
 
-<h1 align="center">Hephaestus — 어떤 모델 위에서든 돌아가는 에이전트 OS</h1>
+<h1 align="center">Agentlas OS</h1>
 
 <p align="center">
-  <strong>에이전트를 매번 새로 만들고 세팅하는 일, 이제 그만하세요. Hephaestus는 전문 에이전트를 허브에 쌓아두고, 태스크마다 임시 오케스트레이터를 즉석에서 만들어 돌립니다.</strong><br>
-  모든 데이터는 내 컴퓨터에 먼저 저장되고, Claude Code, Codex, Gemini, Cursor, 로컬 모델 어디서든 그대로 쓸 수 있습니다.
+  <strong>에이전트는 누구나 만들 수 있습니다. Agentlas는 그 에이전트들이 실제로 일하게 만드는 운영체계입니다.</strong><br>
+  내가 소유한 에이전트, Hub에서 빌린 전문가, 실제 브라우저, 관리되는 메모리,
+  검증 가능한 실행을 이미 쓰고 있는 LLM 위에서 굴립니다. Hephaestus는 그 아래의 오픈소스 엔진입니다.
 </p>
 
 <p align="center">
@@ -39,7 +40,7 @@
 Cursor에 아래 내용을 붙여넣으세요:
 
 ```text
-이 GitHub 저장소에서 Hephaestus를 설치해줘:
+이 GitHub 저장소에서 Agentlas OS / Hephaestus를 설치해줘:
 https://github.com/agentlas-ai/Hephaestus
 
 플러그인 마켓플레이스에 등록하고 플러그인으로 설치해줘.
@@ -49,7 +50,7 @@ https://github.com/agentlas-ai/Hephaestus
 마지막에는 활성화된 플러그인, 명령 표면, 전역 라우팅 상태를 확인해줘.
 ```
 
-이미 쓰고 있는 LLM에서 Hephaestus를 바로 활성화하고 싶을 때
+이미 쓰고 있는 LLM에서 Agentlas 명령 표면을 바로 활성화하고 싶을 때
 사용하세요. 셸에서 직접 설치하려면 아래 전체 설치 방법을 보세요.
 
 <p align="center">
@@ -57,13 +58,15 @@ https://github.com/agentlas-ai/Hephaestus
 </p>
 
 <p align="center">
-  <sub>허브에서 불러온 전문 에이전트들이 임시 태스크포스로 조립되어 MCP로 실시간 라우팅됩니다 — 태스크마다 에이전트를 세팅할 필요가 없습니다.</sub>
+  <sub>전문가를 빌리고, 로컬에서 라우팅하고, LLM·브라우저·파일·메모리·도구 위에서 실제 작업을 검증합니다.</sub>
 </p>
 
 <p align="center">
-  <a href="#에이전트-os-시대">에이전트 OS 시대</a>
+  <a href="#왜-agentlas-os인가">왜 Agentlas OS인가</a>
   ·
   <a href="#붙여넣어-설치하기">붙여넣어 설치하기</a>
+  ·
+  <a href="#claude-agent만-만들면-안-되나">Claude Agent만 만들면 안 되나</a>
   ·
   <a href="#전체-설치-방법">전체 설치 방법</a>
   ·
@@ -73,7 +76,9 @@ https://github.com/agentlas-ai/Hephaestus
   ·
   <a href="#os-서브시스템">서브시스템</a>
   ·
-  <a href="#엔터프라이즈를-위한-설계">엔터프라이즈 운영</a>
+  <a href="#이-저장소의-위치">제품 표면</a>
+  ·
+  <a href="#소유한-에이전트-운영을-위한-설계">소유한 에이전트 운영</a>
   ·
   <a href="#무엇을-만들어내는가-프로세스-패키징">시스템 패키징</a>
   ·
@@ -82,17 +87,52 @@ https://github.com/agentlas-ai/Hephaestus
 
 ---
 
-## 에이전트 OS 시대
+## 왜 Agentlas OS인가
 
-업계는 이제 상태 없는 임시방편식 "도구 달린 챗봇" 단계를 넘어섰습니다. Google과 주요 AI 랩이 Antigravity 오케스트레이션 플랫폼, Gemini Spark 데몬 프로세스 같은 **에이전트 운영체제(Agent Operating System)**를 중심으로 개발자 전략을 재편하면서, AI 에이전트는 공식적으로 일급 운영체제 프리미티브가 되었습니다 — 고유한 정체성, 관계형 메모리 시스템, 보안 권한, 네이티브 도구 호출 환경을 갖춘, 오래 살아 있는 상태 유지 프로세스가 된 것입니다.
+대부분의 AI 제품은 또 하나의 에이전트를 만드는 데 집중합니다.
+Agentlas OS는 그 다음 문제를 다룹니다. 에이전트들이 내가 소유한 팀처럼
+계속 일하게 만드는 운영 구조입니다.
 
-이로 인해 팀이 마주하는 핵심 엔지니어링 질문이 바뀝니다. **여러분의 에이전트 워크포스는 누구의 운영체제 위에서 돌아갑니까?**
+설치 후 사용자가 상상해야 하는 장면은 이것입니다:
 
-에이전트가 단일 모델 제공자의 독점 API에 강하게 결합되어 있다면, 조직의 메모리, 커스텀 도구, 태스크별 로직은 사실상 그 벤더의 생태계에 묶이게 됩니다.
+- Claude, Codex, Gemini, Cursor, Antigravity, 로컬 모델이 흩어진 채팅이 아니라 하나의 팀처럼 움직입니다.
+- 실제 로그인된 브라우저가 프롬프트 속 스크린샷이 아니라 실행 표면이 됩니다.
+- 에이전트는 채팅이 끝나도 패키지 계약, 라우팅 카드, 메모리 규칙, 권한, 검증 영수증을 남깁니다.
+- Hub 전문가를 내 로컬 런타임으로 빌려오되, 창작자의 비공개 작업을 복사하거나 내 비공개 파일을 넘기지 않습니다.
 
-**Hephaestus는 어떤 모델에도 묶이지 않는 독립 커널입니다.** 에이전트 프레임워크도, API 래퍼도 아닙니다. 로컬 우선 에이전트 운영체제로서, 어떤 LLM 런타임에서든 이식 가능한 에이전트 프로세스를 컴파일·스케줄링·관리하는 통합 실행 기반입니다. 밑단의 추론 엔진을 갈아끼워도 워크포스 전체는 그대로 유지됩니다.
+Hephaestus는 Agentlas OS 아래의 오픈소스 엔진입니다. 프롬프트 마켓플레이스도,
+에이전트 템플릿 생성기도, 또 다른 모델 구독도 아닙니다. LLM 명령 표면 전반에서
+에이전트를 만들고, 라우팅하고, 빌리고, 실행하고, 검증하고, 패키징하는 로컬 우선 런타임입니다.
 
-Hephaestus는 고전적인 운영체제 개념에 그대로 대응됩니다:
+핵심은 "프롬프트로 에이전트 만들기"가 아닙니다.
+
+> 내 LLM, 브라우저, 메모리, 로컬 도구 위에서 에이전트를 만들고, 패키징하고,
+> 라우팅하고, 실행하고, 검증하는 것입니다.
+
+## Claude Agent만 만들면 안 되나
+
+Claude subagent와 custom agent는 유용합니다. 태스크마다 별도 프롬프트, 도구,
+컨텍스트 창을 줄 수 있습니다. Agentlas는 그 다음부터 시작합니다.
+
+LLM은 에이전트를 초안으로 만들 수 있습니다. Agentlas는 그 에이전트를 운영 단위로 만듭니다:
+
+| 계층 | 프롬프트로 만든 에이전트 | Agentlas 패키지 |
+| --- | --- | --- |
+| 정의 | 역할 프롬프트, markdown, 도구 목록 | manifest, agent card, mode map, package contract |
+| 호출 | 수동 멘션 또는 단순 트리거 | routing card, trigger, anti-trigger, benchmark, receipt |
+| 브라우저 | 임시 브라우징 또는 스크린샷 | 실제 브라우저 하드포인트, visible click/form/wait/snapshot |
+| 메모리 | 복사한 컨텍스트 또는 채팅 기록 | memory map, memory ticket, Memory Curator, Policy Gate |
+| 런타임 | 한 LLM 세션 또는 한 벤더 런타임 | Claude Code, Codex, Gemini, Cursor, Antigravity, 로컬 런타임 어댑터 |
+| 팀 | 또 하나의 프롬프트 계층 | orchestrator, PM Soul, Memory Curator, Policy Gate, eval judge, QA gate |
+| 검증 | 사용자가 직접 확인 | package check, receipt, Stormbreaker final gate |
+| 배포 | 프롬프트 복사 | public/private boundary check가 포함된 Hub/Cloud bundle |
+
+제품 경계는 여기입니다. Agentlas는 "더 좋은 프롬프트"로 경쟁하지 않습니다.
+에이전트가 하나의 채팅 밖에서도 계속 일할 수 있는 구조를 제공합니다.
+
+## Agent OS Stack
+
+Agentlas는 하나의 모델 제공자에 묶이지 않으면서 에이전트 작업을 운영체제적 책임으로 나눕니다:
 
 | OS 추상화 | Hephaestus에서의 구현 |
 | :--- | :--- |
@@ -210,6 +250,23 @@ codex plugin add hephaestus@agentlas-core-engine
 
 ---
 
+## 이 저장소의 위치
+
+이 저장소는 Hephaestus 엔진과 LLM 명령 어댑터를 설치합니다. Agentlas OS 아래의
+오픈소스 명령 표면입니다.
+
+| 표면 | 역할 |
+| --- | --- |
+| **Agentlas Desktop** | AI-native 앱, 에이전트 팀, 메모리, 브라우저 작업, Hub 전문가를 실행하는 시각적 로컬 OS. |
+| **Hephaestus plugin** | Claude Code, Codex, Gemini CLI, Antigravity, Cursor, 호환 런타임을 위한 오픈소스 엔진과 명령 표면. |
+| **Agentlas Hub / Cloud** | Hub가 서버 측 모델 프록시가 되지 않은 상태에서 에이전트 패키지를 빌리고, 발행하고, 동기화하는 표면. |
+
+위 설치 프롬프트는 의도적으로 이 저장소와 현재 LLM 표면에만 집중합니다.
+Desktop과 Hub는 같은 Agentlas OS 아키텍처 주변의 제품 표면이며, 플러그인 설치의
+선행 조건이 아닙니다.
+
+---
+
 ## 명령 표면
 
 네이티브 Agentlas 환경 안에서 Hephaestus는 명령어 없이 동작합니다. 외부 LLM 도구는 의도적으로 작게 유지한 가시 명령 집합을 사용합니다. Stormbreaker, 리서치 로드아웃, 설정 테이블 같은 시스템 수준 유틸리티는 컨텍스트에서 자동으로 붙습니다:
@@ -313,11 +370,13 @@ agentlas-cloud route "run the release check" --caller local/orchestrator .
 
 ---
 
-## 엔터프라이즈를 위한 설계
+## 소유한 에이전트 운영을 위한 설계
 
-엔터프라이즈에 필요한 것은 고립된 Python 에이전트를 작성하는 또 하나의 방법이 아닙니다. 그런 에이전트들로 이루어진 **관리형 워크포스를 운영**하는 것입니다. Hephaestus는 바로 이 운영 모델을 위해 설계되었습니다:
+사용자와 팀에 필요한 것은 고립된 에이전트를 작성하는 또 하나의 방법이 아닙니다.
+내가 소유한 에이전트 워크포스를 운영하는 것입니다. Hephaestus는 이 운영 모델을
+위해 설계되었습니다:
 
-*   **조달 레버리지가 되는 모델 중립성:** 에이전트, 메모리 저장소, 지식 도메인은 여러분의 통제 아래 로컬 자산으로 저장됩니다. 새 모델 제공자로 전환하는 것(또는 Ollama, Llama 같은 로컬 모델이나 DeepSeek, GLM, Gemini, Claude 같은 엔터프라이즈 엔진을 활용하는 것)은 코드베이스 마이그레이션이 아니라 단순한 설정 변경입니다.
+*   **모델 중립성:** 에이전트, 메모리 저장소, 지식 도메인은 여러분의 통제 아래 로컬 자산으로 저장됩니다. 새 모델 제공자로 전환하는 것(또는 Ollama, DeepSeek, GLM, Gemini, Claude를 활용하는 것)은 코드베이스 마이그레이션이 아니라 설정 변경입니다.
 *   **구조적으로 보장되는 감사 가능성:** 모든 라우팅 결정, 실행 단계, 메모리 후보, 큐레이터 결정이 텍스트 파일로 기록됩니다. diff하고, 감사하고, 커밋할 수 있습니다. 작업은 검증되었거나, 미검증으로 표시됩니다.
 *   **결정적 파이프라인 게이트:** 보안 필터, 안티스코프, 라우팅 카드 트리거, 프롬프트 새니타이즈는 OS 파이프라인에 하드코딩되어 있습니다 — LLM 시스템 지침이나 가이드라인에 의존하지 않습니다.
 *   **생성 전 명세:** Briefing Interview Engine이 요청의 모호성을 측정해 그 점수를 Work Brief에 찍어 두므로, 태스크 실행을 언제나 합의된 내용까지 거슬러 올라가 감사할 수 있습니다.
@@ -359,6 +418,8 @@ Hephaestus는 어떤 워크스페이스 런타임이든 파싱·설치·검증·
 | 전체 팀 계약 보기 | [`agent.md`](agent.md) |
 | 아키텍처의 단일 진실 원천 | [`docs/source-of-truth.md`](docs/source-of-truth.md) |
 | 런타임 경계 | [`docs/runtime-sync-boundaries.md`](docs/runtime-sync-boundaries.md) |
+| Agentlas OS 포지셔닝 | [`docs/agentlas-os-architecture-positioning-2026-07-08.md`](docs/agentlas-os-architecture-positioning-2026-07-08.md) |
+| Google Next 2026 비교 | [`docs/agentlas-os-google-next-2026-comparison-2026-07-08.md`](docs/agentlas-os-google-next-2026-comparison-2026-07-08.md) |
 | 브리핑 인터뷰 & 리서치 게이트 | [`docs/builder-interview-research-gate.md`](docs/builder-interview-research-gate.md) |
 | Network 2.0 라우팅 | [`docs/hephaestus-network-2.0.md`](docs/hephaestus-network-2.0.md) |
 | Stormbreaker 프로토콜 | [`docs/robustness-protocol.md`](docs/robustness-protocol.md) |

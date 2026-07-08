@@ -4,11 +4,12 @@
   </a>
 </p>
 
-<h1 align="center">Hephaestus — Model-Agnostic Agent OS</h1>
+<h1 align="center">Agentlas OS</h1>
 
 <p align="center">
-  <strong>Stop building and configuring a new agent for every task. Hephaestus keeps specialist agents in a hub and spins up a temporary orchestrator per task.</strong><br>
-  Local-first, works with any model — Claude Code, Codex, Gemini, Cursor, and local models.
+  <strong>Agents are easy to create. Agentlas gives them an operating system.</strong><br>
+  Run owned agents, borrow Hub specialists, control a real browser, preserve governed memory,
+  and verify work on the LLMs you already use. Hephaestus is the open-source engine underneath.
 </p>
 
 <p align="center">
@@ -39,7 +40,7 @@ Paste this into the LLM you are using now, such as Claude Code, Codex,
 Gemini CLI, Antigravity, or Cursor:
 
 ```text
-Install Hephaestus from this GitHub repo:
+Install Agentlas OS / Hephaestus from this GitHub repo:
 https://github.com/agentlas-ai/Hephaestus
 
 Register it with the plugin marketplace, install the plugin, and make the
@@ -49,21 +50,23 @@ is supported, turn that on too.
 At the end, confirm the active plugin, command surface, and global routing status.
 ```
 
-Use this when you are already inside an LLM and want Hephaestus active
-there. For direct shell commands, see the install methods below.
+Use this when you are already inside an LLM and want the Agentlas command
+surface active there. For direct shell commands, see the install methods below.
 
 <p align="center">
   <img src="assets/hephaestus-network-mcp-demo.gif" alt="Hephaestus Network 2.0 routing a task live to the right agent over MCP" width="760">
 </p>
 
 <p align="center">
-  <sub>Specialists pulled from the hub, assembled into a temporary task force, and routed live over MCP — no per-task agent setup.</sub>
+  <sub>Borrow specialists, route them locally, and verify real work across your LLMs, browser, files, memory, and tools.</sub>
 </p>
 
 <p align="center">
-  <a href="#the-agent-os-era">The Agent OS Era</a>
+  <a href="#why-agentlas-os">Why Agentlas OS</a>
   ·
   <a href="#paste-to-install">Paste to Install</a>
+  ·
+  <a href="#why-not-just-make-a-claude-agent">Why Not Just A Claude Agent?</a>
   ·
   <a href="#all-install-methods">All Install Methods</a>
   ·
@@ -73,7 +76,9 @@ there. For direct shell commands, see the install methods below.
   ·
   <a href="#the-os-subsystems">Subsystems</a>
   ·
-  <a href="#built-for-the-enterprise">Enterprise Operations</a>
+  <a href="#where-this-fits">Product Surfaces</a>
+  ·
+  <a href="#built-for-owned-agent-operations">Owned Agent Operations</a>
   ·
   <a href="#what-it-builds">System Packaging</a>
   ·
@@ -82,17 +87,57 @@ there. For direct shell commands, see the install methods below.
 
 ---
 
-## The Agent OS Era
+## Why Agentlas OS
 
-The industry has evolved past stateless, ad-hoc "chatbots with tools". With Google and major AI labs reframing developer strategies around **Agent Operating Systems** (such as the Antigravity orchestration platform and Gemini Spark daemon processes), AI agents have officially become first-class operating-system primitives—long-lived, stateful processes with distinct identities, relational memory systems, security permissions, and native tool-calling environments.
+Most AI products help you create another agent. Agentlas OS is for the harder
+part: making agents operate as a team you own.
 
-This shifts the critical engineering question for teams: **Whose operating system does your workforce run on?**
+You should be able to imagine this after installing it:
 
-If your agents are tightly coupled to a single model provider's proprietary API, your organizational memory, custom tools, and task-specific logic are effectively locked into that vendor's ecosystem.
+- Your LLMs work like a team instead of isolated chat sessions.
+- Your real browser becomes an execution surface, not a screenshot in a prompt.
+- Your agents keep package contracts, routing cards, memory rules, permissions,
+  and verification receipts after the chat ends.
+- Your existing Claude Code, Codex, Gemini, Cursor, Antigravity, API keys, and
+  local models become part of one operating layer.
+- Hub specialists can be borrowed into your local runtime without copying the
+  creator's private work or sending your private files to their agent.
 
-**Hephaestus is the independent, model-agnostic kernel.** It is not an agent framework or an API wrapper. It is a local-first Agent Operating System—a unified execution substrate that compiles, schedules, and governs portable agent processes across LLM runtimes. Swap the underlying reasoning engine; preserve the entire workforce.
+Hephaestus is the open-source engine underneath Agentlas OS. It is not a prompt
+marketplace, an agent template generator, or another model subscription. It is a
+local-first runtime that builds, routes, borrows, runs, verifies, and packages
+agents across LLM command surfaces.
 
-Hephaestus maps directly to classical operating system concepts:
+The point is not "make an agent from a prompt." The point is:
+
+> Create, package, route, run, and verify agents across your LLMs, browser,
+> memory, and local tools.
+
+## Why Not Just Make A Claude Agent?
+
+Claude subagents and custom agents are useful. They give a task its own prompt,
+tools, and context window. Agentlas starts after that point.
+
+An LLM can draft an agent. Agentlas turns it into an operating unit:
+
+| Layer | A prompt-made agent | An Agentlas package |
+| --- | --- | --- |
+| Definition | Role prompt, markdown, tool list | Manifest, agent card, mode map, package contract |
+| Invocation | Manual mention or simple trigger | Routing card, triggers, anti-triggers, benchmarks, receipts |
+| Browser | Ad hoc browsing or screenshots | Real browser hardpoint with visible clicks, forms, waits, and snapshots |
+| Memory | Copied context or chat history | Memory map, memory tickets, Memory Curator, Policy Gate |
+| Runtime | One LLM session or one vendor runtime | Adapters across Claude Code, Codex, Gemini, Cursor, Antigravity, and local runtime |
+| Teams | Another prompt layer | Orchestrator, PM Soul, Memory Curator, Policy Gate, eval judge, QA gate |
+| Verification | User checks manually | Package checks, receipts, Stormbreaker final gate |
+| Distribution | Copy the prompt | Hub/Cloud bundle with public/private boundary checks |
+
+That is the product boundary: Agentlas does not compete on "better prompt." It
+gives agents the architecture to keep working outside one chat.
+
+## The Agent OS Stack
+
+Agentlas maps agent work to operating-system-like responsibilities without
+forcing your work into one model provider:
 
 | OS Abstraction | Implementation in Hephaestus |
 | :--- | :--- |
@@ -208,6 +253,23 @@ Clone the repo and copy `AGENTS.md`, `agent.md`, `agents/`, `skills/`, `modes/`,
 
 ---
 
+## Where This Fits
+
+This repository installs the Hephaestus engine and LLM command adapters. It is
+the open-source command surface under Agentlas OS.
+
+| Surface | Role |
+| --- | --- |
+| **Agentlas Desktop** | Visual local OS for running AI-native apps, agent teams, memory, browser work, and Hub specialists. |
+| **Hephaestus plugin** | Open-source engine and command surface for Claude Code, Codex, Gemini CLI, Antigravity, Cursor, and compatible runtimes. |
+| **Agentlas Hub / Cloud** | Borrow, publish, and sync agent packages without turning Hub into a server-side model proxy. |
+
+The install prompt above is intentionally scoped to this repo and the current
+LLM surface. Desktop and Hub are product surfaces around the same Agentlas OS
+architecture; they are not prerequisites for installing the plugin.
+
+---
+
 ## The Command Surface
 
 Inside native Agentlas environments, Hephaestus operates commandless. External LLM tools use a deliberately small visible command set. System-level utilities like Stormbreaker, research loadouts, and configuration tables attach automatically from context:
@@ -311,11 +373,13 @@ Import acts as a proposal (restricting automatic invocation), export redacts pri
 
 ---
 
-## Built For The Enterprise
+## Built For Owned Agent Operations
 
-Enterprises do not need another way to write isolated Python agents. They need to **operate a governed workforce** of them. Hephaestus is designed specifically for this operational model:
+Users and teams do not need another way to write isolated agents. They need to
+operate an owned workforce of them. Hephaestus is designed for that operational
+model:
 
-*   **Model Neutrality as Procurement Leverage:** Agents, memory repositories, and knowledge domains are stored as local assets under your control. Transitioning to a new model provider (or utilizing local models like Ollama, Llama, and enterprise engines like DeepSeek, GLM, Gemini, or Claude) is a simple configuration update—not a codebase migration.
+*   **Model Neutrality:** Agents, memory repositories, and knowledge domains are stored as local assets under your control. Transitioning to a new model provider (or utilizing local models like Ollama, DeepSeek, GLM, Gemini, or Claude) is a configuration update, not a codebase migration.
 *   **Auditability by Construction:** Every routing decision, execution step, memory candidate, and curator decision is logged as a text file. You can diff, audit, and commit them. Work is either verified or flagged as unverified.
 *   **Deterministic Pipeline Gates:** Security filters, anti-scopes, routing card triggers, and prompt sanitizations are hardcoded into the OS pipeline—they do not rely on LLM system instructions or guidelines.
 *   **Specification Before Generation:** The Briefing Interview Engine measures request ambiguity and stamps the score on the Work Brief, ensuring task execution can always be audited back to what was agreed.
@@ -357,6 +421,8 @@ Hephaestus packages agents into a standard directory layout that any workspace r
 | See the full team contract | [`agent.md`](agent.md) |
 | Architecture source of truth | [`docs/source-of-truth.md`](docs/source-of-truth.md) |
 | Runtime boundaries | [`docs/runtime-sync-boundaries.md`](docs/runtime-sync-boundaries.md) |
+| Agentlas OS positioning | [`docs/agentlas-os-architecture-positioning-2026-07-08.md`](docs/agentlas-os-architecture-positioning-2026-07-08.md) |
+| Google Next 2026 comparison | [`docs/agentlas-os-google-next-2026-comparison-2026-07-08.md`](docs/agentlas-os-google-next-2026-comparison-2026-07-08.md) |
 | Briefing interview & research gate | [`docs/builder-interview-research-gate.md`](docs/builder-interview-research-gate.md) |
 | Network 2.0 routing | [`docs/hephaestus-network-2.0.md`](docs/hephaestus-network-2.0.md) |
 | Stormbreaker protocol | [`docs/robustness-protocol.md`](docs/robustness-protocol.md) |
