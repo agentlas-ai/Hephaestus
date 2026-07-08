@@ -193,11 +193,13 @@ hep-global install
 ```
 This appends a managed marker block to `~/.codex/AGENTS.md`, `~/.claude/CLAUDE.md`, and `~/.gemini/GEMINI.md`. After that, Codex, Claude Code, and Antigravity/Gemini can treat ordinary prompts more like Agentlas-native sessions. For substantial work the router order is: Hephaestus Network first, Hephaestus Cloud second, local agents third, and local skills last. If Network or Cloud is blocked by credits, entitlement, or a poor match, the runtime reports that boundary and continues down the fallback order. The command is idempotent and keeps a timestamped backup before editing.
 
-The status line names final workers, not router commands. Korean sessions use
-`사용 에이전트: <agent names>. 이유: <short reason>.` or, for final skill
-fallbacks, `사용 스킬: <skill names>. 이유: <short reason>.` English sessions
-use `Agents used: <agent names>. Reason: <short reason>.` or
-`Skills used: <skill names>. Reason: <short reason>.`
+The status line names final workers, not router commands, and localizes to the
+current session language:
+
+| Session language | Agent route example | Skill fallback example |
+| --- | --- | --- |
+| English | `Agents used: <agent names>. Reason: <short reason>.` | `Skills used: <skill names>. Reason: <short reason>.` |
+| Korean | `사용 에이전트: <agent names>. 이유: <short reason>.` | `사용 스킬: <skill names>. 이유: <short reason>.` |
 
 Global router command reference:
 
@@ -392,24 +394,59 @@ CrewAI, LangChain, and vendor agent SDKs function as **libraries**—excellent f
 
 ## What It Builds (Process Packaging)
 
-Hephaestus packages agents into a standard directory layout that any workspace runtime can parse, install, verify, and run:
+Hephaestus packages agents into a standard directory layout that any workspace runtime can parse, install, verify, and run. The important part is not just `agent.md`; it is the operating contract around it:
 
 ```text
-├── AGENTS.md                          # Canonical route configurations
-├── agent.md / agents/                 # Single worker or team roles
-├── skills/                            # Local agent skills and capabilities
-├── modes/                             # Custom agent execution modes
-├── schemas/                           # Validation contracts and schemas
-├── templates/                         # Configuration templates
-├── .agentlas/                         # System Directory: routing cards, work briefs,
-│                                      # global commands, memory contracts, eval plans
-├── .claude/ codex/ .gemini/ .agents/  # Runtime shims (driver adapters over the core)
-├── scripts/
-│   ├── verify-package.sh              # Package structure verifier
-│   └── public_safety_check.sh         # Secret and credentials scanner
-└── docs/                              # Briefing records, tool specifications,
-                                       # and prompt contracts
+├── AGENTS.md                              # Canonical operating loop and source-of-truth map
+├── agent.md / agents/                     # Single worker, HQ/orchestrator, or team roles
+│   ├── 10-single-agent-builder/
+│   ├── 20-multi-agent-team-builder/
+│   └── 30-agentlas-packager/
+├── .agentlas/                             # Agentlas OS system directory
+│   ├── sitemap.json                       # Product graph: modes, runtime adapters, memory, release checks
+│   ├── mode-map.json                      # Single-agent / team / packager classification contract
+│   ├── routing-card.json                  # Triggers, anti-triggers, capabilities, risk, routing readiness
+│   ├── agent-card.json                    # A2A-facing identity and capability card
+│   ├── company-blueprint.json             # Team/company topology for multi-agent packages
+│   ├── global-commands.json               # Runtime command aliases and install surfaces
+│   ├── memory-map.json                    # Memory roots, write owners, trust labels, exclusions
+│   ├── memory-tickets.jsonl               # Candidate memory events before durable promotion
+│   ├── project-soul-memory.md             # Project-level operating memory
+│   ├── curator-decisions.jsonl            # Memory Curator promotion/rejection decisions
+│   ├── vault-references.json              # Secret/credential references without raw values
+│   ├── validation-ledger.jsonl            # Verification and release evidence
+│   ├── field-test-report.json             # Field test results for package readiness
+│   ├── skill-registry.json                # Reusable skill inventory and lifecycle metadata
+│   ├── skill-trials.jsonl                 # Skill trial evidence before promotion
+│   ├── agent-ontology/                    # Local code/agent map for capabilities, artifacts, scopes, edges
+│   └── super-ontology-*.json/jsonl        # Governance contracts: evidence, privacy, side effects, resilience
+├── skills/                                # Canonical reusable skills
+├── modes/                                 # Mode contracts for build/package behavior
+├── schemas/                               # JSON schemas for cards, memory maps, sitemap, evals, manifests
+├── templates/                             # Package, memory, interview, eval, ontology, and contract templates
+├── ontology/ + bin/ontology               # Local-first parser/search/GraphRAG runtime
+├── agentlas_cloud/                        # Hub/Cloud bundle, routing, update, and runtime APIs
+├── .claude/ codex/ .gemini/ .agents/      # Thin runtime adapters over the same core
+├── claude/ codex/ gemini/ antigravity/    # Plugin/extension/workflow distributions
+├── cursor/ hermes/ openclaw/              # Additional runtime shims and skill mirrors
+├── docs/                                  # Architecture, chain map, memory, ontology, routing, eval docs
+│   ├── source-of-truth.md
+│   ├── chain-map.md
+│   ├── memory-architecture.md
+│   ├── ontology-runtime.md
+│   ├── hephaestus-network-2.0.md
+│   └── builder-interview-research-gate.md
+└── scripts/                               # Verification, installer, sync, release, and public-safety gates
+    ├── verify-package.sh
+    ├── verify-ontology-runtime.sh
+    ├── verify-routing-cards.sh
+    ├── sync-adapters.sh
+    └── public_safety_check.sh
 ```
+
+That package shape is why an Agentlas agent is more than an LLM-written role
+prompt. It carries routing, memory, sitemap, code/agent ontology, permissions,
+runtime adapters, verification ledgers, and release gates together.
 
 ---
 
@@ -420,7 +457,13 @@ Hephaestus packages agents into a standard directory layout that any workspace r
 | Understand the canonical route | [`AGENTS.md`](AGENTS.md) |
 | See the full team contract | [`agent.md`](agent.md) |
 | Architecture source of truth | [`docs/source-of-truth.md`](docs/source-of-truth.md) |
+| Chain/code map | [`docs/chain-map.md`](docs/chain-map.md) |
 | Runtime boundaries | [`docs/runtime-sync-boundaries.md`](docs/runtime-sync-boundaries.md) |
+| Sitemap contract | [`.agentlas/sitemap.json`](.agentlas/sitemap.json) and [`schemas/sitemap.schema.json`](schemas/sitemap.schema.json) |
+| Mode map | [`.agentlas/mode-map.json`](.agentlas/mode-map.json) |
+| Routing card | [`.agentlas/routing-card.json`](.agentlas/routing-card.json) and [`schemas/routing-card.schema.json`](schemas/routing-card.schema.json) |
+| Memory map | [`.agentlas/memory-map.json`](.agentlas/memory-map.json) and [`schemas/memory-map.schema.json`](schemas/memory-map.schema.json) |
+| Agent ontology | [`.agentlas/agent-ontology/`](.agentlas/agent-ontology/) and [`docs/agent-ontology-a2a-plan.md`](docs/agent-ontology-a2a-plan.md) |
 | Agentlas OS positioning | [`docs/agentlas-os-architecture-positioning-2026-07-08.md`](docs/agentlas-os-architecture-positioning-2026-07-08.md) |
 | Google Next 2026 comparison | [`docs/agentlas-os-google-next-2026-comparison-2026-07-08.md`](docs/agentlas-os-google-next-2026-comparison-2026-07-08.md) |
 | Briefing interview & research gate | [`docs/builder-interview-research-gate.md`](docs/builder-interview-research-gate.md) |
