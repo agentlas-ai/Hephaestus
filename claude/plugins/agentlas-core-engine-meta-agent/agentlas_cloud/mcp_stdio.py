@@ -18,7 +18,7 @@ import sys
 from typing import Any
 
 PROTOCOL_VERSION = "2025-06-18"
-SERVER_INFO = {"name": "hephaestus-network", "version": "1.1.17"}
+SERVER_INFO = {"name": "hephaestus-network", "version": "1.1.18"}
 
 TOOLS: list[dict[str, Any]] = [
     {
