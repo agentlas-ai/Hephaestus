@@ -20,10 +20,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Verify updater safety
+      - name: Verify package and public safety
+        run: |
+          bash scripts/verify-package.sh
+          bash scripts/public_safety_check.sh
+
+      - name: Verify updater and credential gates
         run: |
           python -m pip install pytest
-          python -m pytest -q tests/test_runtime_update.py
+          python -m pytest -q tests/test_runtime_update.py tests/test_public_safety_check.py
 
       - name: Build deterministic runtime archive
         run: bash scripts/build-runtime-release-asset.sh "$GITHUB_REF_NAME"

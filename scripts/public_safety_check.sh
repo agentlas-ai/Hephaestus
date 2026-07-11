@@ -25,6 +25,7 @@ check_pattern "private local volume" '/Volumes/[A-Za-z0-9._ -]+/'
 check_pattern "GitHub token" 'gh[opsu]_[A-Za-z0-9_]{20,}'
 check_pattern "OpenAI-style API token" 'sk-[A-Za-z0-9_-]{20,}'
 check_pattern "Google API key" 'AIza[0-9A-Za-z_-]{20,}'
+check_pattern "OpenCrab MCP credential" 'ocm_[A-Za-z0-9_-]{20,}'
 check_pattern "private key block" 'BEGIN (RSA|OPENSSH|EC|DSA) PRIVATE KEY'
 check_pattern "service account material" 'firebase-adminsdk|serviceAccountKey|client_email.*gserviceaccount'
 
