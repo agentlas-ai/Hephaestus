@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## v1.1.13 - 2026-07-11
+
+- **Local registrations reach the Agentlas Desktop library automatically.**
+  `card_store.save_card` now hands off every completed local registration
+  (`trusted` + `local/*` card with a real absolute-path package folder) to a
+  desktop import queue at `~/.agentlas/networking/desktop-sync/pending/`.
+  Because every runtime copy (Claude plugin, Codex plugin, terminal runtime,
+  desktop-vendored engine) funnels card writes through this single choke
+  point, an agent built anywhere now shows up in the desktop app without a
+  manual import. The gate is strict by design: `routing_ready` forge
+  experiment cards and relative/stale source refs never qualify, and the
+  handoff is best-effort — registration never fails because the desktop
+  queue could not be written. Drained entries record a `content_hash` in
+  `desktop-sync/done/` so an unchanged card is not re-enqueued.
+
 ## v1.1.12 - 2026-07-10
 
 - **Verified, rollback-safe runtime updates.** The updater now installs only the
