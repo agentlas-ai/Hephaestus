@@ -1,3 +1,4 @@
+import gc
 import json
 import os
 import shutil
@@ -7,7 +8,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import warnings
 import zipfile
+from contextlib import closing
 from pathlib import Path
 from unittest import mock
 
@@ -62,7 +65,7 @@ class OntologyRuntimeTests(unittest.TestCase):
         return OntologyRuntime(RuntimeConfig(db_path=self.db_path))
 
     def counts(self):
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             return {
                 "sources": conn.execute("select count(*) from sources").fetchone()[0],
                 "chunks": conn.execute("select count(*) from chunks").fetchone()[0],
@@ -123,7 +126,7 @@ class OntologyRuntimeTests(unittest.TestCase):
         second = self.counts()
         self.assertEqual(first, second)
 
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             row = conn.execute(
                 "select source_id, chunk_index, source_span_json, source_lineage_json from chunks order by chunk_index limit 1"
             ).fetchone()
@@ -132,6 +135,27 @@ class OntologyRuntimeTests(unittest.TestCase):
         self.assertEqual(row[1], 0)
         self.assertIn("line_start", row[2])
         self.assertIn(row[0], row[3])
+
+    def test_backup_closes_sqlite_connections_and_preserves_data(self):
+        rt = self.runtime()
+        rt.ingest_path(self.corpus, access_scope="internal")
+        destination = self.root / "backup.sqlite"
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", ResourceWarning)
+            result = rt.backup(destination)
+            gc.collect()
+
+        self.assertEqual(result, {"status": "ok", "backup_path": str(destination)})
+        leaked = [
+            warning
+            for warning in caught
+            if issubclass(warning.category, ResourceWarning)
+            and "unclosed database" in str(warning.message)
+        ]
+        self.assertEqual(leaked, [], [str(warning.message) for warning in leaked])
+        with closing(sqlite3.connect(destination)) as conn:
+            self.assertGreater(conn.execute("select count(*) from sources").fetchone()[0], 0)
 
     def test_graph_entity_query_returns_evidence_edges(self):
         rt = self.runtime()
@@ -554,7 +578,7 @@ class OntologySearchUpgradeTests(unittest.TestCase):
         rt = self.runtime()
         rt.ingest_path(self.corpus, access_scope="internal")
         del rt
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.execute("DROP TABLE chunk_fts")
             conn.execute(
                 "CREATE VIRTUAL TABLE chunk_fts USING fts5(chunk_id UNINDEXED, text, tokenize='porter')"
@@ -569,7 +593,7 @@ class OntologySearchUpgradeTests(unittest.TestCase):
         self.assertEqual(report["status"], "pass")
         answer = rt2.query("계약서 생성")
         self.assertTrue(answer["chunks"], answer)
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             vector = conn.execute("SELECT vector_json FROM chunks LIMIT 1").fetchone()[0]
         self.assertTrue(json.loads(vector))
 
@@ -606,7 +630,7 @@ class OntologySearchUpgradeTests(unittest.TestCase):
             chunk for chunk in answer["chunks"] if chunk["privacy_scope"] == "private"
         ]
         self.assertTrue(returned_private, "private chunks must still be searchable locally")
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             conn.row_factory = sqlite3.Row
             private_ids = {
                 row["chunk_id"]
@@ -621,7 +645,7 @@ class OntologySearchUpgradeTests(unittest.TestCase):
         long_doc = self.root / "long.md"
         long_doc.write_text(" ".join(f"word{i}" for i in range(100)), encoding="utf-8")
         rt.ingest_path(long_doc, access_scope="internal")
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             conn.row_factory = sqlite3.Row
             spans = [
                 json.loads(row["source_span_json"])

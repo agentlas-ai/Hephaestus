@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import sqlite3
+from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -244,7 +245,7 @@ class CareerGraphRuntime:
             nodes.extend(source_nodes)
             edges.extend(source_edges)
 
-        with self.connect() as conn:
+        with closing(self.connect()) as conn, conn:
             conn.execute(
                 "INSERT OR REPLACE INTO ingest_runs(run_id, project_root, started_at, status) VALUES (?, ?, ?, ?)",
                 (run_id, str(self.config.root), started, "running"),
@@ -535,7 +536,7 @@ class CareerGraphRuntime:
         counts = {"sources": 0, "nodes": 0, "edges": 0}
         stale: list[dict[str, Any]] = []
         if exists:
-            with self.connect() as conn:
+            with closing(self.connect()) as conn:
                 counts = {
                     "sources": conn.execute("SELECT count(*) FROM sources").fetchone()[0],
                     "nodes": conn.execute("SELECT count(*) FROM nodes").fetchone()[0],
@@ -563,7 +564,7 @@ class CareerGraphRuntime:
         if not self.config.sqlite_path.exists():
             return {"status": "missing_index", "query": text, "results": [], "hint": "run career-graph ingest first"}
         terms = [term.lower() for term in text.split() if len(term) > 1]
-        with self.connect() as conn:
+        with closing(self.connect()) as conn:
             rows = [dict(row) for row in conn.execute("SELECT * FROM nodes")]
         scored: list[tuple[int, dict[str, Any]]] = []
         for row in rows:
@@ -590,7 +591,7 @@ class CareerGraphRuntime:
         }
 
     def trace(self, node_or_edge_id: str) -> dict[str, Any]:
-        with self.connect() as conn:
+        with closing(self.connect()) as conn:
             node = conn.execute("SELECT * FROM nodes WHERE node_id = ?", (node_or_edge_id,)).fetchone()
             if node:
                 edges = [dict(row) for row in conn.execute("SELECT * FROM edges WHERE from_node = ? OR to_node = ?", (node_or_edge_id, node_or_edge_id))]
@@ -639,7 +640,7 @@ class CareerGraphRuntime:
             "edgeTypes": {},
         }
         if self.config.sqlite_path.exists():
-            with self.connect() as conn:
+            with closing(self.connect()) as conn:
                 card["sourceKinds"] = {
                     row["kind"]: row["count"]
                     for row in conn.execute("SELECT kind, count(*) AS count FROM sources GROUP BY kind ORDER BY kind")

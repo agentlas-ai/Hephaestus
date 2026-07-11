@@ -765,7 +765,7 @@ class OntologyRuntime:
     def backup(self, destination: str | Path) -> dict[str, Any]:
         destination = Path(destination)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        with self.connect() as source, sqlite3.connect(destination) as target:
+        with closing(self.connect()) as source, closing(sqlite3.connect(destination)) as target, target:
             source.backup(target)
         return {"status": "ok", "backup_path": str(destination)}
 

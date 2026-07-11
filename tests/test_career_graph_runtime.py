@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import gc
 import json
 import subprocess
 import sys
 import tempfile
 import unittest
+import warnings
+from contextlib import closing
 from pathlib import Path
 
 from career_graph import CareerGraphRuntime, RuntimeConfig
@@ -147,7 +150,7 @@ class CareerGraphRuntimeTests(unittest.TestCase):
     def test_ingest_promotes_failure_and_playbook_nodes(self) -> None:
         runtime = self.runtime()
         runtime.ingest()
-        with runtime.connect() as conn:
+        with closing(runtime.connect()) as conn:
             node_types = {
                 row["node_type"]: row["count"]
                 for row in conn.execute("SELECT node_type, count(*) AS count FROM nodes GROUP BY node_type")
@@ -200,7 +203,7 @@ class CareerGraphRuntimeTests(unittest.TestCase):
 
             # 노드 payload에 lease 원본이 보존된다 — 그래프는 정본 포인터+파생 인덱스이므로
             # lease 증거가 파생 층에서 유실되면 안 된다.
-            with runtime.connect() as conn:
+            with closing(runtime.connect()) as conn:
                 rows = [
                     dict(row)
                     for row in conn.execute("SELECT node_type, payload_json FROM nodes WHERE node_type = 'ExecutionReceipt'")
@@ -222,6 +225,27 @@ class CareerGraphRuntimeTests(unittest.TestCase):
                 os.environ.pop("AGENTLAS_NETWORKING_HOME", None)
             else:
                 os.environ["AGENTLAS_NETWORKING_HOME"] = previous
+
+    def test_runtime_operations_close_internal_sqlite_connections(self) -> None:
+        runtime = self.runtime()
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", ResourceWarning)
+            runtime.ingest()
+            runtime.status()
+            query = runtime.query("release webhook failure")
+            self.assertTrue(query["results"])
+            runtime.trace(query["results"][0]["node_id"])
+            runtime.verify()
+            runtime.public_card(write=False)
+            gc.collect()
+
+        leaked = [
+            warning
+            for warning in caught
+            if issubclass(warning.category, ResourceWarning)
+            and "unclosed database" in str(warning.message)
+        ]
+        self.assertEqual(leaked, [], [str(warning.message) for warning in leaked])
 
     def test_cli_ingest_and_query(self) -> None:
         ingest = subprocess.run(
