@@ -461,5 +461,7 @@ def test_write_python_shims_adds_windows_utf8_launchers(tmp_path):
     assert "-m agentlas_cloud" in runner
     assert "if defined HEPHAESTUS_PYTHON" in runner
     assert "|| python" not in runner
+    assert "goto use_py_launcher" in runner
+    assert ":use_path_python" in runner
     assert "exit /b %ERRORLEVEL%" in runner
     assert "PYTHONUTF8=1" in env

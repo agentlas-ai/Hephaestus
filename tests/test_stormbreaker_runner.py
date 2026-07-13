@@ -703,6 +703,31 @@ def test_hephaestus_storm_terminal_command_runs_pipeline(tmp_path):
     assert payload["route_decision"]["action"] == "pipeline"
 
 
+def test_python_cli_hep_storm_alias_runs_pipeline(tmp_path, monkeypatch, capsys):
+    home = pipeline_home(tmp_path)
+    project = tmp_path / "project"
+    project.mkdir()
+    executor = executor_script(tmp_path, "import os\nprint(os.environ['STORMBREAKER_PACKET_ID'])\n")
+    monkeypatch.setenv("AGENTLAS_NETWORKING_HOME", str(home))
+
+    code = main(
+        [
+            "hep-storm",
+            "웹앱 기획부터 구현, 테스트 검증까지 끝까지 해줘",
+            "--project",
+            str(project),
+            "--no-hub",
+            "--executor-command",
+            executor,
+        ]
+    )
+
+    assert code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "completed"
+    assert payload["route_decision"]["action"] == "pipeline"
+
+
 def test_hephaestus_stormbreaker_subcommand_runs_pipeline_with_research_preflight(tmp_path):
     home = pipeline_home(tmp_path)
     project = tmp_path / "project"

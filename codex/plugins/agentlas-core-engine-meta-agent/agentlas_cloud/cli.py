@@ -32,6 +32,42 @@ RESEARCH_SEARCH_PROVIDER_HINTS = {
 AGENTLAS_BROWSER_MODULE = "browser.agent_cli"
 
 
+def _configure_stormbreaker_run_parser(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("query", nargs="?", help="Natural-language pipeline request")
+    parser.add_argument("--decision-file", default=None, help="Run an existing route decision JSON instead of routing a query")
+    parser.add_argument("--project", default=".")
+    parser.add_argument("--runtime", default="terminal")
+    parser.add_argument("--no-hub", action="store_true")
+    parser.add_argument("--approve-hub", action="store_true", help="Legacy no-op; Hub lookup already uses redacted keywords only")
+    parser.add_argument("--hub-only", action="store_true", help="Skip local cards and search Agentlas Hub marketplace only")
+    parser.add_argument("--scope", choices=["network", "cloud"], default="network")
+    parser.add_argument("--caller", default=None)
+    parser.add_argument(
+        "--session-inventory",
+        default=None,
+        help="JSON array of active host sessions; packets in the same parallel group can run concurrently.",
+    )
+    parser.add_argument(
+        "--executor-command",
+        default=None,
+        help="Shell command launched once per packet. Packet data is exposed through STORMBREAKER_* env vars.",
+    )
+    parser.add_argument(
+        "--execute-card-commands",
+        action="store_true",
+        help="Execute card canonical_command values as shell commands when they are not slash commands.",
+    )
+    parser.add_argument("--background", action="store_true", help="Detach the runner and write logs/results under .agentlas/stormbreaker/background/")
+    parser.add_argument("--output-file", default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--max-workers", type=int, default=None)
+    parser.add_argument("--timeout", type=int, default=900, help="Per-packet executor timeout in seconds")
+    parser.add_argument("--research-evidence", action="store_true", help="Attach Research Engine receipts to research/planning packets.")
+    parser.add_argument("--research-loadout", default="safe", choices=["auto", "safe", "public-web", "social", "browser", "full", "recommended"], help="With --research-evidence, choose the detachable research module loadout or let Stormbreaker recommend one.")
+    parser.add_argument("--research-depth", default="quick", choices=["quick", "deep"], help="With --research-evidence, choose quick or deep follow-up reads.")
+    parser.add_argument("--research-follow-results", type=int, default=1, help="With --research-evidence, read the top N search results, bounded to 10.")
+    parser.add_argument("--research-variant", action="append", default=[], help="With --research-evidence, add a bounded query variant such as docs, github, reddit, threads, or news.")
+
+
 def main(argv: list[str] | None = None) -> int:
     configure_utf8_stdio()
     parser = argparse.ArgumentParser(prog="agentlas-cloud", description="Agentlas Cloud v1 local package tools")
@@ -261,39 +297,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Print the canonical Goal + UltraCode harness contract for host runtimes",
     )
     stormbreaker_run = stormbreaker_sub.add_parser("run", help="Route and execute a pipeline execution_fabric")
-    stormbreaker_run.add_argument("query", nargs="?", help="Natural-language pipeline request")
-    stormbreaker_run.add_argument("--decision-file", default=None, help="Run an existing route decision JSON instead of routing a query")
-    stormbreaker_run.add_argument("--project", default=".")
-    stormbreaker_run.add_argument("--runtime", default="terminal")
-    stormbreaker_run.add_argument("--no-hub", action="store_true")
-    stormbreaker_run.add_argument("--approve-hub", action="store_true", help="Legacy no-op; Hub lookup already uses redacted keywords only")
-    stormbreaker_run.add_argument("--hub-only", action="store_true", help="Skip local cards and search Agentlas Hub marketplace only")
-    stormbreaker_run.add_argument("--scope", choices=["network", "cloud"], default="network")
-    stormbreaker_run.add_argument("--caller", default=None)
-    stormbreaker_run.add_argument(
-        "--session-inventory",
-        default=None,
-        help="JSON array of active host sessions; packets in the same parallel group can run concurrently.",
+    _configure_stormbreaker_run_parser(stormbreaker_run)
+    stormbreaker_shortcut = sub.add_parser(
+        "hep-storm",
+        help="Cross-platform shortcut for 'stormbreaker run'",
     )
-    stormbreaker_run.add_argument(
-        "--executor-command",
-        default=None,
-        help="Shell command launched once per packet. Packet data is exposed through STORMBREAKER_* env vars.",
-    )
-    stormbreaker_run.add_argument(
-        "--execute-card-commands",
-        action="store_true",
-        help="Execute card canonical_command values as shell commands when they are not slash commands.",
-    )
-    stormbreaker_run.add_argument("--background", action="store_true", help="Detach the runner and write logs/results under .agentlas/stormbreaker/background/")
-    stormbreaker_run.add_argument("--output-file", default=None, help=argparse.SUPPRESS)
-    stormbreaker_run.add_argument("--max-workers", type=int, default=None)
-    stormbreaker_run.add_argument("--timeout", type=int, default=900, help="Per-packet executor timeout in seconds")
-    stormbreaker_run.add_argument("--research-evidence", action="store_true", help="Attach Research Engine receipts to research/planning packets.")
-    stormbreaker_run.add_argument("--research-loadout", default="safe", choices=["auto", "safe", "public-web", "social", "browser", "full", "recommended"], help="With --research-evidence, choose the detachable research module loadout or let Stormbreaker recommend one.")
-    stormbreaker_run.add_argument("--research-depth", default="quick", choices=["quick", "deep"], help="With --research-evidence, choose quick or deep follow-up reads.")
-    stormbreaker_run.add_argument("--research-follow-results", type=int, default=1, help="With --research-evidence, read the top N search results, bounded to 10.")
-    stormbreaker_run.add_argument("--research-variant", action="append", default=[], help="With --research-evidence, add a bounded query variant such as docs, github, reddit, threads, or news.")
+    _configure_stormbreaker_run_parser(stormbreaker_shortcut)
 
     stormbreaker_journal = stormbreaker_sub.add_parser(
         "journal", help="Inspect or repair a run journal so an interrupted run can resume"
@@ -1014,7 +1023,9 @@ def main(argv: list[str] | None = None) -> int:
             )
         parser.error("unhandled stormbreaker journal command")
         return 2
-    if args.command == "stormbreaker" and args.stormbreaker_command == "run":
+    if args.command == "hep-storm" or (
+        args.command == "stormbreaker" and args.stormbreaker_command == "run"
+    ):
         from .networking import init_networking
         from .networking.bootstrap import networking_home
         from .networking.stormbreaker_runner import run_stormbreaker_decision, run_stormbreaker_query
