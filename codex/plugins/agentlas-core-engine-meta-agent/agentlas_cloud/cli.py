@@ -1633,9 +1633,9 @@ def _stormbreaker_background_process_options(platform_name: str | None = None) -
 
     target = os.name if platform_name is None else platform_name
     if target == "nt":
-        no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+        detached = getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
         new_process_group = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
-        return {"creationflags": no_window | new_process_group}
+        return {"creationflags": detached | new_process_group}
     return {"start_new_session": True}
 
 
