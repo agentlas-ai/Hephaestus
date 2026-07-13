@@ -68,7 +68,7 @@ jobs:
 
       - name: Run Stormbreaker contract suite
         run: >-
-          python -m pytest -q
+          python -m pytest -q --full-trace
           tests/test_stormbreaker_goal_ultracode_harness.py
           tests/test_stormbreaker_runner.py
           tests/test_network_pipeline.py

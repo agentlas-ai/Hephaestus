@@ -39,9 +39,9 @@ def native_hephaestus_command(*args: str, shortcut: bool = False) -> list[str]:
 def native_hephaestus_process_options() -> dict[str, int]:
     if os.name != "nt":
         return {}
-    detached = getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
+    no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
     new_process_group = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
-    return {"creationflags": detached | new_process_group}
+    return {"creationflags": no_window | new_process_group}
 
 
 def executor_script(tmp_path, body: str) -> str:
