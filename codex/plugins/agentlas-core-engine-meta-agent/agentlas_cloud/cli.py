@@ -1633,9 +1633,19 @@ def _stormbreaker_background_process_options(platform_name: str | None = None) -
 
     target = os.name if platform_name is None else platform_name
     if target == "nt":
-        detached = getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
-        new_process_group = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
-        return {"creationflags": detached | new_process_group}
+        # A fresh console is the strongest Windows isolation boundary for
+        # CTRL_C/CTRL_BREAK events. Hide it so background runs remain invisible
+        # in Desktop, Codex, Claude Code, and terminal hosts.
+        options: dict[str, Any] = {
+            "creationflags": getattr(subprocess, "CREATE_NEW_CONSOLE", 0x00000010),
+        }
+        startupinfo_factory = getattr(subprocess, "STARTUPINFO", None)
+        if target == os.name and callable(startupinfo_factory):
+            startupinfo = startupinfo_factory()
+            startupinfo.dwFlags |= getattr(subprocess, "STARTF_USESHOWWINDOW", 0x00000001)
+            startupinfo.wShowWindow = getattr(subprocess, "SW_HIDE", 0)
+            options["startupinfo"] = startupinfo
+        return options
     return {"start_new_session": True}
 
 

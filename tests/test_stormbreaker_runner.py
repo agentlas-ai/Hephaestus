@@ -642,9 +642,12 @@ def test_stormbreaker_background_detaches_from_windows_console_signals():
     options = _stormbreaker_background_process_options("nt")
 
     assert "start_new_session" not in options
-    assert options["creationflags"] & 0x00000008
-    assert options["creationflags"] & 0x00000200
+    assert options["creationflags"] & 0x00000010
+    assert not options["creationflags"] & 0x00000008
     assert not options["creationflags"] & 0x08000000
+    if os.name == "nt":
+        assert options["startupinfo"].dwFlags & 0x00000001
+        assert options["startupinfo"].wShowWindow == 0
     assert _stormbreaker_background_process_options("posix") == {"start_new_session": True}
 
 
