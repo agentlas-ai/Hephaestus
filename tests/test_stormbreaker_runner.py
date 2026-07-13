@@ -773,20 +773,43 @@ def test_python_cli_hep_storm_alias_runs_pipeline(tmp_path, monkeypatch, capsys)
     executor = executor_script(tmp_path, "import os\nprint(os.environ['STORMBREAKER_PACKET_ID'])\n")
     monkeypatch.setenv("AGENTLAS_NETWORKING_HOME", str(home))
 
-    code = main(
-        [
-            "hep-storm",
-            "웹앱 기획부터 구현, 테스트 검증까지 끝까지 해줘",
-            "--project",
-            str(project),
-            "--no-hub",
-            "--executor-command",
-            executor,
-        ]
-    )
+    args = [
+        "hep-storm",
+        "웹앱 기획부터 구현, 테스트 검증까지 끝까지 해줘",
+        "--project",
+        str(project),
+        "--no-hub",
+        "--executor-command",
+        executor,
+    ]
 
-    assert code == 0
-    payload = json.loads(capsys.readouterr().out)
+    if os.name == "nt":
+        # Verify the Python CLI alias at the real Windows process boundary.
+        # Calling main() inside pytest would make the host and its concurrent
+        # packet executors share pytest's console, which is not how the CLI is
+        # invoked by Codex, Claude Code, Desktop, or Terminal adapters.
+        env = os.environ.copy()
+        env.update(
+            AGENTLAS_NETWORKING_HOME=str(home),
+            HEPHAESTUS_PYTHON=sys.executable,
+        )
+        completed = subprocess.run(
+            [sys.executable, "-m", "agentlas_cloud.cli", *args],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=60,
+            check=False,
+            **native_hephaestus_process_options(),
+        )
+        assert completed.returncode == 0, completed.stderr or completed.stdout
+        payload = json.loads(completed.stdout)
+    else:
+        code = main(args)
+        assert code == 0
+        payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "completed"
     assert payload["route_decision"]["action"] == "pipeline"
 

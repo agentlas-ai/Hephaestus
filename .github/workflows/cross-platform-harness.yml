@@ -19,6 +19,7 @@ on:
       - "hermes/**"
       - "scripts/verify-cross-platform-harness.py"
       - "tests/test_stormbreaker_goal_ultracode_harness.py"
+      - "tests/test_stormbreaker_runner.py"
       - ".github/workflows/cross-platform-harness.yml"
   push:
     branches: [main]
@@ -38,6 +39,7 @@ on:
       - "hermes/**"
       - "scripts/verify-cross-platform-harness.py"
       - "tests/test_stormbreaker_goal_ultracode_harness.py"
+      - "tests/test_stormbreaker_runner.py"
       - ".github/workflows/cross-platform-harness.yml"
 
 permissions:
