@@ -45,8 +45,7 @@ def native_hephaestus_process_options() -> dict[str, int]:
     if os.name != "nt":
         return {}
     no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
-    new_process_group = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
-    return {"creationflags": no_window | new_process_group}
+    return {"creationflags": no_window}
 
 
 def executor_script(tmp_path, body: str) -> str:
@@ -643,22 +642,15 @@ def test_stormbreaker_cli_background_run_writes_result(tmp_path, monkeypatch, ca
     assert result["final_gate"]["can_report_success"] is True
 
 
-def test_stormbreaker_background_detaches_from_windows_console_signals(monkeypatch):
-    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+def test_stormbreaker_background_detaches_from_windows_console_signals():
     options = _stormbreaker_background_process_options("nt")
 
     assert "start_new_session" not in options
-    assert options["creationflags"] & 0x00000010
+    assert options["creationflags"] & 0x08000000
     assert not options["creationflags"] & 0x00000008
-    assert not options["creationflags"] & 0x08000000
-    if os.name == "nt":
-        assert options["startupinfo"].dwFlags & 0x00000001
-        assert options["startupinfo"].wShowWindow == 0
+    assert not options["creationflags"] & 0x00000010
+    assert not options["creationflags"] & 0x00000200
     assert _stormbreaker_background_process_options("posix") == {"start_new_session": True}
-
-    monkeypatch.setenv("GITHUB_ACTIONS", "true")
-    ci_options = _stormbreaker_background_process_options("nt")
-    assert ci_options["creationflags"] & 0x01000000
 
 
 def test_stormbreaker_background_is_not_claimed_by_ci_process_cleanup():

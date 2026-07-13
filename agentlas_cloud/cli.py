@@ -1631,23 +1631,9 @@ def _stormbreaker_background_process_options(platform_name: str | None = None) -
 
     target = os.name if platform_name is None else platform_name
     if target == "nt":
-        # A fresh console is the strongest Windows isolation boundary for
-        # CTRL_C/CTRL_BREAK events. Hide it so background runs remain invisible
-        # in Desktop, Codex, Claude Code, and terminal hosts.
-        creationflags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0x00000010)
-        if os.environ.get("GITHUB_ACTIONS", "").lower() == "true":
-            # Hosted Windows runners place descendants in a cleanup Job Object.
-            # Break out only in that environment; Electron/terminal hosts keep
-            # the normal hidden-console path and its broad compatibility.
-            creationflags |= getattr(subprocess, "CREATE_BREAKAWAY_FROM_JOB", 0x01000000)
-        options: dict[str, Any] = {"creationflags": creationflags}
-        startupinfo_factory = getattr(subprocess, "STARTUPINFO", None)
-        if target == os.name and callable(startupinfo_factory):
-            startupinfo = startupinfo_factory()
-            startupinfo.dwFlags |= getattr(subprocess, "STARTF_USESHOWWINDOW", 0x00000001)
-            startupinfo.wShowWindow = getattr(subprocess, "SW_HIDE", 0)
-            options["startupinfo"] = startupinfo
-        return options
+        # Run without a console. Do not also request a new process group: the
+        # combination can leak Windows control events back to the host process.
+        return {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)}
     return {"start_new_session": True}
 
 

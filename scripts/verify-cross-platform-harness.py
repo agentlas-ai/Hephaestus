@@ -88,8 +88,7 @@ def _wrapper_process_options() -> dict[str, int]:
     if os.name != "nt":
         return {}
     no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
-    new_process_group = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
-    return {"creationflags": no_window | new_process_group}
+    return {"creationflags": no_window}
 
 
 def build_proof() -> dict[str, Any]:
