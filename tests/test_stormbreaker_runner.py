@@ -679,7 +679,11 @@ def test_hephaestus_storm_terminal_command_runs_pipeline(tmp_path):
     project = tmp_path / "project"
     project.mkdir()
     executor = executor_script(tmp_path, "import os\nprint(os.environ['STORMBREAKER_PACKET_ID'])\n")
-    env = dict(**os.environ, AGENTLAS_NETWORKING_HOME=str(home))
+    env = dict(
+        **os.environ,
+        AGENTLAS_NETWORKING_HOME=str(home),
+        HEPHAESTUS_PYTHON=sys.executable,
+    )
 
     completed = subprocess.run(
         native_hephaestus_command(
@@ -733,7 +737,11 @@ def test_hephaestus_stormbreaker_subcommand_runs_pipeline_with_research_prefligh
     home = pipeline_home(tmp_path)
     project = tmp_path / "project"
     project.mkdir()
-    env = dict(**os.environ, AGENTLAS_NETWORKING_HOME=str(home))
+    env = dict(
+        **os.environ,
+        AGENTLAS_NETWORKING_HOME=str(home),
+        HEPHAESTUS_PYTHON=sys.executable,
+    )
 
     completed = subprocess.run(
         native_hephaestus_command(
