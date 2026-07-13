@@ -17,7 +17,10 @@ from test_network_pipeline import pipeline_home
 def executor_script(tmp_path, body: str) -> str:
     script = tmp_path / "executor.py"
     script.write_text(body, encoding="utf-8")
-    return f"{shlex.quote(sys.executable)} {shlex.quote(str(script))}"
+    parts = [sys.executable, str(script)]
+    if os.name == "nt":
+        return subprocess.list2cmdline(parts)
+    return shlex.join(parts)
 
 
 def test_stormbreaker_runner_completes_pipeline_packets(tmp_path):

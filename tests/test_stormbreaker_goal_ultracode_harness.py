@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shlex
+import subprocess
 import sys
 from pathlib import Path
 
@@ -23,6 +25,12 @@ from test_network_pipeline import pipeline_home
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def shell_command(*parts: str) -> str:
+    if os.name == "nt":
+        return subprocess.list2cmdline(list(parts))
+    return shlex.join(parts)
 
 
 def test_canonical_harness_is_stable_and_schema_valid() -> None:
@@ -105,7 +113,7 @@ scope.mkdir(parents=True, exist_ok=True)
         home=home,
         project_dir=project,
         use_hub=False,
-        executor_command=f"{shlex.quote(sys.executable)} {shlex.quote(str(executor))}",
+        executor_command=shell_command(sys.executable, str(executor)),
     )
 
     harness = result["execution_harness"]
@@ -212,3 +220,13 @@ def test_host_adapters_consume_core_harness_instead_of_redefining_it() -> None:
         assert "execution_harness.system_prompt" in text, adapter
         assert "GOAL MODE:" not in text, adapter
         assert "ULTRACODE MODE:" not in text, adapter
+
+
+def test_cross_platform_proof_script_covers_native_wrappers_and_all_adapters() -> None:
+    text = (ROOT / "scripts" / "verify-cross-platform-harness.py").read_text(encoding="utf-8")
+
+    assert "bin\" / \"hephaestus.cmd" in text
+    assert "bin\" / \"hephaestus" in text
+    assert "system_prompt_utf8_base64" in text
+    assert "required_platforms = {\"Linux\", \"Darwin\", \"Windows\"}" in text
+    assert "cross-platform drift" in text
