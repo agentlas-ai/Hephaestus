@@ -1,5 +1,24 @@
 # Agentlas Core Engine Meta-Agent Team
 
+## Repository Constitution: Local Main Only
+
+This repository uses one canonical development line: the local `main` branch
+in `/Users/mason/Documents/Agentlas_F/Agentlas-OS`.
+
+- Make every source change and commit directly on local `main`.
+- Do not create feature, release, backup, agent-named, or temporary branches.
+- Do not create Git worktrees. Use an external recovery directory or a verified
+  Git bundle when a safety snapshot is required.
+- Before editing, confirm the canonical checkout is on `main`, inspect status,
+  fetch remote refs, and inspect `main...origin/main`. A GUI "Pull origin"
+  button is not permission to pull or merge blindly.
+- If local `main` is dirty, preserve it with a reviewed checkpoint commit before
+  reconciling remote changes on that same branch.
+- Push only `main` and intentional release tags. Do not publish side branches.
+
+Run `scripts/install-main-only-git-guard.sh` after cloning. The tracked Git
+hooks reject non-`main` local branch updates and non-`main` branch pushes.
+
 This repository is a portable three-agent meta-agent team. Use it to create or
 package Agentlas-compatible single agents and multi-agent teams for Codex,
 Claude Code, Gemini CLI, Antigravity, Cursor, OpenCode, OpenClaw, Hermes
