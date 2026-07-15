@@ -44,10 +44,13 @@ from .execution import (
 )
 from .governance import apply_ontology_proposal, validate_ontology_proposal
 from .contracts import (
+    WORKFORCE_COVERAGE_GAP_CODES,
     WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256,
     WORKFORCE_ONTOLOGY_VERSION,
     canonical_digest,
     load_ontology,
+    validate_candidate_set_coverage_gaps,
+    validate_coverage_gap_codes,
 )
 from .index import WorkforceIndex
 from .lifecycle import WorkforceProjection, replay_events
@@ -64,6 +67,7 @@ __all__ = [
     "WorkforceProjection",
     "WORKFORCE_CAPABILITY_BINDING_PLAN_DIGEST_SCHEMA",
     "WORKFORCE_CAPABILITY_BINDING_PLAN_SCHEMA",
+    "WORKFORCE_COVERAGE_GAP_CODES",
     "WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256",
     "WORKFORCE_ONTOLOGY_VERSION",
     "WORKFORCE_EXECUTION_PLAN_SCHEMA",
@@ -90,6 +94,8 @@ __all__ = [
     "validate_execution_graph",
     "validate_execution_receipt",
     "validate_capability_binding_plan",
+    "validate_candidate_set_coverage_gaps",
+    "validate_coverage_gap_codes",
     "validate_tool_inventory",
     "validate_hub_work_order_boundary",
     "validate_permission_policy",

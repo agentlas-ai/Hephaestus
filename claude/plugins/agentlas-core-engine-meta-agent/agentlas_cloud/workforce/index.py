@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping
 
 from .contracts import (
+    WORKFORCE_COVERAGE_GAP_CODES,
     assertion_concepts,
     canonical_digest,
     content_tokens,
@@ -14,9 +15,20 @@ from .contracts import (
     normalized_strings,
     stable_id,
     tool_concepts,
+    validate_candidate_set_coverage_gaps,
     verify_profile_integrity,
 )
 from .privacy import assert_hub_work_order_boundary
+
+
+_COVERAGE_GAP_CODES = frozenset(WORKFORCE_COVERAGE_GAP_CODES)
+
+
+def _excluded_gap(reason: str) -> str:
+    code = f"gap:excluded:{reason}"
+    if code not in _COVERAGE_GAP_CODES:
+        raise ValueError("candidate_set_coverage_gaps_invalid")
+    return code
 
 
 def _now() -> datetime:
@@ -83,52 +95,52 @@ def _hard_eligibility(profile: Mapping[str, Any], slot: Mapping[str, Any]) -> tu
 
     reasons: list[str] = []
     if profile.get("status") != "active":
-        reasons.append("release_not_active")
+        reasons.append("release-not-active")
     qualification = profile.get("qualification") if isinstance(profile.get("qualification"), Mapping) else {}
     if qualification.get("structuralStatus") == "invalid":
-        reasons.append("structural_contract_invalid")
+        reasons.append("structural-or-security-invalid")
     operational = profile.get("operational") if isinstance(profile.get("operational"), Mapping) else {}
     if operational.get("routingEligible") is not True:
-        reasons.append("release_not_routing_eligible")
+        reasons.append("release-not-routing-eligible")
 
     req = _slot_requirements(slot)
     have = _profile_sets(profile)
     entity_kind = str(profile.get("entityKind") or "")
     if req["entity_kinds"] and entity_kind not in req["entity_kinds"]:
-        reasons.append("entity_kind_mismatch")
+        reasons.append("entity-kind-mismatch")
     if req["excluded_communities"] & have["communities"]:
-        reasons.append("excluded_community")
+        reasons.append("excluded-community")
     if req["roles"] - have["roles"]:
-        reasons.append("missing_required_role")
+        reasons.append("missing-required-role")
     if req["skills"] - have["skills"]:
-        reasons.append("missing_required_skill")
+        reasons.append("missing-required-skill")
     if req["knowledge"] - have["knowledge"]:
-        reasons.append("missing_required_knowledge")
+        reasons.append("missing-required-knowledge")
     if req["tools"] - have["tools"]:
-        reasons.append("missing_required_tool")
+        reasons.append("missing-required-tool")
     minimum_level = {"declared": 0, "checked": 1, "demonstrated": 2, "attested": 3}.get(
         str(slot.get("minimumEvidenceLevel") or "declared"), 0
     )
     if any(have["skill_levels"].get(item, -1) < minimum_level for item in req["skills"]):
-        reasons.append("required_skill_evidence_below_minimum")
+        reasons.append("required-skill-evidence-below-minimum")
     if any(have["tool_levels"].get(item, -1) < minimum_level for item in req["tools"]):
-        reasons.append("required_tool_evidence_below_minimum")
+        reasons.append("required-tool-evidence-below-minimum")
     if req["consumes"] - have["consumes"]:
-        reasons.append("missing_consumed_artifact_contract")
+        reasons.append("missing-consumed-artifact")
     if req["produces"] - have["produces"]:
-        reasons.append("missing_produced_artifact_contract")
+        reasons.append("missing-produced-artifact")
     if req["authorities"] - have["authorities"]:
-        reasons.append("missing_required_authority")
+        reasons.append("missing-required-authority")
     if req["forbidden_authorities"] & have["authorities"]:
-        reasons.append("forbidden_authority_conflict")
+        reasons.append("forbidden-authority-conflict")
     if have["forbidden_authorities"] & req["authorities"]:
-        reasons.append("candidate_prohibits_required_authority")
+        reasons.append("candidate-prohibits-required-authority")
     if req["runtimes"] and not req["runtimes"] & have["runtimes"]:
-        reasons.append("runtime_mismatch")
+        reasons.append("runtime-mismatch")
     if req["languages"] and not req["languages"] & have["languages"]:
-        reasons.append("language_mismatch")
+        reasons.append("language-mismatch")
     if req["modalities"] and not req["modalities"] & have["modalities"]:
-        reasons.append("modality_mismatch")
+        reasons.append("modality-mismatch")
 
     # A required occupational community is a semantic recall constraint, not an
     # exclusion shortcut.  Direct role/skill/tool evidence may satisfy an
@@ -136,7 +148,7 @@ def _hard_eligibility(profile: Mapping[str, Any], slot: Mapping[str, Any]) -> tu
     missing_communities = req["communities"] - have["communities"]
     has_direct_evidence = bool(req["roles"] or req["skills"] or req["tools"])
     if missing_communities and not has_direct_evidence:
-        reasons.append("missing_required_community")
+        reasons.append("missing-required-community")
     return not reasons, reasons
 
 
@@ -320,12 +332,15 @@ class WorkforceIndex:
             if not isinstance(slot, Mapping) or not slot.get("slotId"):
                 raise ValueError("invalid role slot")
             rows: list[tuple[dict[str, Any], int]] = []
+            exclusion_reasons: set[str] = set()
             for profile in self.profiles.values():
                 forbidden = _strings(work_order.get("forbiddenCommunities"))
                 if forbidden & _profile_sets(profile)["communities"]:
+                    exclusion_reasons.add("forbidden-community")
                     continue
-                eligible, _reasons = _hard_eligibility(profile, slot)
+                eligible, reasons = _hard_eligibility(profile, slot)
                 if not eligible:
+                    exclusion_reasons.update(reasons)
                     continue
                 evidence, optional_gaps, score = _fit_evidence(profile, slot)
                 rows.append((_candidate_card(profile, evidence, optional_gaps), score))
@@ -336,6 +351,7 @@ class WorkforceIndex:
                 gaps.append("gap:minimum-candidate-count")
             if not cards:
                 gaps.append("gap:no-hard-eligible-candidate")
+                gaps.extend(_excluded_gap(reason) for reason in sorted(exclusion_reasons)[:12])
             slot_results.append({"slotId": str(slot["slotId"]), "candidates": cards, "coverageGaps": gaps})
 
         digest_payload = {
@@ -346,7 +362,7 @@ class WorkforceIndex:
         }
         candidate_digest = canonical_digest(digest_payload)
         clock = now or _now()
-        return {
+        candidate_set = {
             "schemaVersion": "agentlas.workforce-candidate-set.v1",
             "selectionSessionId": session_id,
             "workOrderId": str(work_order.get("workOrderId")),
@@ -358,6 +374,8 @@ class WorkforceIndex:
             "issuedAt": clock.isoformat().replace("+00:00", "Z"),
             "expiresAt": (clock + timedelta(minutes=10)).isoformat().replace("+00:00", "Z"),
         }
+        validate_candidate_set_coverage_gaps(candidate_set)
+        return candidate_set
 
 
 __all__ = ["WorkforceIndex"]

@@ -19,6 +19,11 @@ SHA-256 `d6d30d45fe8d35fb785e165d1e80c6471a72436f0160c3933c21d4a31bf2fb32`.
 The scorer fails closed when either the fixture or captured work-order and
 candidate-set versions drift; it does not reinterpret an older menu.
 
+`coverage-gap-codes-v1-vectors.json` pins the complete finite aggregate
+`coverageGaps` vocabulary shared with Hub search. It includes the Desktop Qwen
+response that exposed the contract drift and rejection vectors proving that an
+unknown reason or candidate identity cannot cross the candidate-set boundary.
+
 The host runtime must save one JSON object with these exact keys:
 
 - `workOrder`

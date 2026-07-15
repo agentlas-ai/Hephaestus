@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
-from .contracts import canonical_digest, normalized_strings
+from .contracts import canonical_digest, normalized_strings, validate_candidate_set_coverage_gaps
 
 
 def _candidate_maps(candidate_set: Mapping[str, Any]) -> tuple[dict[str, dict[str, dict[str, Any]]], set[str]]:
@@ -76,6 +76,10 @@ def validate_host_selection(
     """
 
     issues: list[str] = []
+    try:
+        validate_candidate_set_coverage_gaps(candidate_set)
+    except ValueError:
+        issues.append("candidate_set_coverage_gaps_invalid")
     if selection.get("schemaVersion") != "agentlas.workforce-selection.v1":
         issues.append("unsupported_selection_schema")
     if selection.get("selectionSessionId") != candidate_set.get("selectionSessionId"):

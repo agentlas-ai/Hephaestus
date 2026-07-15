@@ -10,6 +10,7 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from agentlas_cloud.workforce import (
+    WORKFORCE_COVERAGE_GAP_CODES,
     WORKFORCE_EXECUTION_PLAN_SCHEMA,
     WORKFORCE_EXECUTION_RECEIPT_SCHEMA,
     WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256,
@@ -23,6 +24,9 @@ from agentlas_cloud.workforce import (
     compile_workforce_profile,
     load_ontology,
     prepare_execution_plan,
+    project_execution_context,
+    validate_candidate_set_coverage_gaps,
+    validate_coverage_gap_codes,
     validate_hub_work_order_boundary,
     replay_events,
     validate_execution_receipt,
@@ -216,6 +220,66 @@ def test_content_retrieval_excludes_travel_agent_from_coding_work():
     assert result["decisionOwner"] == "host_llm"
     assert result["historyInfluence"] == "none"
     assert "selected" not in result
+
+
+def test_coverage_gap_contract_accepts_live_desktop_codes_and_rejects_unknown_values():
+    root = Path(__file__).resolve().parents[1]
+    vectors = json.loads(
+        (root / "benchmarks" / "workforce-ontology" / "coverage-gap-codes-v1-vectors.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    schema = json.loads(
+        (root / "schemas" / "workforce-candidate-set.schema.json").read_text(encoding="utf-8")
+    )
+    validator = Draft202012Validator(schema)
+    candidate_set = WorkforceIndex([]).search_candidates(work_order(), now=NOW)
+
+    assert tuple(vectors["coverageGapCodes"]) == WORKFORCE_COVERAGE_GAP_CODES
+    assert schema["$defs"]["coverageGap"]["enum"] == vectors["coverageGapCodes"]
+    assert schema["$defs"]["coverageGaps"]["maxItems"] == len(WORKFORCE_COVERAGE_GAP_CODES)
+
+    for vector in vectors["accepted"]:
+        codes = validate_coverage_gap_codes(vector["codes"])
+        value = deepcopy(candidate_set)
+        value["slots"][0]["coverageGaps"] = codes
+        validate_candidate_set_coverage_gaps(value)
+        assert not list(validator.iter_errors(value)), vector["vectorId"]
+
+    for vector in vectors["rejected"]:
+        raw_value = vector["codes"][0]
+        with pytest.raises(ValueError, match="^candidate_set_coverage_gaps_invalid$") as error:
+            validate_coverage_gap_codes(vector["codes"])
+        assert raw_value not in str(error.value)
+        value = deepcopy(candidate_set)
+        value["slots"][0]["coverageGaps"] = vector["codes"]
+        assert list(validator.iter_errors(value)), vector["vectorId"]
+
+
+def test_core_index_emits_web_compatible_exclusion_aggregate_codes():
+    order = work_order()
+    slot = order["roleSlots"][0]
+    slot["requiredRoles"].append("role:unavailable-specialist")
+    slot["requiredSkills"].append("skill:unavailable-specialty")
+    slot["produces"].append("artifact:unavailable-deliverable")
+    slot["languages"] = ["fr"]
+    slot["modalities"] = ["audio"]
+    slot["minimumEvidenceLevel"] = "attested"
+
+    result = WorkforceIndex([backend_profile()]).search_candidates(order, now=NOW)
+    coverage_gaps = set(result["slots"][0]["coverageGaps"])
+
+    assert result["slots"][0]["candidates"] == []
+    assert {
+        "gap:minimum-candidate-count",
+        "gap:no-hard-eligible-candidate",
+        "gap:excluded:language-mismatch",
+        "gap:excluded:missing-produced-artifact",
+        "gap:excluded:missing-required-role",
+        "gap:excluded:missing-required-skill",
+        "gap:excluded:modality-mismatch",
+        "gap:excluded:required-skill-evidence-below-minimum",
+    } <= coverage_gaps
 
 
 @pytest.mark.parametrize("boundary", ["work-order", "role-slot"])
@@ -556,6 +620,32 @@ def accepted_selection_fixture() -> tuple[dict, dict, dict, dict]:
     }
     validation = validate_host_selection(decision, candidate_set=candidates, work_order=order, now=NOW)
     return order, candidates, decision, validation
+
+
+def test_selection_and_execution_reject_unknown_candidate_set_coverage_gap_code():
+    order, candidates, decision, validation = accepted_selection_fixture()
+    poisoned = deepcopy(candidates)
+    leaked_identity = "gap:excluded:release:private-candidate-123"
+    poisoned["slots"][0]["coverageGaps"] = [leaked_identity]
+
+    rejected = validate_host_selection(
+        decision,
+        candidate_set=poisoned,
+        work_order=order,
+        now=NOW,
+    )
+
+    assert rejected["status"] == "rejected"
+    assert "candidate_set_coverage_gaps_invalid" in rejected["issues"]
+    assert leaked_identity not in json.dumps(rejected, sort_keys=True)
+    with pytest.raises(ValueError, match="^candidate_set_coverage_gaps_invalid$") as error:
+        project_execution_context(
+            work_order=order,
+            selection=decision,
+            validation_receipt=validation,
+            candidate_set=poisoned,
+        )
+    assert leaked_identity not in str(error.value)
 
 
 def test_prepare_execution_pins_exact_release_hashes_and_never_substitutes():

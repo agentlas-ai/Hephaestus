@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.1.45 - 2026-07-16
+
+- **Hub coverage gaps now cross every runtime through one finite contract.**
+  Core accepts the complete 23-code aggregate vocabulary emitted by Web
+  workforce search, including hard-eligibility exclusion classes observed in
+  the Desktop Qwen run, while retaining minimum-count and no-eligible-candidate
+  signals.
+- **Unknown coverage reasons fail closed without leaking candidate data.** The
+  candidate-set schema, host-selection validator, execution projection, Core
+  reference index, and both adapter mirrors share the same allowlist. Golden
+  vectors accept the live aggregate response and reject arbitrary reasons or
+  candidate identities without reflecting the untrusted value in errors.
+
 ## v1.1.44 - 2026-07-16
 
 - **Prepared staffing is now an executable organization contract.**

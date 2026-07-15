@@ -7,7 +7,7 @@ import json
 import re
 from typing import Any, Iterable, Mapping
 
-from .contracts import canonical_digest
+from .contracts import canonical_digest, validate_candidate_set_coverage_gaps
 from .privacy import WorkOrderHubBoundaryError, assert_hub_work_order_boundary
 
 
@@ -491,6 +491,7 @@ def project_execution_context(
         raise ValueError("execution_context_candidate_digest_mismatch")
     if selection.get("selectionSessionId") != candidate_set.get("selectionSessionId"):
         raise ValueError("execution_context_selection_session_mismatch")
+    validate_candidate_set_coverage_gaps(candidate_set)
 
     task_brief = work_order.get("taskBrief")
     if not isinstance(task_brief, str) or not task_brief.strip() or len(task_brief) > 4000:

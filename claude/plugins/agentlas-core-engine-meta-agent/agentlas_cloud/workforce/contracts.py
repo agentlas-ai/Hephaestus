@@ -15,6 +15,66 @@ TOKEN_RE = re.compile(r"[a-z0-9][a-z0-9._:/@+-]*|[가-힣]{2,}", re.IGNORECASE)
 WORKFORCE_ONTOLOGY_VERSION = "awo:2026-07-15.2"
 WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256 = "d6d30d45fe8d35fb785e165d1e80c6471a72436f0160c3933c21d4a31bf2fb32"
 
+# Exact finite aggregate codes emitted by the Hub workforce search boundary.
+# These codes describe eligibility classes only. They must never embed a
+# candidate/release identity, raw profile content, history, or a free-form
+# reason supplied by an agent.
+WORKFORCE_COVERAGE_GAP_CODES = (
+    "gap:minimum-candidate-count",
+    "gap:no-hard-eligible-candidate",
+    "gap:excluded:forbidden-community",
+    "gap:excluded:release-not-active",
+    "gap:excluded:structural-or-security-invalid",
+    "gap:excluded:release-not-routing-eligible",
+    "gap:excluded:entity-kind-mismatch",
+    "gap:excluded:excluded-community",
+    "gap:excluded:missing-required-role",
+    "gap:excluded:missing-required-skill",
+    "gap:excluded:missing-required-knowledge",
+    "gap:excluded:missing-required-tool",
+    "gap:excluded:missing-consumed-artifact",
+    "gap:excluded:missing-produced-artifact",
+    "gap:excluded:missing-required-authority",
+    "gap:excluded:forbidden-authority-conflict",
+    "gap:excluded:candidate-prohibits-required-authority",
+    "gap:excluded:runtime-mismatch",
+    "gap:excluded:language-mismatch",
+    "gap:excluded:modality-mismatch",
+    "gap:excluded:missing-required-community",
+    "gap:excluded:required-skill-evidence-below-minimum",
+    "gap:excluded:required-tool-evidence-below-minimum",
+)
+_WORKFORCE_COVERAGE_GAP_CODE_SET = frozenset(WORKFORCE_COVERAGE_GAP_CODES)
+
+
+def validate_coverage_gap_codes(value: Any) -> list[str]:
+    """Validate the public finite aggregate vocabulary without reflecting data."""
+
+    if not isinstance(value, list) or len(value) > len(WORKFORCE_COVERAGE_GAP_CODES):
+        raise ValueError("candidate_set_coverage_gaps_invalid")
+    result: list[str] = []
+    seen: set[str] = set()
+    for item in value:
+        if not isinstance(item, str) or item not in _WORKFORCE_COVERAGE_GAP_CODE_SET or item in seen:
+            # Do not echo an unknown value: it may contain a candidate identity
+            # or other private text from an untrusted remote response.
+            raise ValueError("candidate_set_coverage_gaps_invalid")
+        seen.add(item)
+        result.append(item)
+    return result
+
+
+def validate_candidate_set_coverage_gaps(candidate_set: Mapping[str, Any]) -> None:
+    """Validate every candidate-set slot against the public finite vocabulary."""
+
+    slots = candidate_set.get("slots") if isinstance(candidate_set, Mapping) else None
+    if not isinstance(slots, list) or not slots:
+        raise ValueError("candidate_set_coverage_gaps_invalid")
+    for slot in slots:
+        if not isinstance(slot, Mapping) or not isinstance(slot.get("slotId"), str):
+            raise ValueError("candidate_set_coverage_gaps_invalid")
+        validate_coverage_gap_codes(slot.get("coverageGaps"))
+
 
 def canonical_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
