@@ -806,6 +806,94 @@ class AgentExperienceProjectionTests(unittest.TestCase):
             )
         self.assertEqual(before, after, "recall must not create tickets, links, or hot-cache writes")
 
+    def test_experience_ranking_and_similarity_have_no_recency_scan_cap(self):
+        rt = self.runtime()
+        target = rt.ingest_experience(
+            agent_id="hub:long-memory",
+            summary="Legacy zebra quantum release sentinel requires a rollback checklist.",
+            tags=["zebra", "quantum", "rollback"],
+            source_memory_id="old-relevant",
+            source_updated_at="2000-01-01T00:00:00Z",
+        )["experience"]
+        filler_text = "Cafeteria menu calendar and sunny garden flowers."
+        filler_vector = rt.vector_adapter.embed(filler_text)
+        filler_vector_json = json.dumps(filler_vector)
+        filler_hash = hashlib.sha256(filler_text.encode("utf-8")).hexdigest()
+
+        def filler_rows():
+            for index in range(5_001):
+                ticket = f"newer-unrelated-{index:05d}"
+                timestamp = f"2100-01-{1 + (index % 28):02d}T00:00:00Z"
+                yield (
+                    ticket,
+                    f"idempotency-{ticket}",
+                    "unrelated fixture",
+                    filler_text,
+                    "[]",
+                    "large governed recall regression fixture",
+                    0.7,
+                    "low",
+                    None,
+                    "agent_repo",
+                    "active",
+                    0,
+                    "hub:long-memory",
+                    "fact",
+                    "[]",
+                    0.5,
+                    "internal",
+                    f"source-{ticket}",
+                    timestamp,
+                    rt.vector_adapter.name,
+                    len(filler_vector),
+                    filler_vector_json,
+                    filler_hash,
+                    timestamp,
+                    timestamp,
+                )
+
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
+            conn.executemany(
+                """
+                INSERT INTO memory_candidates (
+                  ticket_id, idempotency_key, query, candidate_text,
+                  source_refs_json, reason, confidence, risk, expiry,
+                  suggested_scope, status, durable_write_enabled, agent_id,
+                  memory_kind, tags_json, salience, privacy_scope,
+                  source_memory_id, source_updated_at, embedding_adapter,
+                  embedding_dimensions, embedding_json, embedding_content_hash,
+                  created_at, updated_at
+                ) VALUES (
+                  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                  ?, ?, ?, ?, ?, ?
+                )
+                """,
+                filler_rows(),
+            )
+
+        recall = rt.query_experience(
+            "legacy zebra quantum release sentinel rollback checklist",
+            agent_id="hub:long-memory",
+        )
+        self.assertEqual(recall["eligible_count"], 5_002)
+        self.assertIn(target["ticket_id"], {item["ticket_id"] for item in recall["items"]})
+
+        duplicate = rt.ingest_experience(
+            agent_id="hub:long-memory",
+            summary="Legacy zebra quantum release sentinel requires a rollback checklist.",
+            tags=["zebra", "quantum", "rollback"],
+            source_memory_id="new-related",
+            source_updated_at="2200-01-01T00:00:00Z",
+            similar_threshold=0.99,
+        )
+        self.assertTrue(
+            any(
+                target["ticket_id"] in (link["from_ticket"], link["to_ticket"])
+                for link in duplicate["similar_links"]
+            ),
+            "semantic relation rebuild hid an older match behind a recency scan cap",
+        )
+
     def test_cli_query_agent_reads_experience_without_mutation(self):
         rt = self.runtime()
         rt.ingest_experience(

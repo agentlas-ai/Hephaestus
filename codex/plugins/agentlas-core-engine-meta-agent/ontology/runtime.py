@@ -24,14 +24,14 @@ from .utils import clamp, content_hash, estimate_tokens, json_dumps, json_loads,
 SCHEMA_VERSION = 3
 DEFAULT_DB_PATH = Path(".agentlas/ontology-runtime.sqlite")
 
-# Hybrid retrieval (A-2/A-3): Reciprocal Rank Fusion over the FTS and vector
-# rankings, computed on a bounded candidate pool instead of a full-corpus
-# Python cosine pass.
+# Hybrid document retrieval (A-2/A-3) uses bounded fallback scans. Governed
+# experience retrieval is intentionally different: every eligible row is
+# scored before the adaptive token-budget selector chooses all-relevant or
+# vector/RRF top-k, so an arbitrary recency window cannot hide old evidence.
 RRF_K = 60
 RRF_MISSING_RANK = 10_000
 VECTOR_FALLBACK_SCAN_CAP = 5_000
 MIN_VECTOR_SCORE = 0.05
-EXPERIENCE_SCAN_CAP = 5_000
 MIN_EXPERIENCE_VECTOR_SCORE = 0.08
 MODEL2VEC_MIN_VECTOR_SCORE = 0.45
 MODEL2VEC_CJK_MIN_VECTOR_SCORE = 0.50
@@ -666,7 +666,6 @@ class OntologyRuntime:
                   AND (newer.expiry IS NULL OR newer.expiry > ?)
               )
             ORDER BY m.updated_at DESC, m.ticket_id
-            LIMIT ?
             """,
             (
                 agent_id,
@@ -675,7 +674,6 @@ class OntologyRuntime:
                 utc_now(),
                 *ACTIVE_EXPERIENCE_STATUSES,
                 utc_now(),
-                EXPERIENCE_SCAN_CAP,
             ),
         ).fetchall()
         if not rows:
@@ -861,9 +859,8 @@ class OntologyRuntime:
               AND memory_kind != 'candidate'
               AND status IN ({status_marks})
             ORDER BY updated_at DESC
-            LIMIT ?
             """,
-            (ticket_id, agent_id, privacy_scope, *ACTIVE_EXPERIENCE_STATUSES, EXPERIENCE_SCAN_CAP),
+            (ticket_id, agent_id, privacy_scope, *ACTIVE_EXPERIENCE_STATUSES),
         ).fetchall()
         links: list[dict[str, Any]] = []
         for row in rows:
