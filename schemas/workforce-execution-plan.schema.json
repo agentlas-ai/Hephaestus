@@ -9,7 +9,7 @@
     "candidateSetDigest", "decisionOwner", "substitutions", "executionRoster"
   ],
   "properties": {
-    "schemaVersion": { "const": "agentlas.workforce-execution-plan.v1" },
+    "schemaVersion": { "const": "agentlas.workforce-execution-plan.v2" },
     "status": { "enum": ["prepared", "rejected"] },
     "issues": { "$ref": "#/$defs/strings" },
     "preparationReceiptId": { "$ref": "#/$defs/id" },
@@ -25,7 +25,7 @@
         "additionalProperties": false,
         "required": [
           "slotId", "agentDefinitionId", "agentReleaseId", "releaseVersion", "packageHash",
-          "contentDigest", "entityKind", "directiveBundle", "bundleDigest"
+          "contentDigest", "entityKind", "directiveBundle", "bundleDigestSchema", "bundleDigest"
         ],
         "properties": {
           "slotId": { "$ref": "#/$defs/id" },
@@ -50,6 +50,7 @@
               { "required": ["agentMd"] }
             ]
           },
+          "bundleDigestSchema": { "const": "agentlas.workforce-runtime-bundle-digest.v1" },
           "bundleDigest": { "$ref": "#/$defs/hash" }
         }
       }

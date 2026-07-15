@@ -6,7 +6,13 @@ used by the local Core runtime and mirrored by hosted surfaces.
 """
 
 from .compiler import compile_workforce_profile
-from .execution import prepare_execution_plan, validate_execution_receipt
+from .execution import (
+    WORKFORCE_EXECUTION_PLAN_SCHEMA,
+    WORKFORCE_RUNTIME_BUNDLE_DIGEST_SCHEMA,
+    prepare_execution_plan,
+    validate_execution_receipt,
+    workforce_runtime_bundle_digest,
+)
 from .governance import apply_ontology_proposal, validate_ontology_proposal
 from .contracts import (
     WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256,
@@ -23,10 +29,13 @@ __all__ = [
     "WorkforceProjection",
     "WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256",
     "WORKFORCE_ONTOLOGY_VERSION",
+    "WORKFORCE_EXECUTION_PLAN_SCHEMA",
+    "WORKFORCE_RUNTIME_BUNDLE_DIGEST_SCHEMA",
     "canonical_digest",
     "compile_workforce_profile",
     "prepare_execution_plan",
     "validate_execution_receipt",
+    "workforce_runtime_bundle_digest",
     "apply_ontology_proposal",
     "validate_ontology_proposal",
     "load_ontology",

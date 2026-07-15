@@ -6,7 +6,8 @@
   "additionalProperties": false,
   "required": [
     "schemaVersion", "selectionSessionId", "candidateSetDigest",
-    "decisionAuthor", "assignments", "edges", "alternativesConsidered"
+    "decisionAuthor", "assignments", "edges", "alternativesConsidered",
+    "requestExpansionForSlots"
   ],
   "properties": {
     "schemaVersion": { "const": "agentlas.workforce-selection.v1" },
@@ -15,7 +16,7 @@
     "decisionAuthor": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "modelId"],
+      "required": ["kind", "modelId", "runtimeId"],
       "properties": {
         "kind": { "const": "host_llm" },
         "modelId": { "$ref": "#/$defs/id" },
@@ -43,7 +44,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["fromSlot", "toSlot", "relation"],
+        "required": ["fromSlot", "toSlot", "relation", "artifactKinds"],
         "properties": {
           "fromSlot": { "$ref": "#/$defs/id" },
           "toSlot": { "$ref": "#/$defs/id" },

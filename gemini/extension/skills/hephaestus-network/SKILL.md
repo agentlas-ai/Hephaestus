@@ -55,8 +55,11 @@ real host model id, exact slot/release assignments, graph edges, alternatives,
 and short reason codes. Some nondeterminism in final judgment is intentional;
 hard constraints are not.
 
-If a required slot has inadequate coverage, request a bounded expansion for
-that slot or report the gap. Never fill it with a semantically unrelated agent.
+If a required slot has inadequate coverage, use at most two same-host semantic
+WorkOrder refinements across the whole decision. A provisional Selection may
+request content expansion through `requestExpansionForSlots`; the adapter gives
+the host only aggregate slot/count/gap data, never candidate identities. Never
+fill a post with a semantically unrelated agent or repeat an exhausted request.
 
 ## 3. Validate and pin exact releases
 
@@ -65,11 +68,13 @@ selection. Re-plan on rejection. The validator may reject constraints,
 cardinality, cycles, drift, or out-of-menu releases; it must never pick for you.
 
 Call `workforce.prepare_execution` only after acceptance. Preparation must
-return `agentlas.workforce-execution-plan.v1`, status `prepared`, an exact
+return `agentlas.workforce-execution-plan.v2`, status `prepared`, an exact
 `preparationReceiptId`, and an `executionRoster` whose release version,
 package hash, and content digest match the candidate set. It returns BYOM
-`directiveBundle` records. Missing or changed releases create unfilled posts;
-there is no silent substitution.
+`directiveBundle` records. Every row must declare
+`bundleDigestSchema=agentlas.workforce-runtime-bundle-digest.v1`; recompute its
+canonical digest before execution and fail closed on mismatch. Missing or
+changed releases create unfilled posts; there is no silent substitution.
 
 ## 4. Execute the real task force
 

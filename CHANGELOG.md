@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.1.41 - 2026-07-16
+
+- **Coverage repair is bounded, semantic, and candidate-blind.** The same host
+  LLM may replace the complete WorkOrder at most twice using only aggregate
+  slot IDs, counts, and gap codes. A provisional Selection can request one
+  content expansion through `requestExpansionForSlots`; candidate identities,
+  descriptions, ranks, history, and popularity never leak into refinement.
+- **Direct host decisions are exact contracts.** WorkOrder and Selection
+  schemas require every adapter-owned array, policy field, runtime identity,
+  and edge artifact list instead of silently inserting defaults. Hard skill,
+  tool, consume, and produce fields describe candidate package declarations;
+  ordinary workflow deliverables remain in slot tasks and handoff edges.
+- **Prepared directives are cryptographically bound to the selected post and
+  immutable release.** `agentlas.workforce-execution-plan.v2` requires
+  `agentlas.workforce-runtime-bundle-digest.v1`; Core ignores any digest carried
+  by an input bundle and recomputes canonical SHA-256 over the exact slot,
+  definition, release, version, package/content hashes, entity kind, and BYOM
+  directive bundle. Hosts must recompute before execution and fail closed on a
+  v1 plan, missing marker, or mismatch.
+
 ## v1.1.40 - 2026-07-16
 
 - **Cross-platform workforce adapters now have one direct-object contract.**

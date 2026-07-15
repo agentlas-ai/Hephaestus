@@ -43,8 +43,10 @@ done
    `workforce.validate_selection` with `{workOrder,candidateSet,selection}`.
    Re-plan if rejected; do not accept a deterministic substitute.
 4. Call `workforce.prepare_execution` with the accepted validation receipt.
-   Require `agentlas.workforce-execution-plan.v1`, status `prepared`, and an
-   exact pinned `executionRoster`; fail closed on release/hash drift or missing
+   Require `agentlas.workforce-execution-plan.v2`, status `prepared`, and an
+   exact pinned `executionRoster`; every row must declare
+   `agentlas.workforce-runtime-bundle-digest.v1`, which the host recomputes
+   before execution. Fail closed on release/hash/directive drift or missing
    directives. Never silently substitute.
 5. Run manager/planner, each selected worker, synthesis, and verifier as
    distinct model invocations using the prepared directive bundles and

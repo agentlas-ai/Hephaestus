@@ -7,6 +7,34 @@ from typing import Any, Iterable, Mapping
 from .contracts import canonical_digest, normalized_strings
 
 
+WORKFORCE_RUNTIME_BUNDLE_DIGEST_SCHEMA = "agentlas.workforce-runtime-bundle-digest.v1"
+WORKFORCE_EXECUTION_PLAN_SCHEMA = "agentlas.workforce-execution-plan.v2"
+
+
+def workforce_runtime_bundle_digest(roster_row: Mapping[str, Any]) -> str:
+    """Bind the executable directives to the exact selected roster identity.
+
+    The payload shape is deliberately fixed and domain-separated so every host
+    runtime can recompute it without trusting a digest supplied by the Hub
+    bundle itself.  Unknown row fields are excluded from the digest contract;
+    the execution-plan schema rejects them separately.
+    """
+
+    return canonical_digest(
+        {
+            "schemaVersion": WORKFORCE_RUNTIME_BUNDLE_DIGEST_SCHEMA,
+            "slotId": roster_row.get("slotId"),
+            "agentDefinitionId": roster_row.get("agentDefinitionId"),
+            "agentReleaseId": roster_row.get("agentReleaseId"),
+            "releaseVersion": roster_row.get("releaseVersion"),
+            "packageHash": roster_row.get("packageHash"),
+            "contentDigest": roster_row.get("contentDigest"),
+            "entityKind": roster_row.get("entityKind"),
+            "directiveBundle": roster_row.get("directiveBundle"),
+        }
+    )
+
+
 def _candidate_lookup(candidate_set: Mapping[str, Any]) -> dict[tuple[str, str], dict[str, Any]]:
     result: dict[tuple[str, str], dict[str, Any]] = {}
     for slot in candidate_set.get("slots") or []:
@@ -76,19 +104,21 @@ def prepare_execution_plan(
             issues.append(f"runtime_bundle_directive_missing:{release_id}")
         if bundle.get("status") not in {None, "prepared", "ready"}:
             issues.append(f"runtime_bundle_not_ready:{release_id}")
-        roster.append(
-            {
-                "slotId": slot_id,
-                "agentDefinitionId": candidate.get("agentDefinitionId"),
-                "agentReleaseId": release_id,
-                "releaseVersion": candidate.get("releaseVersion"),
-                "packageHash": candidate.get("packageHash"),
-                "contentDigest": candidate.get("contentDigest"),
-                "entityKind": candidate.get("entityKind"),
-                "directiveBundle": dict(directive_bundle),
-                "bundleDigest": str(bundle.get("bundleDigest") or canonical_digest(bundle)),
-            }
-        )
+        roster_row = {
+            "slotId": slot_id,
+            "agentDefinitionId": candidate.get("agentDefinitionId"),
+            "agentReleaseId": release_id,
+            "releaseVersion": candidate.get("releaseVersion"),
+            "packageHash": candidate.get("packageHash"),
+            "contentDigest": candidate.get("contentDigest"),
+            "entityKind": candidate.get("entityKind"),
+            "directiveBundle": dict(directive_bundle),
+        }
+        # Never trust a digest carried by the fetched runtime bundle.  The
+        # preparation authority commits to the exact row that hosts will run.
+        roster_row["bundleDigestSchema"] = WORKFORCE_RUNTIME_BUNDLE_DIGEST_SCHEMA
+        roster_row["bundleDigest"] = workforce_runtime_bundle_digest(roster_row)
+        roster.append(roster_row)
     extras = set(bundles) - selected_release_ids
     if extras:
         issues.extend(f"unselected_runtime_bundle:{release_id}" for release_id in sorted(extras))
@@ -99,7 +129,7 @@ def prepare_execution_plan(
         "executionRoster": roster,
     }
     return {
-        "schemaVersion": "agentlas.workforce-execution-plan.v1",
+        "schemaVersion": WORKFORCE_EXECUTION_PLAN_SCHEMA,
         "status": "rejected" if issues else "prepared",
         "issues": sorted(set(issues)),
         "preparationReceiptId": "workforce-preparation:" + canonical_digest(payload).split(":", 1)[1][:32],
@@ -175,4 +205,10 @@ def validate_execution_receipt(receipt: Mapping[str, Any], *, benchmark_mode: bo
     }
 
 
-__all__ = ["prepare_execution_plan", "validate_execution_receipt"]
+__all__ = [
+    "WORKFORCE_RUNTIME_BUNDLE_DIGEST_SCHEMA",
+    "WORKFORCE_EXECUTION_PLAN_SCHEMA",
+    "prepare_execution_plan",
+    "validate_execution_receipt",
+    "workforce_runtime_bundle_digest",
+]

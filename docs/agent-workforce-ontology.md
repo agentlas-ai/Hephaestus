@@ -255,17 +255,27 @@ transport; it is not a second planner or staffing authority.
 3. `workforce.search_candidates` returns a selection session, ontology version,
    candidate-set digest, role-slot cards, and coverage gaps.
 4. When bounded coverage-gap codes show an unfilled role slot, the same active
-   host LLM may emit a refined, complete, direct WorkOrder whose only new input
-   is those codes, then the adapter repeats `workforce.search_candidates`. The
-   refined WorkOrder and repeat search remain auditable and must retain the
-   ontology version and redaction boundary. The host LLM may correct an
-   exclusion it previously inferred when a gap code exposes that conflict, but
-   it must preserve every prohibition explicitly stated by the user. The typed
-   adapter may validate this distinction but must not rewrite either class.
+   host LLM may emit a refined, complete, direct WorkOrder, then the adapter
+   repeats `workforce.search_candidates`. At most two semantic refinements are
+   permitted across the whole staffing decision. Each refinement receives the
+   prior redacted WorkOrder plus aggregate slot IDs, candidate counts, and gap
+   codes only: no candidate identity, candidate text, ranking, popularity, or
+   execution history. Every replacement WorkOrder and search is digest-audited
+   and must retain the ontology version and redaction boundary. The host LLM
+   may correct an exclusion it previously inferred when a gap code exposes that
+   conflict, but it must preserve every prohibition explicitly stated by the
+   user. The typed adapter validates; it never rewrites the decision.
 5. The host LLM emits one direct `agentlas.workforce-selection.v1` object with
    assignments, collaboration/handoff edges, alternatives considered, and
-   short reason codes.
-6. The adapter invokes `workforce.validate_selection` with the exact WorkOrder,
+   short reason codes. If the provisional Selection fills cardinality but the
+   content-only menu has no semantically capable worker for a slot, the LLM may
+   set `requestExpansionForSlots`. When refinement budget remains, the adapter
+   converts only those slot IDs and aggregate coverage data into a
+   `gap:selection-requested-content-expansion` refinement input, asks the same
+   host LLM for a complete replacement WorkOrder, and repeats search. It never
+   forwards candidate identities into that refinement. A repeated expansion or
+   an exhausted two-refinement budget fails closed.
+6. The adapter invokes `workforce.validate_selection` with the exact final WorkOrder,
    candidate set, and Selection. Only after acceptance does it invoke
    `workforce.prepare_execution` with those same objects and the validation
    receipt.
@@ -277,6 +287,29 @@ transport; it is not a second planner or staffing authority.
    Substitution requires another host-LLM decision.
 9. The execution fabric emits manager, worker, handoff, synthesis, verifier,
    and completion receipts.
+
+`agentlas.workforce-execution-plan.v2` makes the binding contract explicit.
+Every prepared roster row carries
+`bundleDigestSchema=agentlas.workforce-runtime-bundle-digest.v1` and
+`bundleDigest`, computed as SHA-256 over a
+canonical JSON object whose `schemaVersion` is
+`agentlas.workforce-runtime-bundle-digest.v1` and whose remaining exact keys are
+`slotId`, `agentDefinitionId`, `agentReleaseId`, `releaseVersion`, `packageHash`,
+`contentDigest`, `entityKind`, and `directiveBundle`. The preparation authority
+always recomputes this digest and ignores any digest supplied by the fetched
+bundle. Every host recomputes it before executing directives and fails closed
+on mismatch, cryptographically binding executable content to the selected
+release and post. A v1 execution plan or missing/unknown digest marker is not
+executable by a v2 host.
+
+`requiredRoles`, `requiredSkills`, `requiredToolCapabilities`, `consumes`, and
+`produces` are candidate-profile hard declarations, not a prose checklist of
+the desired deliverable. Normal workflow handoffs belong in slot tasks and
+edge `artifactKinds`; a host LLM leaves hard declaration arrays empty unless a
+package lacking that exact declaration would be unable to own the post. A
+specialized domain with distinct failure and accountability semantics remains
+its own job-family slot even when generic engineering roles implement adjacent
+parts of the work.
 
 The host LLM is never asked to wrap either direct object in a ceremonial MCP or
 JSON-RPC tool-call envelope. Tool names and transport arguments are fixed by
