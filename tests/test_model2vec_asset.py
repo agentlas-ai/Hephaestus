@@ -64,7 +64,7 @@ class Model2VecReleaseAssetTests(unittest.TestCase):
         text_names = ("manifest.json", "tokenizer.json", "LICENSE.model.txt")
         binary_names = ("embeddings.i8", "scales.f32le")
         relative_paths = [
-            str((asset_path / name).relative_to(self.repo))
+            (asset_path / name).relative_to(self.repo).as_posix()
             for asset_path in self.asset_paths
             for name in (*text_names, *binary_names)
         ]
@@ -82,11 +82,11 @@ class Model2VecReleaseAssetTests(unittest.TestCase):
 
         for asset_path in self.asset_paths:
             for name in text_names:
-                relative = str((asset_path / name).relative_to(self.repo))
+                relative = (asset_path / name).relative_to(self.repo).as_posix()
                 self.assertEqual(attributes[relative]["text"], "set")
                 self.assertEqual(attributes[relative]["eol"], "lf")
             for name in binary_names:
-                relative = str((asset_path / name).relative_to(self.repo))
+                relative = (asset_path / name).relative_to(self.repo).as_posix()
                 self.assertEqual(attributes[relative]["text"], "unset")
 
     def test_same_path_payload_tamper_is_rejected(self):
