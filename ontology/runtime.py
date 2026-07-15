@@ -34,6 +34,7 @@ MIN_VECTOR_SCORE = 0.05
 EXPERIENCE_SCAN_CAP = 5_000
 MIN_EXPERIENCE_VECTOR_SCORE = 0.08
 MODEL2VEC_MIN_VECTOR_SCORE = 0.45
+MODEL2VEC_CJK_MIN_VECTOR_SCORE = 0.50
 VECTOR_RELATIVE_FLOOR = 0.72
 DEFAULT_EXPERIENCE_TOKEN_BUDGET = 800
 DEFAULT_EXPERIENCE_TOP_K = 8
@@ -701,7 +702,7 @@ class OntologyRuntime:
             item["token_estimate"] = estimate_tokens(item["candidate_text"])
             scored.append(item)
         best_semantic = max((item["vector_score"] for item in scored), default=0.0)
-        semantic_floor = self._minimum_vector_score(MIN_EXPERIENCE_VECTOR_SCORE)
+        semantic_floor = self._minimum_vector_score(MIN_EXPERIENCE_VECTOR_SCORE, question)
         scored = [
             item
             for item in scored
@@ -1642,7 +1643,7 @@ class OntologyRuntime:
         for chunk_id, item in pool.items():
             item["vector_score"] = max(0.0, cosine_similarity(query_vector, vectors.get(chunk_id, [])))
         best_vector_score = max((item["vector_score"] for item in pool.values()), default=0.0)
-        vector_floor = self._minimum_vector_score(MIN_VECTOR_SCORE)
+        vector_floor = self._minimum_vector_score(MIN_VECTOR_SCORE, question)
         vector_order = sorted(pool, key=lambda chunk_id: pool[chunk_id]["vector_score"], reverse=True)
         fts_rank = {chunk_id: index for index, chunk_id in enumerate(fts_order)}
         vector_rank = {chunk_id: index for index, chunk_id in enumerate(vector_order)}
@@ -1741,8 +1742,13 @@ class OntologyRuntime:
             return 0.0
         return len(query_tokens & text_tokens) / len(query_tokens)
 
-    def _minimum_vector_score(self, default: float) -> float:
+    def _minimum_vector_score(self, default: float, question: str = "") -> float:
         if self.vector_adapter.name == "model2vec_potion_base_8m_int8_hybrid":
+            # potion-base-8M is English-first: unrelated CJK WordPiece fragments
+            # can cluster around 0.45 in the fixed hybrid. Keep the English
+            # semantic floor intact while requiring stronger CJK evidence.
+            if CJK_RUN_PATTERN.search(question):
+                return max(default, MODEL2VEC_CJK_MIN_VECTOR_SCORE)
             return max(default, MODEL2VEC_MIN_VECTOR_SCORE)
         return default
 

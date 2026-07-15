@@ -576,6 +576,17 @@ class OntologySearchUpgradeTests(unittest.TestCase):
         self.assertNotIn("김치찌개", texts)
         self.assertEqual(answer["search"]["fusion"], "rrf")
 
+    def test_korean_unrelated_only_corpus_does_not_create_vector_false_positive(self):
+        unrelated = self.root / "unrelated-only"
+        unrelated.mkdir()
+        (unrelated / "tax.txt").write_text("분기별 세금 감가상각 계산", encoding="utf-8")
+        rt = self.runtime()
+        rt.ingest_path(unrelated, access_scope="internal")
+
+        answer = rt.query("한국어 계약서 자동 생성")
+
+        self.assertEqual(answer["chunks"], [], answer)
+
     def test_v1_database_migrates_to_trigram_and_reembeds(self):
         rt = self.runtime()
         rt.ingest_path(self.corpus, access_scope="internal")
@@ -966,10 +977,44 @@ class AgentExperienceProjectionTests(unittest.TestCase):
 
         korean = adapter.embed("한국어 계약서 자동 생성")
         self.assertEqual(len(korean), 352)
+        korean_digest = hashlib.sha256(
+            b"".join(struct.pack("<i", round(value * 1_000_000)) for value in korean)
+        ).hexdigest()
+        self.assertEqual(korean_digest, "81d40d4b9ed6dd34a63433c3f76062578f3c24e4a4ef90adf33f3710f0d785a3")
         self.assertGreater(
             cosine_similarity(korean, adapter.embed("계약서 생성 자동화")),
             cosine_similarity(korean, adapter.embed("오늘 점심 김치찌개")),
         )
+
+    def test_language_aware_vector_floor_preserves_english_and_korean_related_recall(self):
+        rt = self.runtime()
+        english = rt.ingest_experience(
+            agent_id="hub:language-floor-en",
+            summary="databases migrations rollbacks checklists",
+            source_memory_id="related-en",
+        )["experience"]
+        korean = rt.ingest_experience(
+            agent_id="hub:language-floor-ko",
+            summary="협약 문서를 기계가 작성하는 절차",
+            source_memory_id="related-ko",
+        )["experience"]
+
+        english_recall = rt.query_experience(
+            "database migration rollback checklist",
+            agent_id="hub:language-floor-en",
+        )
+        korean_recall = rt.query_experience(
+            "한국어 계약서 자동 생성",
+            agent_id="hub:language-floor-ko",
+        )
+
+        self.assertEqual([item["ticket_id"] for item in english_recall["items"]], [english["ticket_id"]])
+        self.assertEqual([item["ticket_id"] for item in korean_recall["items"]], [korean["ticket_id"]])
+        self.assertEqual(english_recall["items"][0]["lexical_score"], 0.0)
+        self.assertEqual(korean_recall["items"][0]["lexical_score"], 0.0)
+        self.assertGreaterEqual(english_recall["items"][0]["vector_score"], 0.45)
+        self.assertLess(english_recall["items"][0]["vector_score"], 0.50)
+        self.assertGreaterEqual(korean_recall["items"][0]["vector_score"], 0.50)
 
     def test_auto_degrades_to_hash_only_when_verified_asset_is_absent(self):
         from ontology.embeddings import select_vector_adapter, vector_adapter_metadata
