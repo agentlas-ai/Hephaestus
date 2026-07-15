@@ -3,7 +3,7 @@
 ## Repository Constitution: Local Main Only
 
 This repository uses one canonical development line: the local `main` branch
-in `/Users/mason/Documents/Agentlas_F/Agentlas-OS`.
+in the canonical Agentlas OS checkout.
 
 - Make every source change and commit directly on local `main`.
 - Do not create feature, release, backup, agent-named, or temporary branches.

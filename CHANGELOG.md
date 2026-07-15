@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.1.29 - 2026-07-15
 
 - **Every `/hep-build` host now ends with an explicit private-Cloud choice.**
   Claude Code, Codex, Gemini, and Antigravity ask whether to save the verified
