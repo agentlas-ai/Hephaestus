@@ -516,6 +516,41 @@ def test_hub_task_force_uses_core_workers_when_no_intent_fit_bundle_exists(tmp_p
     assert "travel-concierge-hq" not in result["execution"]["directive"]
 
 
+def test_hub_task_force_uses_core_workers_when_every_stage_search_clarifies(tmp_path, monkeypatch):
+    home = setup_home(tmp_path)
+
+    def fake_search_hub(query_tokens, home=None, approved=False, scope="network"):
+        return {
+            "status": "clarify",
+            "scope": scope,
+            "query": " ".join(query_tokens),
+            "results": [],
+            "question": "Which agent should run this?",
+            "questionKo": "어떤 에이전트가 실행해야 하나요?",
+        }
+
+    monkeypatch.setattr("agentlas_cloud.networking.router.search_hub", fake_search_hub)
+    result = route_request(
+        "plan, implement, test, and verify a fully specified sandboxed XSS benchmark end-to-end",
+        home=home,
+        use_hub=True,
+        hub_only=True,
+    )
+
+    assert result["action"] == "hub_candidates"
+    assert result["hub"]["status"] == "no_intent_fit_candidates"
+    assert result["hub"]["results"] == []
+    assert [stage["hub_status"] for stage in result["task_force"]["stages"]] == [
+        "clarify",
+        "clarify",
+        "clarify",
+    ]
+    assert result["execution"]["formation"] == "temporary_orchestrator"
+    assert result["execution"]["recommended_agents"] == []
+    assert result["execution"]["core_stages"] == ["plan", "build", "verify"]
+    assert result["execution"]["borrow_command"] is None
+
+
 def test_hub_only_uses_whole_word_query_tokens(tmp_path, monkeypatch):
     home = setup_home(tmp_path)
     seen = {}

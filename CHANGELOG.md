@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.1.34 - 2026-07-15
+
+- **Fully specified composite tasks survive a low-confidence Hub search.** If
+  every plan/build/verify stage returns `clarify` or no candidates, the router
+  preserves those search receipts as discovery evidence and still materializes
+  the explicit Agentlas Core temporary orchestrator. It no longer discards the
+  stage plan and asks the operator to restate an already complete task.
+
 ## v1.1.33 - 2026-07-15
 
 - **Hub task forces no longer dead-end when discovery has no callable,

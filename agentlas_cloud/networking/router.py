@@ -837,12 +837,9 @@ def _hub_task_force_plan(
             }
         )
 
-    if not combined:
-        return None
-
     return {
         "hub": {
-            "status": "ok",
+            "status": "ok" if combined else "no_intent_fit_candidates",
             "scope": scope,
             "query": "stagewise_task_force",
             "results": combined,
