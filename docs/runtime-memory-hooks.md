@@ -53,9 +53,11 @@ path; the memory capsule does not create a stale duplicate.
 
 There are no network imports, server embedding calls, runtime model downloads,
 or Memory Curator writes in this path. Vector selection stays with the
-canonical local runtime. The v1.1.30 installer verifies and installs the bundled
-Model2Vec asset as the primary path. If the asset is absent or rejected, the
-runtime fails open to local hash-96 and the capsule states
+canonical local runtime. The v1.1.31 installer and self-updater verify and
+install the bundled Model2Vec asset under the versioned runtime's
+`models/model2vec/potion-base-8M-int8` path. Update activation fails closed if
+that payload is missing or tampered. If an installed asset is later rejected,
+the running runtime fails open to local hash-96 and the capsule states
 `retrieval=degraded_hash`; it never silently substitutes a hosted model.
 OpenCode also kills a recall child after 12 seconds and fails open so a locked
 SQLite file cannot hold the chat loop indefinitely; deleted sessions and plugin
@@ -73,7 +75,10 @@ another workspace's memory.
 
 ## Installer ownership
 
-The installer writes only Agentlas-owned surfaces or a named/marked entry:
+The one-touch installer and a successful version self-update both run the same
+host-detection and merge routine. Claude and Codex receive hooks from their
+refreshed plugin bundles; detected Antigravity, Grok, and OpenCode installs
+receive only the following Agentlas-owned surfaces or named/marked entry:
 
 - `~/.gemini/config/hooks.json`: merge the `agentlas-memory` named hook;
 - `~/.grok/hooks/agentlas-memory.json`: replace only that file;

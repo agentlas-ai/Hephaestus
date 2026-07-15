@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.1.31 - 2026-07-15
+
+- **Windows checkouts preserve the bundled Model2Vec payload byte-for-byte.**
+  Git attributes now force LF for the verified JSON/license files and mark the
+  quantized tensor files binary across the canonical, Claude, and Codex asset
+  copies. `core.autocrlf` can no longer invalidate strict model checksums.
+- **Runtime self-update now installs the same complete local payload as the
+  one-touch installer.** Versioned runtimes include `career_graph`, `templates`,
+  and the verified `potion-base-8M-int8` asset under
+  `models/model2vec/potion-base-8M-int8`. Release-source, staged, and
+  post-activation health checks fail closed when the model is missing or
+  tampered instead of silently degrading to hash-only recall.
+- **Self-update repairs automatic memory hooks for detected hosts.** Claude and
+  Codex plugin hooks are refreshed with their plugin bundles; the existing
+  merge-safe installer now also runs for detected Antigravity, Grok, and
+  OpenCode hosts. It owns only Agentlas keys/files or its managed Markdown
+  block, preserves unrelated user configuration, and reports hook repair
+  separately from the verified runtime update.
+
 ## v1.1.30 - 2026-07-15
 
 - **Agent experience memory now uses one governed local retrieval path.** Each
