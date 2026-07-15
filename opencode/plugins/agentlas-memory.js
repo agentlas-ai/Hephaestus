@@ -4,6 +4,7 @@
 // network dependencies.
 
 const latestBySession = new Map()
+const RECALL_TIMEOUT_MS = 12_000
 
 function promptText(parts) {
   return (parts || [])
@@ -26,15 +27,45 @@ async function recall(directory, sessionID, prompt) {
         env: process.env,
       },
     )
-    const output = (await new Response(child.stdout).text()).trim()
-    const status = await child.exited
-    return status === 0 && output.startsWith("<agentlas-memory-context") ? output : ""
+    let timer
+    const completed = (async () => {
+      try {
+        const [output, status] = await Promise.all([
+          new Response(child.stdout).text(),
+          child.exited,
+        ])
+        const trimmed = output.trim()
+        return status === 0 && trimmed.startsWith("<agentlas-memory-context") ? trimmed : ""
+      } catch {
+        return ""
+      }
+    })()
+    const timedOut = new Promise((resolve) => {
+      timer = setTimeout(() => {
+        try {
+          child.kill()
+        } catch {
+          // The child may have exited between the race and the kill.
+        }
+        resolve("")
+      }, RECALL_TIMEOUT_MS)
+    })
+    const result = await Promise.race([completed, timedOut])
+    clearTimeout(timer)
+    return result
   } catch {
     return ""
   }
 }
 
 export const AgentlasMemoryPlugin = async ({ directory }) => ({
+  event: async ({ event }) => {
+    if (event?.type !== "session.deleted") return
+    const properties = event.properties || {}
+    const sessionID = properties.info?.id || properties.sessionID || properties.id
+    if (sessionID) latestBySession.delete(sessionID)
+  },
+
   "chat.message": async (input, output) => {
     const prompt = promptText(output.parts)
     if (!prompt) return
@@ -52,4 +83,6 @@ export const AgentlasMemoryPlugin = async ({ directory }) => ({
     const capsule = latestBySession.get(input.sessionID)
     if (capsule && !output.context.includes(capsule)) output.context.push(capsule)
   },
+
+  dispose: async () => latestBySession.clear(),
 })

@@ -79,6 +79,19 @@ codex_release="$(find "$codex_home/plugins/cache/agentlas-core-engine/hephaestus
 [[ -n "$codex_release" ]] || fail "Codex plugin cache is missing RELEASE marker"
 grep -qx "$version" "$claude_release" || fail "Claude plugin RELEASE marker is not $version"
 grep -qx "$version" "$codex_release" || fail "Codex plugin RELEASE marker is not $version"
+claude_plugin_root="$(dirname "$claude_release")"
+codex_plugin_root="$(dirname "$codex_release")"
+for plugin_root in "$claude_plugin_root" "$codex_plugin_root"; do
+  [[ -x "$plugin_root/bin/ontology" ]] || fail "plugin is missing the stable ontology entrypoint: $plugin_root"
+  [[ -f "$plugin_root/assets/model2vec/potion-base-8M-int8/manifest.json" ]] \
+    || fail "plugin is missing the verified Model2Vec manifest: $plugin_root"
+  [[ -f "$plugin_root/assets/model2vec/potion-base-8M-int8/embeddings.i8" ]] \
+    || fail "plugin is missing the Model2Vec weights: $plugin_root"
+done
+rg -q 'CLAUDE_PLUGIN_ROOT.*--host claude' "$claude_plugin_root/hooks/hooks.json" \
+  || fail "Claude plugin memory hook does not use its own plugin root/host"
+rg -q 'CODEX_PLUGIN_ROOT.*CLAUDE_PLUGIN_ROOT.*--host codex' "$codex_plugin_root/hooks/hooks.json" \
+  || fail "Codex plugin memory hook lacks native/compatibility root handling"
 echo "PASS Codex install"
 echo
 
@@ -100,10 +113,15 @@ echo
 echo "6/7 First-run Agentlas sign-in surface"
 runtime_runner="$shell_home/.agentlas/runtime/current/bin/hephaestus"
 [[ -x "$runtime_runner" ]] || fail "runtime runner is not executable: $runtime_runner"
-for shell_command in hephaestus hep-build hep-network hep-cloud hep-search hep-browser hep-call hep-upload hep-storm hep-global; do
+for shell_command in hephaestus ontology hep-build hep-network hep-cloud hep-search hep-browser hep-call hep-upload hep-storm hep-global; do
   [[ -x "$shell_home/.local/bin/$shell_command" ]] || fail "short shell command shim was not installed: $shell_command"
 done
 grep -qx "$version" "$shell_home/.agentlas/runtime/current/RELEASE" || fail "runtime current RELEASE marker is not $version"
+runtime_model="$shell_home/.agentlas/runtime/current/models/model2vec/potion-base-8M-int8"
+[[ -f "$runtime_model/manifest.json" ]] || fail "runtime Model2Vec manifest was not installed"
+HOME="$shell_home" PYTHONPATH="$shell_home/.agentlas/runtime/current" \
+  python3 -m ontology.model_assets verify "$runtime_model" >/dev/null \
+  || fail "installed runtime Model2Vec asset did not verify"
 HOME="$shell_home" CODEX_HOME="$codex_home" "$runtime_runner" update --check | tee "$tmp/update-check.json"
 python3 - "$tmp/update-check.json" "$version" <<'PY'
 import json

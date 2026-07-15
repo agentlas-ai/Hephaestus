@@ -558,6 +558,10 @@ def _grounding_directive(
     project = Path(project_dir).resolve()
     ontology_db = _ontology_db_path(project)
     experience_db = memory_root / "experience.sqlite"
+    # The host can execute this directive from any project/CWD. Rely on the
+    # versioned runtime installed by Agentlas OS, never an ambient PYTHONPATH or
+    # a source checkout that happens to make `python3 -m ontology` importable.
+    ontology_cli = '"${HOME}/.agentlas/runtime/current/bin/ontology"'
     return {
         "agent_id": agent_id,
         "project_dir": str(project),
@@ -582,21 +586,21 @@ def _grounding_directive(
         "commands": {
             "project_overview": f"ls -la {_shell_quote(str(project))}",
             "ontology_query": (
-                f"python3 -m ontology --db {_shell_quote(str(ontology_db))} "
+                f"{ontology_cli} --db {_shell_quote(str(ontology_db))} "
                 f"query {_shell_quote(_compact(request, 160))}"
             ),
             "experience_query": (
-                f"python3 -m ontology --db {_shell_quote(str(experience_db))} "
+                f"{ontology_cli} --db {_shell_quote(str(experience_db))} "
                 f"query {_shell_quote(_compact(request, 160))} --agent {agent_id}"
             ),
             # Compatibility key for older callers; the operation is now the
             # same read-only vector query, never a whole-file cat.
             "memory_read": (
-                f"python3 -m ontology --db {_shell_quote(str(experience_db))} "
+                f"{ontology_cli} --db {_shell_quote(str(experience_db))} "
                 f"query {_shell_quote(_compact(request, 160))} --agent {agent_id}"
             ),
             "working_memory_read": (
-                f"python3 -m ontology --db {_shell_quote(str(ontology_db))} "
+                f"{ontology_cli} --db {_shell_quote(str(ontology_db))} "
                 f"working-memory read --agent {agent_id}"
             ),
         },

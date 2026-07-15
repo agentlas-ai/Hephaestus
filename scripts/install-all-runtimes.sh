@@ -179,11 +179,31 @@ install_runtime_home() {
   ensure_downloaded_source || { warn "runtime home install skipped: no source."; return 1; }
   local plain="${version#v}"
   local home_dir="$HOME/.agentlas/runtime/$plain"
+  local model_source="$source_dir/assets/model2vec/potion-base-8M-int8"
+  local model_dest="$home_dir/models/model2vec/potion-base-8M-int8"
+  local py=""
+  py="$(resolve_python_cmd || true)"
+  if [[ -z "$py" ]]; then
+    warn "Python 3.9+ is required to verify the bundled local embedding model."
+    return 1
+  fi
+  if [[ ! -d "$model_source" ]]; then
+    warn "Bundled Model2Vec asset is missing: $model_source"
+    return 1
+  fi
   log "== Hephaestus runtime home =="
   rm -rf "$home_dir"
   mkdir -p "$home_dir"
   cp -R "$source_dir/bin" "$source_dir/agentlas_cloud" "$source_dir/career_graph" "$source_dir/ontology" "$source_dir/templates" "$home_dir/" || return 1
+  mkdir -p "$(dirname "$model_dest")"
+  cp -R "$model_source" "$model_dest" || return 1
+  if ! PYTHONUTF8=1 PYTHONIOENCODING=utf-8 PYTHONPATH="$home_dir${PYTHONPATH:+:$PYTHONPATH}" \
+    $py -m ontology.model_assets verify "$model_dest" >/dev/null; then
+    warn "Bundled Model2Vec asset failed local checksum/provenance verification; refusing the runtime install."
+    return 1
+  fi
   chmod +x "$home_dir/bin/hephaestus" \
+    "$home_dir/bin/ontology" \
     "$home_dir/bin/career-graph" \
     "$home_dir/bin/hep-build" \
     "$home_dir/bin/hep-network" \
@@ -193,7 +213,8 @@ install_runtime_home() {
 	    "$home_dir/bin/hep-call" \
 	    "$home_dir/bin/hep-upload" \
 	    "$home_dir/bin/hep-storm" \
-	    "$home_dir/bin/hep-global" 2>/dev/null || true
+	    "$home_dir/bin/hep-global" \
+	    "$home_dir/bin/agentlas-memory-hook" 2>/dev/null || true
   printf '%s\n' "$version" > "$home_dir/RELEASE"
   write_python3_shim "$home_dir/bin" || true
   if [[ ! -e "$home_dir/bin/Hephaestus" ]]; then
@@ -215,7 +236,7 @@ install_runtime_home() {
   local user_bin="$HOME/.local/bin"
   if mkdir -p "$user_bin" 2>/dev/null; then
 	  local -a shell_commands=(
-	    hephaestus hep-build hep-network hep-cloud hep-search hep-browser hep-call hep-upload hep-storm hep-global
+	    hephaestus ontology hep-build hep-network hep-cloud hep-search hep-browser hep-call hep-upload hep-storm hep-global
 	  )
     local command
     for command in "${shell_commands[@]}"; do
@@ -228,7 +249,7 @@ EOF
     done
     if [[ -x "$user_bin/hephaestus" ]]; then
       case ":$PATH:" in
-	        *":$user_bin:"*) log "Installed shell commands: hephaestus, hep-build, hep-network, hep-cloud, hep-search, hep-browser, hep-call, hep-upload, hep-storm, hep-global" ;;
+	        *":$user_bin:"*) log "Installed shell commands: hephaestus, ontology, hep-build, hep-network, hep-cloud, hep-search, hep-browser, hep-call, hep-upload, hep-storm, hep-global" ;;
         *) log "Installed shell commands in $user_bin (add ~/.local/bin to PATH to use them)" ;;
       esac
     fi
@@ -627,6 +648,32 @@ install_opencode() {
   ok=$((ok + 1))
 }
 
+# Claude and Codex receive their memory hook from the plugin bundle. These
+# global-only hosts need merge-safe installation into their documented config
+# locations. The helper owns only the Agentlas hook key/files and preserves all
+# unrelated user configuration.
+install_memory_hooks() {
+  ensure_downloaded_source || return 1
+  local py=""
+  py="$(resolve_python_cmd || true)"
+  if [[ -z "$py" ]]; then
+    warn "Python 3.9+ not found; skipped Antigravity/Grok/OpenCode memory hooks."
+    return 1
+  fi
+  log "== Local ontology memory hooks =="
+  local hook_output=""
+  if ! hook_output="$(
+    PYTHONUTF8=1 PYTHONIOENCODING=utf-8 \
+      $py "$source_dir/scripts/install-memory-hooks.py" \
+      --source-dir "$source_dir" --home "$HOME" --hosts auto 2>&1
+  )"; then
+    warn "Local memory hook install failed. Error was:"
+    printf '%s\n' "$hook_output" | tail -12 >&2
+    return 1
+  fi
+  log "Installed merge-safe local memory hooks for detected Antigravity, Grok, and OpenCode hosts."
+}
+
 # OpenClaw loads AgentSkills from ~/.openclaw/skills (and ~/.agents/skills);
 # user-invocable skills surface as slash commands via /skill.
 install_openclaw() {
@@ -752,6 +799,7 @@ main() {
   install_antigravity || { warn "Antigravity install failed."; failed=$((failed + 1)); }
   install_cursor || { warn "Cursor install failed."; failed=$((failed + 1)); }
   install_opencode || { warn "OpenCode install failed."; failed=$((failed + 1)); }
+  install_memory_hooks || { warn "Local ontology memory hook install failed."; failed=$((failed + 1)); }
   install_openclaw || { warn "OpenClaw install failed."; failed=$((failed + 1)); }
 	  install_hermes || { warn "Hermes install failed."; failed=$((failed + 1)); }
 	  bootstrap_networking || warn "Hephaestus Network init failed; run 'hephaestus network init' manually."
@@ -765,6 +813,7 @@ main() {
   log "Failed runtimes: $failed"
   log ""
   log "Public chat surface: core external commands are installed or refreshed; Claude/Codex also get the Telegram connect helper; Agentlas native surfaces use plain language."
+  log "Local memory recall: Claude/Codex hooks, Antigravity PreInvocation, and OpenCode system injection are dynamic; Grok uses passive cache refresh plus its static AGENTS.md pointer."
   log "Restart open Claude Code, Codex, Gemini, Antigravity, Cursor, OpenCode, OpenClaw, and Hermes apps."
   log "Then use:"
   log "  Agentlas:    describe the task in plain language; native tools choose the path"
@@ -776,7 +825,7 @@ main() {
   log "  OpenCode:    /hep-build, /hep-network, /hep-storm, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload"
 	  log "  OpenClaw:    /skill hephaestus-storm <request> or /skill hephaestus-network <request>"
 	  log "  Hermes:      hephaestus-storm/hephaestus-network skills (+ MCP, see hermes/README.md)"
-	  log "  Shell/debug: hep-build \"<request>\", hep-network \"<request>\", hep-cloud \"<request>\", hep-search \"<request>\", hep-browser <url-or-query>, hep-call \"agent-a,agent-b\" \"<context>\", hep-upload <agent-folder>, hep-global install, or hep-storm \"<request>\" --background"
+	  log "  Shell/debug: ontology <command>, hep-build \"<request>\", hep-network \"<request>\", hep-cloud \"<request>\", hep-search \"<request>\", hep-browser <url-or-query>, hep-call \"agent-a,agent-b\" \"<context>\", hep-upload <agent-folder>, hep-global install, or hep-storm \"<request>\" --background"
   log "  Ollama/Gemma/DeepSeek local models: docs/local-models.md (MCP: hephaestus mcp serve)"
   log ""
   log "agentlas Hub MCP (agentlas.search, marketplace.*, agentlas.teams.*) was registered too."

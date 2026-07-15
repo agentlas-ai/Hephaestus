@@ -11,7 +11,7 @@ slug, its rebuildable `hub-agents/<slug>/memory/experience.sqlite` projection.
 | Host | Event path | Context delivery | Current limit |
 |---|---|---|---|
 | Claude Code | plugin `SessionStart`, `UserPromptSubmit` | `hookSpecificOutput.additionalContext` | Requires a plugin build that supports command hooks. |
-| Codex | mirrored plugin hooks | same additional-context JSON contract | The plugin root environment variable remains `CLAUDE_PLUGIN_ROOT`; custom prompts are unrelated. |
+| Codex | plugin `SessionStart`, `UserPromptSubmit` | same additional-context JSON contract | Prefers `CODEX_PLUGIN_ROOT` and accepts Codex's current `CLAUDE_PLUGIN_ROOT` compatibility environment; custom prompts are unrelated. |
 | Antigravity | global named `PreInvocation` hook | `injectSteps[].ephemeralMessage` | The documented payload does not guarantee current user-prompt text. When absent, recall uses a fixed project-state query rather than reading the transcript. |
 | OpenCode | global local plugin `chat.message` | `experimental.chat.system.transform` | The system-transform and compaction APIs are experimental and must be rechecked on host upgrades. |
 | Grok | global passive `SessionStart`, `UserPromptSubmit` hooks | workspace cache plus managed `~/.grok/AGENTS.md` pointer | Grok explicitly ignores passive-hook stdout. This is a refreshed local capsule and static read pointer, not direct dynamic injection. |
@@ -45,6 +45,9 @@ There are no network imports, server embedding calls, runtime model downloads,
 or Memory Curator writes in this path. Vector selection stays with the
 canonical local runtime. A verified bundled Model2Vec asset is used when
 available; the hashing fallback is explicit as `retrieval=degraded_hash`.
+OpenCode also kills a recall child after 12 seconds and fails open so a locked
+SQLite file cannot hold the chat loop indefinitely; deleted sessions and plugin
+disposal clear their in-memory capsule entries.
 
 ## Deduplication and compaction
 

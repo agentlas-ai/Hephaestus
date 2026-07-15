@@ -8,11 +8,16 @@ export PYTHONIOENCODING="${PYTHONIOENCODING:-utf-8}"
 for candidate in "${HEPHAESTUS_PYTHON:-}" "$root/bin/python3" python3 python; do
   [[ -n "$candidate" ]] || continue
   if "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; then
-    PYTHONPATH="$root${PYTHONPATH:+:$PYTHONPATH}" exec "$candidate" -m agentlas_cloud.memory_hook "$@"
+    if PYTHONPATH="$root${PYTHONPATH:+:$PYTHONPATH}" "$candidate" -m agentlas_cloud.memory_hook "$@"; then
+      exit 0
+    fi
+    break
   fi
 done
 
-# Hooks must never block the host when Python is unavailable.
+# Hooks must never block the host when Python or the local runtime is
+# unavailable. Host-native policy remains active; only supplemental recall is
+# skipped.
 case " ${*:-} " in
   *" --host opencode "*|*" --host raw "*) ;;
   *) printf '{}\n' ;;

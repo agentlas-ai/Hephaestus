@@ -6,11 +6,18 @@ directive emitted by invoke_hub_agent) and the relevance-gated retrieval that
 makes the reference selective.
 """
 
+import json
+import os
+import shutil
+import subprocess
 from pathlib import Path
 
 from agentlas_cloud.networking import init_networking
 from agentlas_cloud.networking.hub_invocation import invoke_hub_agent
 from ontology.runtime import OntologyRuntime, RuntimeConfig
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _mock_bundle(name, arguments=None, home=None, timeout=15):
@@ -82,14 +89,46 @@ def test_borrowed_agent_grounding_and_selective_ontology(tmp_path, monkeypatch):
     assert Path(grounding["memory_root"]).joinpath("project-soul-memory.md").is_file()
     assert Path(grounding["experience_db"]).is_file()
     assert grounding["ontology_db"] == str(db)
+    installed_cli = '"${HOME}/.agentlas/runtime/current/bin/ontology"'
     assert grounding["commands"]["experience_query"].startswith(
-        f"python3 -m ontology --db {grounding['experience_db']} query "
+        f"{installed_cli} --db {grounding['experience_db']} query "
     )
     assert f"--agent {agent_id}" in grounding["commands"]["experience_query"]
     assert "cat " not in grounding["commands"]["memory_read"]
     assert grounding["commands"]["ontology_query"].startswith(
-        f"python3 -m ontology --db {grounding['ontology_db']} query "
+        f"{installed_cli} --db {grounding['ontology_db']} query "
     )
+
+    # The exact emitted command must work like an installed runtime even when
+    # executed outside both the source checkout and the user's project, with no
+    # ambient PYTHONPATH. This mirrors the versioned runtime/current symlink
+    # created by scripts/install-all-runtimes.sh.
+    shell_home = tmp_path / "shell-home"
+    installed = shell_home / ".agentlas" / "runtime" / "test-release"
+    (installed / "bin").mkdir(parents=True)
+    shutil.copy2(ROOT / "bin" / "ontology", installed / "bin" / "ontology")
+    shutil.copytree(ROOT / "ontology", installed / "ontology")
+    shutil.copytree(ROOT / "assets" / "model2vec", installed / "models" / "model2vec")
+    current = shell_home / ".agentlas" / "runtime" / "current"
+    current.symlink_to(installed, target_is_directory=True)
+    unrelated = tmp_path / "unrelated-cwd"
+    unrelated.mkdir()
+    env = dict(os.environ)
+    env["HOME"] = str(shell_home)
+    env.pop("PYTHONPATH", None)
+    executed = subprocess.run(
+        grounding["commands"]["ontology_query"],
+        cwd=unrelated,
+        env=env,
+        shell=True,
+        executable="/bin/sh",
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    command_payload = json.loads(executed.stdout)
+    assert command_payload["chunks"]
+    assert command_payload["vector_adapter"]["name"] == "model2vec_potion_base_8m_int8_hybrid"
 
     # 3. Relevant task → references ontology fact + caches working memory.
     relevant = rt.query("이 상품 설명 쓸 때 우리 브랜드 톤이랑 금지어가 뭐지?", agent_id=agent_id, allowed_scopes=["internal"], limit=5)

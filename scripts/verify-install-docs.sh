@@ -134,6 +134,11 @@ assert manifest["package"] == "hephaestus", manifest["package"]
 
 assert manifest["entrypoints"]["hephaestusCli"].endswith("bin/hephaestus")
 assert manifest["entrypoints"]["hephaestusGlobalCli"].endswith("bin/hep-global")
+assert manifest["entrypoints"]["memoryHookInstaller"].endswith("scripts/install-memory-hooks.py")
+assert manifest["entrypoints"]["claudeMemoryHooks"].endswith("hooks/claude/hooks.json")
+assert manifest["entrypoints"]["codexMemoryHooks"].endswith("hooks/codex/hooks.json")
+assert manifest["entrypoints"]["model2VecAsset"].endswith("assets/model2vec/potion-base-8M-int8/manifest.json")
+assert manifest["entrypoints"]["model2VecVerifier"].endswith("ontology/model_assets.py")
 assert manifest["entrypoints"]["claudeHephaestusBuildCommand"].endswith("hep-build.md")
 assert manifest["entrypoints"]["claudeHephaestusNetworkCommand"].endswith("hep-network.md")
 assert manifest["entrypoints"]["claudeHephaestusCloudCommand"].endswith("hep-cloud.md")
@@ -182,6 +187,7 @@ PY
 
 for path in \
   bin/hephaestus \
+  bin/ontology \
   bin/hep-build \
   bin/hep-network \
   bin/hep-cloud \
@@ -191,9 +197,9 @@ for path in \
   bin/hep-upload \
   bin/hep-storm \
   bin/hep-global \
-  bin/ontology \
   bin/agentlas-memory-hook \
   claude/plugins/agentlas-core-engine-meta-agent/bin/hephaestus \
+  claude/plugins/agentlas-core-engine-meta-agent/bin/ontology \
   claude/plugins/agentlas-core-engine-meta-agent/bin/hep-build \
   claude/plugins/agentlas-core-engine-meta-agent/bin/hep-network \
   claude/plugins/agentlas-core-engine-meta-agent/bin/hep-cloud \
@@ -205,6 +211,7 @@ for path in \
   claude/plugins/agentlas-core-engine-meta-agent/bin/hep-global \
   claude/plugins/agentlas-core-engine-meta-agent/bin/agentlas-memory-hook \
   codex/plugins/agentlas-core-engine-meta-agent/bin/hephaestus \
+  codex/plugins/agentlas-core-engine-meta-agent/bin/ontology \
   codex/plugins/agentlas-core-engine-meta-agent/bin/hep-build \
   codex/plugins/agentlas-core-engine-meta-agent/bin/hep-network \
   codex/plugins/agentlas-core-engine-meta-agent/bin/hep-cloud \

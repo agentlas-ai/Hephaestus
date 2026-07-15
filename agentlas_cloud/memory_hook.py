@@ -27,12 +27,15 @@ _SECRET_PATTERNS = (
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.DOTALL),
     re.compile(r"\b(?:sk|rk|pk)-(?:ant|proj|live|test)?-?[A-Za-z0-9_-]{16,}\b", re.IGNORECASE),
     re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b"),
+    re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{16,}\b", re.IGNORECASE),
+    re.compile(r"\bAIza[A-Za-z0-9_-]{30,}\b"),
     re.compile(r"\bAKIA[A-Z0-9]{16}\b"),
     re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"),
     re.compile(
         r"(?i)\b(password|passwd|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret)"
         r"\s*[:=]\s*([^\s,;]{6,})"
     ),
+    re.compile(r"(?i)\b(authorization)\s*:\s*(bearer\s+[^\s,;]{8,})"),
 )
 
 

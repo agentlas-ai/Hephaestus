@@ -1,0 +1,27 @@
+{
+  "description": "Local-only Agentlas ontology recall at session start and point of need.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "root=\"${CODEX_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -x \"${root}/bin/agentlas-memory-hook\" ]; then \"${root}/bin/agentlas-memory-hook\" --host codex --event SessionStart; else printf '{}\\n'; fi",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "root=\"${CODEX_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}\"; if [ -x \"${root}/bin/agentlas-memory-hook\" ]; then \"${root}/bin/agentlas-memory-hook\" --host codex --event UserPromptSubmit; else printf '{}\\n'; fi",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

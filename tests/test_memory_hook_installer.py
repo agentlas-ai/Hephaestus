@@ -86,9 +86,13 @@ class MemoryHookInstallerTests(unittest.TestCase):
             (self.home / ".config" / "opencode" / "plugins" / "user-owned.js").is_file()
         )
         plugin = self.home / ".config" / "opencode" / "plugins" / "agentlas-memory.js"
-        self.assertIn('"chat.message"', plugin.read_text(encoding="utf-8"))
-        self.assertNotIn("http://", plugin.read_text(encoding="utf-8"))
-        self.assertNotIn("https://", plugin.read_text(encoding="utf-8"))
+        plugin_source = plugin.read_text(encoding="utf-8")
+        self.assertIn('"chat.message"', plugin_source)
+        self.assertIn("RECALL_TIMEOUT_MS", plugin_source)
+        self.assertIn("child.kill()", plugin_source)
+        self.assertIn('event?.type !== "session.deleted"', plugin_source)
+        self.assertNotIn("http://", plugin_source)
+        self.assertNotIn("https://", plugin_source)
 
         before = tree_digest(self.home)
         second = self.run_installer()
@@ -117,6 +121,20 @@ class MemoryHookInstallerTests(unittest.TestCase):
         self.assertEqual(hooks_path.read_text(encoding="utf-8"), "{broken")
         payload = json.loads(result.stdout)
         self.assertEqual(payload["status"], "fail")
+
+    def test_one_touch_installer_wires_verified_model_and_host_hooks(self) -> None:
+        source = (ROOT / "scripts" / "install-all-runtimes.sh").read_text(encoding="utf-8")
+        self.assertIn('model_source="$source_dir/assets/model2vec/potion-base-8M-int8"', source)
+        self.assertIn('model_dest="$home_dir/models/model2vec/potion-base-8M-int8"', source)
+        self.assertIn('-m ontology.model_assets verify "$model_dest"', source)
+        self.assertIn('"$home_dir/bin/ontology"', source)
+        self.assertIn("hephaestus ontology hep-build", source)
+        self.assertIn("install_memory_hooks()", source)
+        self.assertIn('install-memory-hooks.py"', source)
+        self.assertIn(
+            'install_memory_hooks || { warn "Local ontology memory hook install failed.";',
+            source,
+        )
 
 
 if __name__ == "__main__":

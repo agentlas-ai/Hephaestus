@@ -25,12 +25,21 @@ code_dirs=(
   "career_graph"
   "ontology"
   "agentlas_cloud"
-  "hooks"
+  "assets/model2vec"
   "templates"
+)
+
+# Hook commands are host-specific: Claude and Codex expose different plugin
+# root variables and should report their own host identity. Keep their source
+# directories separate while still enforcing exact adapter mirrors.
+hook_dir_mirrors=(
+  "hooks/claude:claude/plugins/agentlas-core-engine-meta-agent/hooks"
+  "hooks/codex:codex/plugins/agentlas-core-engine-meta-agent/hooks"
 )
 
 code_files=(
   "bin/hephaestus"
+  "bin/ontology"
   "bin/career-graph"
   "bin/hep-build"
   "bin/hep-network"
@@ -147,6 +156,16 @@ for plugin in "${plugin_roots[@]}"; do
       sync_file "$file" "$plugin/$file"
     fi
   done
+done
+
+for pair in "${hook_dir_mirrors[@]}"; do
+  src="${pair%%:*}"
+  dest="${pair##*:}"
+  if [[ "$mode" == "--check" ]]; then
+    check_dir "$src" "$dest"
+  else
+    sync_dir "$src" "$dest"
+  fi
 done
 
 for pair in "${skill_mirrors[@]}"; do

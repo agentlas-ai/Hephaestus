@@ -3,11 +3,13 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import stat
 import subprocess
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
@@ -82,7 +84,11 @@ class MemoryHookTests(unittest.TestCase):
 
     def test_capsule_is_local_bounded_redacted_and_agent_isolated(self) -> None:
         agentlas_home = self._install_agent_projection()
-        with sqlite3.connect(agentlas_home / "networking/hub-agents/release-writer/memory/experience.sqlite") as conn:
+        with closing(
+            sqlite3.connect(
+                agentlas_home / "networking/hub-agents/release-writer/memory/experience.sqlite"
+            )
+        ) as conn:
             before = tuple(
                 conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
                 for table in ("memory_candidates", "memory_links", "working_memory", "memory_candidate_events")
@@ -104,7 +110,11 @@ class MemoryHookTests(unittest.TestCase):
         self.assertNotIn("Other agent private", capsule)
         self.assertIn("writes=disabled; network=disabled", capsule)
 
-        with sqlite3.connect(agentlas_home / "networking/hub-agents/release-writer/memory/experience.sqlite") as conn:
+        with closing(
+            sqlite3.connect(
+                agentlas_home / "networking/hub-agents/release-writer/memory/experience.sqlite"
+            )
+        ) as conn:
             after = tuple(
                 conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
                 for table in ("memory_candidates", "memory_links", "working_memory", "memory_candidate_events")
@@ -186,6 +196,143 @@ class MemoryHookTests(unittest.TestCase):
         specific = payload["hookSpecificOutput"]
         self.assertEqual(specific["hookEventName"], "UserPromptSubmit")
         self.assertTrue(specific["additionalContext"].startswith("<agentlas-memory-context"))
+
+    def test_claude_and_codex_plugin_roots_and_event_contracts(self) -> None:
+        temp_home = Path(self.tmp.name) / "plugin-home"
+        temp_home.mkdir()
+        runtime_environments = (
+            ("claude", "CLAUDE_PLUGIN_ROOT"),
+            ("codex", "CODEX_PLUGIN_ROOT"),
+            ("codex", "CLAUDE_PLUGIN_ROOT"),
+        )
+        for runtime, root_variable in runtime_environments:
+            plugin_root = ROOT / runtime / "plugins" / "agentlas-core-engine-meta-agent"
+            hooks = json.loads(
+                (plugin_root / "hooks" / "hooks.json").read_text(encoding="utf-8")
+            )
+            for event in ("SessionStart", "UserPromptSubmit"):
+                with self.subTest(runtime=runtime, event=event):
+                    command = hooks["hooks"][event][0]["hooks"][0]["command"]
+                    self.assertIn(root_variable, command)
+                    self.assertIn(f"--host {runtime}", command)
+                    other_variable = (
+                        "CODEX_PLUGIN_ROOT"
+                        if root_variable == "CLAUDE_PLUGIN_ROOT"
+                        else "CLAUDE_PLUGIN_ROOT"
+                    )
+                    env = dict(os.environ)
+                    env.pop(root_variable, None)
+                    env.pop(other_variable, None)
+                    env.update({root_variable: str(plugin_root), "HOME": str(temp_home)})
+                    result = subprocess.run(
+                        ["/bin/sh", "-c", command],
+                        input=json.dumps(
+                            {
+                                "cwd": str(self.root),
+                                "hook_event_name": event,
+                                "user_prompt": "database rollback",
+                            }
+                        ),
+                        cwd=self.root,
+                        env=env,
+                        text=True,
+                        capture_output=True,
+                        check=True,
+                    )
+                    payload = json.loads(result.stdout)
+                    specific = payload["hookSpecificOutput"]
+                    self.assertEqual(specific["hookEventName"], event)
+                    self.assertIn("schema verification", specific["additionalContext"])
+        self.assertFalse((temp_home / ".agentlas" / "runtime-memory-context").exists())
+
+    def test_plugin_hook_missing_root_fails_open_with_json(self) -> None:
+        for runtime, root_variable in (
+            ("claude", "CLAUDE_PLUGIN_ROOT"),
+            ("codex", "CODEX_PLUGIN_ROOT"),
+        ):
+            plugin_root = ROOT / runtime / "plugins" / "agentlas-core-engine-meta-agent"
+            hooks = json.loads(
+                (plugin_root / "hooks" / "hooks.json").read_text(encoding="utf-8")
+            )
+            command = hooks["hooks"]["UserPromptSubmit"][0]["hooks"][0]["command"]
+            env = dict(os.environ)
+            env.pop("CLAUDE_PLUGIN_ROOT", None)
+            env.pop("CODEX_PLUGIN_ROOT", None)
+            with self.subTest(runtime=runtime):
+                result = subprocess.run(
+                    ["/bin/sh", "-c", command],
+                    input='{"cwd":"/tmp","user_prompt":"rollback"}',
+                    cwd=self.root,
+                    env=env,
+                    text=True,
+                    capture_output=True,
+                    check=True,
+                )
+                self.assertEqual(json.loads(result.stdout), {})
+                self.assertNotIn(root_variable, result.stderr)
+
+    def test_isolated_codex_plugin_bundle_uses_verified_model_asset(self) -> None:
+        source_plugin = ROOT / "codex" / "plugins" / "agentlas-core-engine-meta-agent"
+        isolated_plugin = Path(self.tmp.name) / "isolated-cache" / "hephaestus"
+        shutil.copytree(source_plugin, isolated_plugin)
+        hooks = json.loads(
+            (isolated_plugin / "hooks" / "hooks.json").read_text(encoding="utf-8")
+        )
+        command = hooks["hooks"]["UserPromptSubmit"][0]["hooks"][0]["command"]
+        isolated_home = Path(self.tmp.name) / "isolated-home"
+        isolated_home.mkdir()
+        env = dict(os.environ)
+        env.pop("CLAUDE_PLUGIN_ROOT", None)
+        env.pop("PYTHONPATH", None)
+        env.update(
+            {
+                "CODEX_PLUGIN_ROOT": str(isolated_plugin),
+                "HOME": str(isolated_home),
+            }
+        )
+        result = subprocess.run(
+            ["/bin/sh", "-c", command],
+            input=json.dumps(
+                {
+                    "cwd": str(self.root),
+                    "hook_event_name": "UserPromptSubmit",
+                    "user_prompt": "database rollback",
+                }
+            ),
+            cwd=isolated_home,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        capsule = json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("retrieval=local_model", capsule)
+        self.assertIn("adapter=model2vec_potion_base_8m_int8_hybrid", capsule)
+        self.assertFalse((isolated_home / ".agentlas" / "runtime").exists())
+
+    def test_executable_fails_open_when_runtime_import_fails(self) -> None:
+        fake_python = Path(self.tmp.name) / "fake-python"
+        fake_python.write_text(
+            "#!/bin/sh\n"
+            "case \"$*\" in\n"
+            "  *'import sys'*) exit 0 ;;\n"
+            "  *) exit 42 ;;\n"
+            "esac\n",
+            encoding="utf-8",
+        )
+        fake_python.chmod(0o755)
+        env = dict(os.environ)
+        env["HEPHAESTUS_PYTHON"] = str(fake_python)
+        result = subprocess.run(
+            [str(ROOT / "bin" / "agentlas-memory-hook"), "--host", "claude"],
+            input='{"cwd":"/tmp"}',
+            cwd=ROOT,
+            env=env,
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout.strip(), "{}")
 
     def test_grok_cache_index_keeps_workspace_boundary(self) -> None:
         cache = Path(self.tmp.name) / "cache"
