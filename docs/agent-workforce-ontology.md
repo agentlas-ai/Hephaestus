@@ -227,27 +227,43 @@ diagnostics and are not exposed as a total staffing score.
 
 ## Host-LLM selection protocol
 
-1. `workforce.search_candidates` returns a selection session, ontology version,
+Every supported host uses the same typed adapter contract. The adapter owns MCP
+transport; it is not a second planner or staffing authority.
+
+1. The host LLM emits one complete, direct
+   `agentlas.workforce-work-order.v1` object.
+2. The typed host adapter type-checks that object and invokes the fixed
+   `workforce.search_candidates` tool with the WorkOrder unchanged. It may
+   reject an incomplete object, but it must not normalize fields, insert
+   defaults, or add, remove, or relax requirements.
+3. `workforce.search_candidates` returns a selection session, ontology version,
    candidate-set digest, role-slot cards, and coverage gaps.
-2. When bounded coverage-gap codes show an unfilled role slot, the same active
-   host LLM may make a bounded WorkOrder refinement whose only new input is
-   those codes, then repeat `workforce.search_candidates`. The refined WorkOrder
-   and repeat search remain auditable and must retain the ontology version and
-   redaction boundary.
-3. Deterministic host/runtime code may validate or refuse that refinement, but
-   it must never add, remove, or relax required, optional, or forbidden
-   WorkOrder fields itself.
-4. The host LLM submits `workforce.validate_selection` with assignments,
-   collaboration/handoff edges, alternatives considered, and short reason
-   codes.
-5. The validator confirms provenance, hard eligibility, required coverage,
+4. When bounded coverage-gap codes show an unfilled role slot, the same active
+   host LLM may emit a refined, complete, direct WorkOrder whose only new input
+   is those codes, then the adapter repeats `workforce.search_candidates`. The
+   refined WorkOrder and repeat search remain auditable and must retain the
+   ontology version and redaction boundary.
+5. The host LLM emits one direct `agentlas.workforce-selection.v1` object with
+   assignments, collaboration/handoff edges, alternatives considered, and
+   short reason codes.
+6. The adapter invokes `workforce.validate_selection` with the exact WorkOrder,
+   candidate set, and Selection. Only after acceptance does it invoke
+   `workforce.prepare_execution` with those same objects and the validation
+   receipt.
+7. The validator confirms provenance, hard eligibility, required coverage,
    cycles, cardinality, and candidate-set membership. It validates; it never
    chooses.
-6. `workforce.prepare_execution` resolves exact immutable BYOM releases and
-   returns separate `idealTeam`, `executableTeam`, `unfilledPosts`, and
-   `substitutions`. Substitution requires another host-LLM decision.
-7. The execution fabric emits manager, worker, handoff, synthesis, verifier,
+8. Preparation resolves exact immutable BYOM releases and returns separate
+   `idealTeam`, `executableTeam`, `unfilledPosts`, and `substitutions`.
+   Substitution requires another host-LLM decision.
+9. The execution fabric emits manager, worker, handoff, synthesis, verifier,
    and completion receipts.
+
+The host LLM is never asked to wrap either direct object in a ceremonial MCP or
+JSON-RPC tool-call envelope. Tool names and transport arguments are fixed by
+the typed adapter. This keeps staffing semantics with the host LLM while
+avoiding extra JSON nesting that is especially fragile for smaller local
+models.
 
 Every accepted selection states `decisionAuthor.kind = host_llm` and records
 the host model identifier, candidate-set digest, ontology version, and selected
@@ -262,8 +278,9 @@ workforce.prepare_execution
 ```
 
 `workforce.search_candidates` is content-only and read-only. A bounded replay
-after an ambiguous transport response may reuse the exact request and
-idempotency material, and every attempt is audited. Such a replay must not
+after an ambiguous transport response reuses the exact WorkOrder arguments and
+deterministic selection-session material, and every attempt is audited. The
+transport-level JSON-RPC request ID need not be reused. Such a replay must not
 fabricate or relax the WorkOrder. `workforce.validate_selection` and
 `workforce.prepare_execution` are never replayed automatically; ambiguous
 outcomes fail closed and require an explicit host-controlled recovery flow.

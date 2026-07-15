@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.1.40 - 2026-07-16
+
+- **Cross-platform workforce adapters now have one direct-object contract.**
+  The host LLM emits a complete WorkOrder and Selection directly; typed host
+  adapters invoke the three fixed workforce tools without asking models for a
+  ceremonial tool-call envelope or normalizing, defaulting, or relaxing model
+  fields. Bounded ambiguous search replay preserves the exact WorkOrder and
+  deterministic selection-session material, while validation and preparation
+  remain fail-closed and non-replayed.
+- **The difficult workforce benchmark scores declared expertise without hidden
+  answer leakage.** Required and optional communities or skills can evidence a
+  role family while distinct-slot matching remains mandatory; unrelated
+  communities stay hidden negative-recall probes rather than a list the model
+  must copy. The ontology menu remains `awo:2026-07-15.2` with unchanged raw
+  snapshot SHA-256
+  `d6d30d45fe8d35fb785e165d1e80c6471a72436f0160c3933c21d4a31bf2fb32`.
+
 ## v1.1.39 - 2026-07-16
 
 - **The Agent Workforce Ontology menu recognizes singular payment and general
