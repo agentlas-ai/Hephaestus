@@ -18,6 +18,7 @@ from ontology import OntologyRuntime, RuntimeConfig
 
 
 ROOT = Path(__file__).resolve().parents[1]
+FAKE_SECRET = "fixture_secret_value_123456"
 
 
 class MemoryHookTests(unittest.TestCase):
@@ -29,7 +30,7 @@ class MemoryHookTests(unittest.TestCase):
         source = self.root / "decisions.md"
         source.write_text(
             "Database rollback requires schema verification. "
-            "api_key=sk-proj-ABCDEFGHIJKLMNOPQRSTUVWXYZ123456 must never be recalled.",
+            f"api_key={FAKE_SECRET} must never be recalled.",
             encoding="utf-8",
         )
         OntologyRuntime(RuntimeConfig(db_path=self.db_path)).ingest_path(source)
@@ -106,7 +107,8 @@ class MemoryHookTests(unittest.TestCase):
         self.assertIn('<agentlas-memory-context version="1" digest="sha256:', capsule)
         self.assertIn("schema verification", capsule)
         self.assertIn("concise migration notes", capsule)
-        self.assertNotIn("sk-proj-", capsule)
+        self.assertNotIn(FAKE_SECRET, capsule)
+        self.assertIn("api_key=[REDACTED]", capsule)
         self.assertNotIn("Other agent private", capsule)
         self.assertIn("writes=disabled; network=disabled", capsule)
 
@@ -344,7 +346,7 @@ class MemoryHookTests(unittest.TestCase):
         index = (cache / "grok" / "index.md").read_text(encoding="utf-8")
         self.assertIn(f'Workspace JSON: {json.dumps(str(self.root.resolve()))}', index)
         self.assertIn(str(capsule_path), index)
-        self.assertNotIn("sk-proj-", Path(capsule_path).read_text(encoding="utf-8"))
+        self.assertNotIn(FAKE_SECRET, Path(capsule_path).read_text(encoding="utf-8"))
         self.assertEqual(stat.S_IMODE(cache.stat().st_mode), 0o700)
         self.assertEqual(stat.S_IMODE((cache / "grok").stat().st_mode), 0o700)
         self.assertEqual(stat.S_IMODE(Path(capsule_path).stat().st_mode), 0o600)
