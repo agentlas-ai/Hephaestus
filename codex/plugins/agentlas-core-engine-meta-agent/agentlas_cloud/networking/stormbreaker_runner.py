@@ -17,8 +17,9 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .bootstrap import append_jsonl, atomic_write_json, networking_home, utc_now
-from .execution_fabric import evaluate_final_gate
+from .execution_fabric import build_execution_fabric, evaluate_final_gate
 from .goal_loop import GoalLoopConfig, run_goal_loop
+from .hub_invocation import invoke_hub_agent
 from .receipts import record_execution
 from .router import route_request
 from .run_journal import RunJournal
@@ -92,6 +93,24 @@ def run_stormbreaker_query(
     )
     decision = dict(decision)
     decision["_stormbreaker_user_query"] = query
+    prepared = prepare_hub_task_force_decision(
+        decision,
+        home=home,
+        project_dir=project_dir,
+        session_inventory=session_inventory,
+    )
+    if prepared["status"] == "blocked":
+        return {
+            "status": "blocked",
+            "runner_version": RUNNER_VERSION,
+            "reason": "hub_task_force_bundle_prepare_failed",
+            "receipt_id": decision.get("receipt_id"),
+            "hub_invocations": prepared["hub_invocations"],
+            "failures": prepared["failures"],
+            "execution_harness": goal_ultracode_harness(),
+            "route_decision": _decision_summary(decision),
+        }
+    decision = prepared["decision"]
     result = run_stormbreaker_decision(
         decision,
         home=home,
@@ -110,6 +129,168 @@ def run_stormbreaker_query(
     result["execution_harness"] = goal_ultracode_harness()
     result["route_decision"] = _decision_summary(decision)
     return result
+
+
+def prepare_hub_task_force_decision(
+    decision: Mapping[str, Any],
+    *,
+    home: Path | str | None = None,
+    project_dir: Path | str = ".",
+    session_inventory: list[Any] | None = None,
+) -> dict[str, Any]:
+    """Promote a Hub temporary-orchestrator plan into an executable fabric.
+
+    Hub routing intentionally returns BYOM candidates; Stormbreaker owns the
+    execution boundary.  This bridge fetches every selected runtime bundle,
+    embeds its complete instruction entry in the matching work packet, and
+    preserves stage artifact dependencies for the local host model.
+    """
+
+    current = dict(decision)
+    execution = current.get("execution") if isinstance(current.get("execution"), Mapping) else {}
+    recommended = execution.get("recommended_agents") if isinstance(execution, Mapping) else None
+    if current.get("action") != "hub_candidates" or execution.get("formation") != "temporary_orchestrator" or not isinstance(recommended, list):
+        return {
+            "status": "not_applicable",
+            "decision": current,
+            "hub_invocations": [],
+            "failures": [],
+        }
+
+    base = Path(home) if home else networking_home()
+    project = Path(project_dir).expanduser().resolve()
+    task_force = current.get("task_force") if isinstance(current.get("task_force"), Mapping) else {}
+    task_stages = [item for item in (task_force.get("stages") or []) if isinstance(item, Mapping)]
+    stage_metadata = {str(item.get("stage") or ""): item for item in task_stages}
+    invocation_cache: dict[str, dict[str, Any]] = {}
+    invocations: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    stages: list[dict[str, Any]] = []
+    previous_artifact: str | None = None
+
+    recommendation_by_stage = {
+        str(item.get("stage") or ""): item
+        for item in recommended
+        if isinstance(item, Mapping)
+    }
+    planned_stages = task_stages or [
+        {"order": index, "stage": item.get("stage"), "artifact": _default_stage_artifact(str(item.get("stage") or "stage"))}
+        for index, item in enumerate(recommended, start=1)
+        if isinstance(item, Mapping)
+    ]
+
+    for order, meta in enumerate(planned_stages, start=1):
+        stage_name = str(meta.get("stage") or f"stage-{order}")
+        recommendation = recommendation_by_stage.get(stage_name)
+        artifact = str(meta.get("artifact") or _default_stage_artifact(stage_name))
+        if recommendation is None:
+            stages.append(
+                {
+                    "order": order,
+                    "stage": stage_name,
+                    "card": f"agentlas:stormbreaker-{stage_name}",
+                    "canonical_command": None,
+                    "consumes": [previous_artifact] if previous_artifact else [],
+                    "produces": [artifact],
+                    "hub_invocation": {
+                        "slug": None,
+                        "status": "core_stage_fallback",
+                        "reason": "no_callable_intent_fit_hub_candidate",
+                    },
+                }
+            )
+            previous_artifact = artifact
+            continue
+
+        slug = str(recommendation.get("agent") or "").strip()
+        if not slug:
+            failures.append({"stage": stage_name, "status": "missing_agent_slug"})
+            continue
+        invocation = invocation_cache.get(slug)
+        if invocation is None:
+            invocation = invoke_hub_agent(
+                str(current.get("_stormbreaker_user_query") or current.get("query") or ""),
+                slug=slug,
+                hub_decision=current,
+                project_dir=project,
+                home=base,
+            )
+            invocation_cache[slug] = invocation
+            invocations.append(invocation)
+        if invocation.get("status") != "prepared":
+            failures.append(
+                {
+                    "stage": stage_name,
+                    "agent": slug,
+                    "status": invocation.get("status"),
+                    "detail": invocation.get("detail") or invocation.get("message"),
+                }
+            )
+            continue
+
+        output = invocation.get("output") if isinstance(invocation.get("output"), Mapping) else {}
+        stage = {
+            "order": order,
+            "stage": stage_name,
+            "card": f"hub:{slug}",
+            "canonical_command": None,
+            "consumes": [previous_artifact] if previous_artifact else [],
+            "produces": [artifact],
+            "hub_runtime_bundle": output.get("runtime_bundle") or {},
+            "hub_grounding": output.get("grounding") or {},
+            "hub_invocation": {
+                "execution_id": invocation.get("execution_id"),
+                "slug": slug,
+                "package_hash": output.get("package_hash") or invocation.get("package_hash"),
+                "lease": invocation.get("lease"),
+            },
+        }
+        stages.append(stage)
+        previous_artifact = artifact
+
+    if failures or len(stages) != len(planned_stages):
+        return {
+            "status": "blocked",
+            "decision": current,
+            "hub_invocations": invocations,
+            "failures": failures or [{"status": "incomplete_hub_task_force"}],
+        }
+
+    pipeline_id = uuid.uuid4().hex[:12]
+    handoff_dir = f".agentlas/pipeline/{pipeline_id}/"
+    fabric = build_execution_fabric(
+        stages,
+        pipeline_id=pipeline_id,
+        handoff_dir=handoff_dir,
+        session_inventory=session_inventory,
+    )
+    current.update(
+        {
+            "action": "pipeline",
+            "source_action": "hub_candidates",
+            "pipeline_id": pipeline_id,
+            "handoff_dir": handoff_dir,
+            "stages": stages,
+            "execution_fabric": fabric,
+            "match_reason": "hub_task_force_runtime_bundles",
+            "allowed_by": list(dict.fromkeys([*(current.get("allowed_by") or []), "hub_runtime_bundles", "stormbreaker_execution_bridge"])),
+            "hub_invocations": invocations,
+        }
+    )
+    return {
+        "status": "prepared",
+        "decision": current,
+        "hub_invocations": invocations,
+        "failures": [],
+    }
+
+
+def _default_stage_artifact(stage: str) -> str:
+    return {
+        "plan": "prd",
+        "build": "codebase_change",
+        "verify": "qa_report",
+    }.get(stage, f"{stage}_artifact")
 
 
 def run_stormbreaker_decision(
@@ -364,6 +545,18 @@ def run_stormbreaker_decision(
         "final_gate": final_gate,
         "execution_harness": execution_harness,
     }
+    hub_invocations = decision.get("hub_invocations")
+    if isinstance(hub_invocations, list):
+        result["hub_invocations"] = [
+            {
+                "status": item.get("status"),
+                "slug": item.get("slug"),
+                "execution_id": item.get("execution_id"),
+                "package_hash": ((item.get("output") or {}).get("package_hash") if isinstance(item.get("output"), Mapping) else None),
+            }
+            for item in hub_invocations
+            if isinstance(item, Mapping)
+        ]
     if research_evidence:
         result["research_options"] = research_options
     return result

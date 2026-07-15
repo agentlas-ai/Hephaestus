@@ -174,6 +174,18 @@ def invoke_hub_agent(
         "package_hash": package_hash,
         "entry_path": entry.get("path"),
         "entry_excerpt": _compact(entry.get("content") or "", 700),
+        # The executor needs the complete Hub instruction entry, not merely a
+        # display excerpt.  This is still a BYOM package payload fetched from
+        # the Hub; it contains no local prompt, memory, or project files.
+        "runtime_bundle": {
+            "agent": selected_slug,
+            "package_hash": package_hash,
+            "entry": {
+                "path": entry.get("path"),
+                "content": entry.get("content"),
+            },
+            "tool_permissions": bundle.get("toolPermissions") or {},
+        },
         "prompt_summary": _compact(request, 260),
         "grounding": grounding,
         "lease": lease,

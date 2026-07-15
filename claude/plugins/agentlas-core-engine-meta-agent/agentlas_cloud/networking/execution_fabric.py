@@ -228,8 +228,7 @@ def build_execution_fabric(
                 chosen_session,
             )
         depends_on = _packet_dependencies(stage, produced_by_kind)
-        packets.append(
-            {
+        packet = {
                 "packet_id": packet_id,
                 "stage_order": order,
                 "stage": stage_name,
@@ -262,7 +261,14 @@ def build_execution_fabric(
                 "execution_harness": harness_reference(),
                 "required_for_final_gate": True,
             }
-        )
+        # Hub-routed Stormbreaker stages carry the prepared BYOM instructions
+        # into packet.json so any host executor (including a local Ollama/Qwen
+        # adapter) can execute the selected specialist without another routing
+        # or network lookup.
+        for key in ("hub_runtime_bundle", "hub_grounding", "hub_invocation"):
+            if stage.get(key) is not None:
+                packet[key] = stage[key]
+        packets.append(packet)
         for kind in produced:
             produced_by_kind[kind] = packet_id
 

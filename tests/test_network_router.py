@@ -370,6 +370,35 @@ def test_network_hub_only_prefers_cloud_then_bookmarks_before_public_hub(tmp_pat
     assert "route_order:cloud_bookmark_hub" in result["allowed_by"]
 
 
+def test_network_hub_only_skips_install_only_scopes_until_callable(tmp_path, monkeypatch):
+    home = setup_home(tmp_path)
+    calls = []
+
+    def fake_search_hub(query_tokens, home=None, approved=False, scope="network"):
+        calls.append(scope)
+        if scope in {"cloud", "bookmark"}:
+            return {
+                "status": "ok",
+                "scope": scope,
+                "query": " ".join(query_tokens),
+                "results": [{"slug": f"{scope}-install-only", "kind": "install-only", "callable": False}],
+            }
+        return {
+            "status": "ok",
+            "scope": "network",
+            "query": " ".join(query_tokens),
+            "results": [{"slug": "public-callable", "kind": "cloud-callable", "callable": True}],
+        }
+
+    monkeypatch.setattr("agentlas_cloud.networking.router.search_hub", fake_search_hub)
+    result = route_request("시장 보고서 작성해줘", home=home, use_hub=True, hub_only=True)
+
+    assert result["action"] == "hub_candidates"
+    assert result["hub"]["scope"] == "network"
+    assert result["execution"]["primary_agent"] == "public-callable"
+    assert calls == ["cloud", "bookmark", "network"]
+
+
 def test_hub_only_composite_request_forms_stagewise_task_force(tmp_path, monkeypatch):
     home = setup_home(tmp_path)
     seen = []
@@ -405,6 +434,43 @@ def test_hub_only_composite_request_forms_stagewise_task_force(tmp_path, monkeyp
     assert len(seen) == 3
     assert result["policy_decision"]["decision"] == "allow_with_label"
     assert result["memory_playbook"]["candidates"]
+
+
+def test_hub_task_force_rejects_off_domain_callable_slugs(tmp_path, monkeypatch):
+    home = setup_home(tmp_path)
+
+    def fake_search_hub(query_tokens, home=None, approved=False, scope="network"):
+        if "prd" in query_tokens:
+            results = [
+                {"slug": "travel-concierge-hq", "nameEn": "Travel Concierge HQ", "kind": "cloud-callable", "callable": True},
+                {"slug": "agentlas-prd-maker-studio", "nameEn": "Agentlas PRD Maker Studio", "kind": "cloud-callable", "callable": True},
+            ]
+        elif "codebase" in query_tokens and "change" in query_tokens:
+            results = [
+                {"slug": "travel-concierge-hq", "nameEn": "Travel Concierge HQ", "kind": "cloud-callable", "callable": True},
+                {"slug": "product-development-hq", "nameEn": "Product Development HQ", "kind": "cloud-callable", "callable": True},
+            ]
+        else:
+            results = [
+                {"slug": "travel-concierge-hq", "nameEn": "Travel Concierge HQ", "kind": "cloud-callable", "callable": True},
+                {"slug": "web-master", "nameEn": "Web App Design Master", "kind": "cloud-callable", "callable": True},
+            ]
+        return {"status": "ok", "scope": scope, "query": " ".join(query_tokens), "results": results}
+
+    monkeypatch.setattr("agentlas_cloud.networking.router.search_hub", fake_search_hub)
+    result = route_request(
+        "plan, implement, and verify an offline terminal benchmark end-to-end",
+        home=home,
+        use_hub=True,
+        hub_only=True,
+    )
+
+    assert [item["agent"] for item in result["execution"]["recommended_agents"]] == [
+        "agentlas-prd-maker-studio",
+        "product-development-hq",
+    ]
+    assert result["execution"]["core_stages"] == ["verify"]
+    assert "travel-concierge-hq" not in [item["agent"] for item in result["execution"]["recommended_agents"]]
 
 
 def test_hub_only_uses_whole_word_query_tokens(tmp_path, monkeypatch):

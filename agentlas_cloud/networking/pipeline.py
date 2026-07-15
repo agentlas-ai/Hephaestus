@@ -25,7 +25,7 @@ from ..interview.schema import brief_packet_context, brief_scope_text
 STAGE_DEFS: list[tuple[str, set[str], str]] = [
     (
         "plan",
-        {"기획", "요구사항", "요건", "스펙", "prd", "spec", "requirements", "product plan"},
+        {"기획", "요구사항", "요건", "스펙", "prd", "spec", "requirements", "plan", "product plan"},
         "prd",
     ),
     (

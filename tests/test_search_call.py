@@ -93,3 +93,25 @@ def test_call_agents_prepares_exact_named_slugs(tmp_path, monkeypatch):
 
 def test_parse_agent_refs_dedupes_comma_and_newline_input():
     assert parse_agent_refs("a, b\na") == ["a", "b"]
+
+
+def test_call_agents_strips_router_marketplace_tiers(tmp_path, monkeypatch):
+    prepared = []
+
+    def fake_invoke(request, **kwargs):
+        prepared.append(kwargs)
+        return {"status": "prepared", "slug": kwargs["slug"]}
+
+    monkeypatch.setattr("agentlas_cloud.networking.search_call.invoke_hub_agent", fake_invoke)
+    result = call_agents(
+        "paid/agentlas-prd-maker-studio, free/researcher-017-agent-repo-security-regression-suite",
+        "Run the routed stages.",
+        home=tmp_path / "networking",
+    )
+
+    assert result["status"] == "prepared"
+    assert [item["slug"] for item in result["agents"]] == [
+        "agentlas-prd-maker-studio",
+        "researcher-017-agent-repo-security-regression-suite",
+    ]
+    assert [item["requested_scope"] for item in result["agents"]] == ["hub", "hub"]

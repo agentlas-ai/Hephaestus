@@ -235,6 +235,15 @@ def _parse_ref(ref: str) -> dict[str, str]:
         if prefix.lower() in {"hub", "network", "cloud", "bookmark", "bookmarks"}:
             scope = "cloud" if prefix.lower() == "cloud" else "hub"
             value = rest
+    # Router/card ids carry a local marketplace tier (for example
+    # ``paid/agent-name`` or ``free/agent-name``), while Hub runtime bundle
+    # endpoints address the canonical slug only.  Treat those prefixes as
+    # metadata, not as part of the requested slug.  Without this bridge a route
+    # decision handed directly to hep-call becomes ``paid-agent-name`` and the
+    # Hub correctly answers agent_not_found.
+    tier, separator, remainder = value.partition("/")
+    if separator and tier.lower() in {"paid", "free", "private", "restricted", "network", "hub"}:
+        value = remainder
     return {"slug": _slug(value), "scope": scope}
 
 

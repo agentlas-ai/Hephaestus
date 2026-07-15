@@ -608,6 +608,125 @@ def test_stormbreaker_cli_runs_pipeline(tmp_path, monkeypatch, capsys):
     assert payload["claim_level"] == "external_executor_completed"
 
 
+def test_stormbreaker_promotes_hub_temporary_orchestrator_to_pipeline(tmp_path, monkeypatch):
+    from agentlas_cloud.networking.stormbreaker_runner import prepare_hub_task_force_decision
+
+    calls = []
+
+    def fake_invoke(request, **kwargs):
+        calls.append(kwargs["slug"])
+        return {
+            "status": "prepared",
+            "slug": kwargs["slug"],
+            "execution_id": f"exec-{kwargs['slug']}",
+            "output": {
+                "package_hash": f"sha256:{kwargs['slug']}",
+                "runtime_bundle": {
+                    "agent": kwargs["slug"],
+                    "entry": {"path": "AGENTS.md", "content": f"Act as {kwargs['slug']}."},
+                    "tool_permissions": {},
+                },
+                "grounding": {"project_dir": str(tmp_path / "project")},
+            },
+        }
+
+    monkeypatch.setattr("agentlas_cloud.networking.stormbreaker_runner.invoke_hub_agent", fake_invoke)
+    decision = {
+        "action": "hub_candidates",
+        "receipt_id": "route-hub-tf",
+        "_stormbreaker_user_query": "Plan, implement, and verify this benchmark task.",
+        "execution": {
+            "formation": "temporary_orchestrator",
+            "recommended_agents": [
+                {"stage": "plan", "agent": "hub-planner"},
+                {"stage": "build", "agent": "hub-builder"},
+                {"stage": "verify", "agent": "hub-verifier"},
+            ],
+        },
+        "task_force": {
+            "stages": [
+                {"stage": "plan", "artifact": "prd"},
+                {"stage": "build", "artifact": "codebase_change"},
+                {"stage": "verify", "artifact": "qa_report"},
+            ]
+        },
+    }
+
+    prepared = prepare_hub_task_force_decision(
+        decision,
+        home=tmp_path / "networking",
+        project_dir=tmp_path / "project",
+        session_inventory=[{"session_id": "ollama:qwen", "model": "qwen3:30b-a3b", "local": True}],
+    )
+
+    assert prepared["status"] == "prepared"
+    promoted = prepared["decision"]
+    assert promoted["action"] == "pipeline"
+    assert promoted["source_action"] == "hub_candidates"
+    assert calls == ["hub-planner", "hub-builder", "hub-verifier"]
+    packets = promoted["execution_fabric"]["packets"]
+    assert [packet["card"] for packet in packets] == [
+        "hub:hub-planner",
+        "hub:hub-builder",
+        "hub:hub-verifier",
+    ]
+    assert packets[1]["depends_on"] == [packets[0]["packet_id"]]
+    assert packets[2]["depends_on"] == [packets[1]["packet_id"]]
+    assert packets[0]["hub_runtime_bundle"]["entry"]["content"] == "Act as hub-planner."
+
+
+def test_stormbreaker_uses_core_stage_when_hub_has_no_intent_fit(tmp_path, monkeypatch):
+    from agentlas_cloud.networking.stormbreaker_runner import prepare_hub_task_force_decision
+
+    calls = []
+
+    def fake_invoke(request, **kwargs):
+        calls.append(kwargs["slug"])
+        return {
+            "status": "prepared",
+            "slug": kwargs["slug"],
+            "output": {
+                "runtime_bundle": {
+                    "agent": kwargs["slug"],
+                    "entry": {"path": "AGENTS.md", "content": "Do the specialist work."},
+                    "tool_permissions": {},
+                },
+                "grounding": {},
+            },
+        }
+
+    monkeypatch.setattr("agentlas_cloud.networking.stormbreaker_runner.invoke_hub_agent", fake_invoke)
+    prepared = prepare_hub_task_force_decision(
+        {
+            "action": "hub_candidates",
+            "execution": {
+                "formation": "temporary_orchestrator",
+                "recommended_agents": [
+                    {"stage": "plan", "agent": "hub-planner"},
+                    {"stage": "build", "agent": "hub-builder"},
+                ],
+                "core_stages": ["verify"],
+            },
+            "task_force": {
+                "stages": [
+                    {"stage": "plan", "artifact": "prd"},
+                    {"stage": "build", "artifact": "codebase_change"},
+                    {"stage": "verify", "artifact": "qa_report"},
+                ]
+            },
+        },
+        home=tmp_path / "networking",
+        project_dir=tmp_path / "project",
+    )
+
+    assert prepared["status"] == "prepared"
+    assert calls == ["hub-planner", "hub-builder"]
+    packets = prepared["decision"]["execution_fabric"]["packets"]
+    assert packets[2]["card"] == "agentlas:stormbreaker-verify"
+    assert packets[2]["hub_invocation"]["status"] == "core_stage_fallback"
+    assert packets[2]["depends_on"] == [packets[1]["packet_id"]]
+
+
 def test_stormbreaker_cli_background_run_writes_result(tmp_path, monkeypatch, capsys):
     home = pipeline_home(tmp_path)
     project = tmp_path / "project"

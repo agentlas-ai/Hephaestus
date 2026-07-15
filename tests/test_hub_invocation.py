@@ -48,6 +48,11 @@ def test_hub_invocation_fetches_bundle_and_updates_memory(tmp_path, monkeypatch)
     assert result["slug"] == "hub-only-reviewer"
     assert result["local_route_used"] is False
     assert result["restricted_slug_present"] is False
+    assert result["output"]["runtime_bundle"]["entry"]["content"] == "Use GitHub and Slack to review an agent repo."
+    assert result["output"]["runtime_bundle"]["tool_permissions"] == {
+        "network": "ask",
+        "fileRead": "manifest-allowlist",
+    }
     assert result["memory"]["status"] == "updated"
     assert (memory_root / "memory-map.json").is_file()
     assert (memory_root / "project-soul-memory.md").read_text(encoding="utf-8").count("hub invocation") == 1

@@ -484,6 +484,64 @@ def _is_borrowable(item: dict[str, Any]) -> bool:
     )
 
 
+_STAGE_ROLE_TOKENS: dict[str, set[str]] = {
+    "plan": {"plan", "planner", "prd", "requirements", "research", "architect", "spec"},
+    "build": {"build", "builder", "code", "coding", "developer", "development", "engineer", "implementation", "runtime", "cli", "adapter", "product"},
+    "verify": {"verify", "verifier", "qa", "test", "tester", "testing", "regression", "audit", "auditor", "review", "reviewer", "reliability", "security"},
+}
+_OFF_DOMAIN_ROLE_TOKENS = {
+    "travel", "concierge", "game", "film", "wedding", "marketing", "instagram",
+    "legal", "patent", "finance", "investment", "photo", "commerce", "sales",
+}
+
+
+def _hub_stage_candidate_fit(query: str, stage: str, item: dict[str, Any]) -> bool:
+    """Reject callable-but-off-domain Hub slugs from automatic TF execution."""
+
+    query_words = word_token_set(query or "") | snake_tokens(query or "")
+    candidate_words = word_token_set(
+        " ".join(
+            [
+                str(item.get("slug") or ""),
+                str(item.get("name") or ""),
+                str(item.get("nameEn") or ""),
+            ]
+        )
+    ) | snake_tokens(str(item.get("slug") or ""))
+    unrelated = (candidate_words & _OFF_DOMAIN_ROLE_TOKENS) - query_words
+    if unrelated:
+        return False
+    role_tokens = _STAGE_ROLE_TOKENS.get(stage, set())
+    if candidate_words & role_tokens:
+        return True
+    distinctive_query = query_words - _GENERIC_ROLE_TOKENS - {"local", "offline", "model", "agentlas"}
+    return bool(candidate_words & distinctive_query)
+
+
+def _hub_query_has_fitting_borrowable(query_tokens: list[str], results: list[dict[str, Any]]) -> bool:
+    query = " ".join(query_tokens)
+    stage = "direct"
+    tokens = set(query_tokens)
+    if "qa_report" in tokens:
+        stage = "verify"
+    elif "codebase_change" in tokens:
+        stage = "build"
+    elif "prd" in tokens:
+        stage = "plan"
+    elif tokens & {"verify", "test", "validation"}:
+        stage = "verify"
+    elif tokens & {"build", "implement", "implementation"}:
+        stage = "build"
+    elif tokens & {"requirements", "plan"}:
+        stage = "plan"
+    return any(
+        _is_borrowable(item)
+        and (stage == "direct" or _hub_stage_candidate_fit(query, stage, item))
+        for item in results
+        if isinstance(item, dict)
+    )
+
+
 # 일반적인 빌드/기획 동사는 "이 에이전트를 지목했다"고 볼 만큼 특이하지 않으므로 제외 —
 # 진짜 역할 단어("웹마스터", "카피라이터")로만 매칭한다.
 _GENERIC_ROLE_TOKENS = {
@@ -546,7 +604,11 @@ def _byom_execution_plan(
     alternatives: list[dict[str, Any]] = []
     if stages:
         for stage in stages:
-            stage_candidates = [c for c in (stage.get("hub_candidates") or []) if _is_borrowable(c)]
+            stage_candidates = [
+                c
+                for c in (stage.get("hub_candidates") or [])
+                if _is_borrowable(c) and c.get("intentFit") is not False
+            ]
             if stage_candidates:
                 recommended.append(
                     {
@@ -579,7 +641,13 @@ def _byom_execution_plan(
     # 오케스트레이터 역할(plan→dispatch→synthesize)을 맡도록 directive를 전환한다. CLI에는
     # 별도 오케스트레이터 세션이 없으므로(hep-storm --executor-command 없이는) 베이스 모델이
     # 매니저가 되는 게 현실적 경로다.
-    multi = len(recommended) >= 2
+    core_stages = [
+        str(stage.get("stage"))
+        for stage in (stages or [])
+        if isinstance(stage, dict)
+        and not any(item.get("stage") == stage.get("stage") for item in recommended)
+    ]
+    multi = len(recommended) + len(core_stages) >= 2
     directive = (
         "Resolve this request by BORROWING the best-fit Hub agent(s) and running them "
         "LOCALLY, grounded in the current project. Start from `primary_agent`/"
@@ -607,6 +675,7 @@ def _byom_execution_plan(
         "formation": "temporary_orchestrator" if multi else "single_specialist",
         "primary_agent": primary,
         "recommended_agents": recommended,
+        "core_stages": core_stages,
         # The Hub ranks by its own keyword relevance and can mis-rank the #1 for a
         # sparse query, so the operator — who can see the actual task — gets the
         # ranked borrowable alternatives and is told to pick the best fit, not to
@@ -715,7 +784,18 @@ def _hub_task_force_plan(
         stage_query_tokens = word_tokens(f"{query} {stage_key} {artifact_kind}")
         hub = search_hub_fn(stage_query_tokens, search_scope=scope)
         results = [item for item in (hub.get("results") or []) if isinstance(item, dict)] if hub.get("status") == "ok" else []
-        candidates = [_compact_hub_result(item) for item in results[:3]]
+        # An executable temporary TF must not lose a callable candidate merely
+        # because install-only search hits occupied the display top three.
+        # Preserve rank within each class while putting callable BYOM bundles
+        # first for this execution-oriented stage plan.
+        fit_results = [item for item in results if _hub_stage_candidate_fit(query, stage_key, item)]
+        other_results = [item for item in results if item not in fit_results]
+        ranked_results = sorted(fit_results, key=lambda item: 0 if _is_borrowable(item) else 1) + other_results
+        candidates = []
+        for item in ranked_results[:3]:
+            compact = _compact_hub_result(item)
+            compact["intentFit"] = _hub_stage_candidate_fit(query, stage_key, item)
+            candidates.append(compact)
         for item in results:
             slug = str(item.get("slug") or "")
             if slug and slug not in seen_slugs:
@@ -825,7 +905,17 @@ def route_request(
             hub["attemptedScopes"] = attempted.copy()
             last = hub
             if hub.get("status") == "ok" and hub.get("results"):
-                return hub
+                # Cloud/bookmark discovery can contain install-only packages.
+                # They are valid search results but cannot satisfy a route that
+                # must execute now. Continue toward the public Hub until at
+                # least one BYOM-callable candidate exists; the final network
+                # scope is returned even when it is install-only so callers can
+                # still report/propose the exact availability boundary.
+                if candidate_scope == "network" or _hub_query_has_fitting_borrowable(
+                    query_tokens,
+                    [item for item in hub.get("results") or [] if isinstance(item, dict)],
+                ):
+                    return hub
             # Cloud/bookmark low-confidence should not block public Hub search.
             # Public Hub clarify is the final useful prompt to return.
             if candidate_scope == "network" and hub.get("status") == "clarify":

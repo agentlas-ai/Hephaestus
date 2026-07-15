@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.1.32 - 2026-07-15
+
+- **Hub-only Storm routes now execute instead of stopping at candidate cards.**
+  A Hub stagewise task force is promoted into the canonical Stormbreaker
+  execution fabric, every selected BYOM bundle carries its complete entry
+  instructions into the matching packet, and plan/build/verify artifacts retain
+  explicit dependencies and final-gate semantics for local host models.
+- **Automatic temporary orchestrators reject callable but off-domain slugs.**
+  Stage-role fit is checked independently from Hub availability, install-only
+  Cloud or bookmark results no longer block public Hub fallback, callable
+  candidates are prioritized without discarding install-only discovery, and a
+  missing verifier uses the named Agentlas Core Storm verifier instead of an
+  unrelated marketplace team.
+- **Router card identifiers are callable across boundaries.** `paid/`, `free/`,
+  and other local marketplace tiers are removed before `hep-call` addresses the
+  canonical Hub slug. The user-facing `hep-storm` shortcut is Hub-first while
+  explicit `--no-hub` and the lower-level Stormbreaker debug command preserve
+  local routing behavior.
+
 ## v1.1.31 - 2026-07-15
 
 - **Windows checkouts preserve the bundled Model2Vec payload byte-for-byte.**

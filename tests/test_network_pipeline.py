@@ -8,6 +8,7 @@ from test_network_cards import make_ready_card
 def test_detect_stages_is_plan_anchored():
     assert [k for k, _ in detect_stages("웹앱 기획부터 구현까지 해줘")] == ["plan", "build"]
     assert [k for k, _ in detect_stages("plan the PRD then implement and test it")] == ["plan", "build", "verify"]
+    assert [k for k, _ in detect_stages("plan, implement, and verify end-to-end")] == ["plan", "build", "verify"]
     # build+verify without a plan anchor or explicit phrase → not a pipeline
     assert detect_stages("코드 구현하고 테스트 돌려줘") == []
     # explicit end-to-end phrase lifts the plan-anchor requirement
