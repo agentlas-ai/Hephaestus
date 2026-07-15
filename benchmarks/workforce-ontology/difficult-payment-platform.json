@@ -1,6 +1,8 @@
 {
   "schemaVersion": "agentlas.workforce-benchmark.v1",
   "benchmarkId": "awo:difficult-payment-platform:v1",
+  "ontologyVersion": "awo:2026-07-15.2",
+  "ontologySnapshotSha256": "d6d30d45fe8d35fb785e165d1e80c6471a72436f0160c3933c21d4a31bf2fb32",
   "title": "Replay-safe subscription payment platform incident repair",
   "goal": "A subscription checkout is double-charging some customers when payment webhooks are retried while a database failover is in progress. Design the fix and produce an implementation-ready change set: an idempotent webhook API, an atomic subscription and ledger data model, a safe online migration with rollback, an outbox or equivalent delivery boundary, concurrency and property tests, and a focused security review covering signature verification, replay resistance, secret handling, authorization, and audit evidence. Preserve existing API compatibility and state explicit handoffs between specialists. Do not use private paths, credentials, customer data, or invocation history in Hub discovery.",
   "expectedRoleFamilies": [

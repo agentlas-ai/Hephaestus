@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.1.39 - 2026-07-16
+
+- **The Agent Workforce Ontology menu recognizes singular payment and general
+  security language without reviving the retired lexical router.** The reviewed
+  `payment` and `security` aliases map only to their controlled occupational
+  communities; final task-force selection remains owned by the active host LLM.
+- **Every runtime can pin the same immutable menu bytes.** Ontology version
+  `awo:2026-07-15.2` has raw snapshot SHA-256
+  `d6d30d45fe8d35fb785e165d1e80c6471a72436f0160c3933c21d4a31bf2fb32`;
+  Core loading and the difficult payment benchmark fail closed on version or
+  snapshot drift.
+
 ## v1.1.38 - 2026-07-16
 
 - **Agent Workforce Ontology replaces default lexical agent selection.** The

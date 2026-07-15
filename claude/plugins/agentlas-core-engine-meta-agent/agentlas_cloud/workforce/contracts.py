@@ -12,6 +12,8 @@ from typing import Any, Iterable, Mapping
 
 ID_SAFE_RE = re.compile(r"[^a-z0-9._:/@-]+")
 TOKEN_RE = re.compile(r"[a-z0-9][a-z0-9._:/@+-]*|[가-힣]{2,}", re.IGNORECASE)
+WORKFORCE_ONTOLOGY_VERSION = "awo:2026-07-15.2"
+WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256 = "d6d30d45fe8d35fb785e165d1e80c6471a72436f0160c3933c21d4a31bf2fb32"
 
 
 def canonical_json(value: Any) -> str:
@@ -81,9 +83,16 @@ def content_tokens(*values: Any) -> set[str]:
 @lru_cache(maxsize=4)
 def load_ontology(path: str | Path | None = None) -> dict[str, Any]:
     source = Path(path) if path else Path(__file__).with_name("ontology_v1.json")
-    data = json.loads(source.read_text(encoding="utf-8"))
+    raw = source.read_bytes()
+    data = json.loads(raw.decode("utf-8"))
     if data.get("schemaVersion") != "agentlas.workforce-ontology.v1":
         raise ValueError("unsupported workforce ontology")
+    if path is None:
+        observed_hash = hashlib.sha256(raw).hexdigest()
+        if observed_hash != WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256:
+            raise ValueError("packaged workforce ontology snapshot hash mismatch")
+        if data.get("ontologyVersion") != WORKFORCE_ONTOLOGY_VERSION:
+            raise ValueError("packaged workforce ontology version mismatch")
     return data
 
 

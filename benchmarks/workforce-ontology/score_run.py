@@ -19,6 +19,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from agentlas_cloud.workforce.execution import validate_execution_receipt
+from agentlas_cloud.workforce.contracts import (
+    WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256,
+    WORKFORCE_ONTOLOGY_VERSION,
+)
 from agentlas_cloud.workforce.selection import validate_host_selection
 
 
@@ -80,6 +84,17 @@ def score_run(spec: Mapping[str, Any], run: Mapping[str, Any]) -> dict[str, Any]
     recorded_validation = _mapping(run.get("selectionValidation"))
     selection_receipt = _mapping(run.get("selectionReceipt"))
     execution_receipt = _mapping(run.get("executionReceipt"))
+
+    expected_ontology_version = str(spec.get("ontologyVersion") or "")
+    expected_ontology_hash = str(spec.get("ontologySnapshotSha256") or "")
+    if expected_ontology_version != WORKFORCE_ONTOLOGY_VERSION:
+        issues.append("benchmark_spec_ontology_version_drift")
+    if expected_ontology_hash != WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256:
+        issues.append("benchmark_spec_ontology_snapshot_drift")
+    if str(work_order.get("ontologyVersion") or "") != expected_ontology_version:
+        issues.append("work_order_ontology_version_drift")
+    if str(candidate_set.get("ontologyVersion") or "") != expected_ontology_version:
+        issues.append("candidate_set_ontology_version_drift")
 
     slots = [row for row in work_order.get("roleSlots") or [] if isinstance(row, Mapping)]
     families = [row for row in spec.get("expectedRoleFamilies") or [] if isinstance(row, Mapping)]

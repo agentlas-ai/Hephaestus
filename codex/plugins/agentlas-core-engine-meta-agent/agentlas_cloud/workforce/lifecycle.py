@@ -21,7 +21,7 @@ EVENT_TYPES = {
 
 
 class WorkforceProjection:
-    def __init__(self, *, ontology_version: str = "awo:2026-07-15.1") -> None:
+    def __init__(self, *, ontology_version: str = "awo:2026-07-15.2") -> None:
         self.ontology_version = ontology_version
         self.definitions: set[str] = set()
         self.profiles: dict[str, dict[str, Any]] = {}
@@ -130,7 +130,7 @@ class WorkforceProjection:
         return canonical_digest(self.snapshot())
 
 
-def replay_events(events: Iterable[Mapping[str, Any]], *, ontology_version: str = "awo:2026-07-15.1") -> WorkforceProjection:
+def replay_events(events: Iterable[Mapping[str, Any]], *, ontology_version: str = "awo:2026-07-15.2") -> WorkforceProjection:
     projection = WorkforceProjection(ontology_version=ontology_version)
     ordered = sorted((dict(event) for event in events), key=lambda item: int(item.get("sequence") or 0))
     for event in ordered:

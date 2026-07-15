@@ -1,6 +1,6 @@
 {
   "schemaVersion": "agentlas.workforce-ontology.v1",
-  "ontologyVersion": "awo:2026-07-15.1",
+  "ontologyVersion": "awo:2026-07-15.2",
   "namespaces": {
     "awo": "https://agentlas.ai/ontology/workforce/",
     "esco": "http://data.europa.eu/esco/",
@@ -14,9 +14,9 @@
     { "id": "community:backend-engineering", "label": "Backend Engineering", "aliases": ["backend", "api", "server", "백엔드", "서버"], "parents": ["community:software-engineering"] },
     { "id": "community:frontend-engineering", "label": "Frontend Engineering", "aliases": ["frontend", "web ui", "프론트엔드"], "parents": ["community:software-engineering"] },
     { "id": "community:database-engineering", "label": "Database Engineering", "aliases": ["database", "data modeling", "sql", "mongodb", "데이터베이스", "디비"], "parents": ["community:software-engineering"] },
-    { "id": "community:payments-engineering", "label": "Payments Engineering", "aliases": ["payments", "billing", "checkout", "결제", "빌링"], "parents": ["community:backend-engineering"] },
+    { "id": "community:payments-engineering", "label": "Payments Engineering", "aliases": ["payments", "payment", "billing", "checkout", "결제", "빌링"], "parents": ["community:backend-engineering"] },
     { "id": "community:quality-engineering", "label": "Quality Engineering", "aliases": ["qa", "testing", "bug hunter", "verification", "테스트", "버그"], "parents": ["community:software-engineering"] },
-    { "id": "community:security-engineering", "label": "Security Engineering", "aliases": ["application security", "threat detection", "security review", "보안"], "parents": ["community:software-engineering"] },
+    { "id": "community:security-engineering", "label": "Security Engineering", "aliases": ["security", "application security", "threat detection", "security review", "보안"], "parents": ["community:software-engineering"] },
     { "id": "community:data-engineering", "label": "Data Engineering", "aliases": ["etl", "data pipeline", "analytics engineering", "데이터 엔지니어링"], "parents": ["community:software-engineering"] },
     { "id": "community:ai-engineering", "label": "AI Engineering", "aliases": ["machine learning", "llm", "agents", "ai/ml", "인공지능"], "parents": ["community:software-engineering"] },
     { "id": "community:devops", "label": "DevOps and Platform", "aliases": ["deployment", "infrastructure", "ci/cd", "devops", "배포"], "parents": ["community:software-engineering"] },

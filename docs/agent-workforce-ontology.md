@@ -1,6 +1,16 @@
 # Agent Workforce Ontology
 
-Status: implementation contract, 2026-07-15.
+Status: implementation contract, 2026-07-16.
+
+Canonical menu: `awo:2026-07-15.2`.
+
+Raw `agentlas_cloud/workforce/ontology_v1.json` SHA-256:
+`d6d30d45fe8d35fb785e165d1e80c6471a72436f0160c3933c21d4a31bf2fb32`.
+Core, Hub, Desktop, Terminal, and AppBridge clients must pin both values and
+fail closed on drift. The reviewed singular `payment` alias belongs only to
+`community:payments-engineering`; general `security` belongs only to
+`community:security-engineering`. These aliases expand controlled-vocabulary
+recall and do not restore the retired lexical/R1 staffing path.
 
 ## Purpose
 

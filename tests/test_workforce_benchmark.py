@@ -4,6 +4,11 @@ import importlib.util
 import json
 from pathlib import Path
 
+from agentlas_cloud.workforce import (
+    WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256,
+    WORKFORCE_ONTOLOGY_VERSION,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "benchmarks" / "workforce-ontology" / "score_run.py"
@@ -93,6 +98,7 @@ def _passing_run() -> dict:
     work_order = {
         "schemaVersion": "agentlas.workforce-work-order.v1",
         "workOrderId": "work-order:test",
+        "ontologyVersion": WORKFORCE_ONTOLOGY_VERSION,
         "taskBrief": "test",
         "redacted": True,
         "roleSlots": slots,
@@ -102,7 +108,7 @@ def _passing_run() -> dict:
         "schemaVersion": "agentlas.workforce-candidate-set.v1",
         "selectionSessionId": "selection:test",
         "workOrderId": work_order["workOrderId"],
-        "ontologyVersion": "awo:test",
+        "ontologyVersion": WORKFORCE_ONTOLOGY_VERSION,
         "candidateSetDigest": digest,
         "decisionOwner": "host_llm",
         "historyInfluence": "none",
@@ -153,6 +159,8 @@ def _passing_run() -> dict:
 
 
 def test_difficult_workforce_benchmark_passes_only_with_real_architecture_evidence() -> None:
+    assert SPEC["ontologyVersion"] == WORKFORCE_ONTOLOGY_VERSION
+    assert SPEC["ontologySnapshotSha256"] == WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256
     result = score_module.score_run(SPEC, _passing_run())
     assert result["status"] == "pass", result
     assert set(result["roleFamilySlots"]) == {"backend", "database", "payments", "security", "quality"}
@@ -169,3 +177,11 @@ def test_difficult_workforce_benchmark_rejects_fake_single_model_execution() -> 
     assert "mcp_sequence_missing_or_out_of_order" in result["issues"]
     assert "planner_fallback_used" in result["issues"]
     assert any(issue.startswith("insufficient_distinct_worker_invocations:") for issue in result["issues"])
+
+
+def test_difficult_workforce_benchmark_rejects_ontology_snapshot_drift() -> None:
+    run = _passing_run()
+    run["candidateSet"]["ontologyVersion"] = "awo:stale"
+    result = score_module.score_run(SPEC, run)
+    assert result["status"] == "fail"
+    assert "candidate_set_ontology_version_drift" in result["issues"]

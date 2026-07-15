@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 
@@ -9,10 +10,13 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from agentlas_cloud.workforce import (
+    WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256,
+    WORKFORCE_ONTOLOGY_VERSION,
     WorkforceIndex,
     WorkforceProjection,
     apply_ontology_proposal,
     compile_workforce_profile,
+    load_ontology,
     prepare_execution_plan,
     replay_events,
     validate_execution_receipt,
@@ -93,6 +97,7 @@ def profile(
 def work_order(*, tools: list[str] | None = None, authority: list[str] | None = None) -> dict:
     return {
         "schemaVersion": "agentlas.workforce-work-order.v1",
+        "ontologyVersion": WORKFORCE_ONTOLOGY_VERSION,
         "workOrderId": "work-order:backend-payment",
         "taskBrief": "Implement and verify a payment backend without travel planning.",
         "redacted": True,
@@ -141,6 +146,32 @@ def backend_profile(release: str = "release:backend") -> dict:
         consumes=["api spec"],
         produces=["source code"],
     )
+
+
+def test_packaged_ontology_snapshot_version_hash_and_singular_aliases_are_pinned():
+    ontology_path = Path(__file__).resolve().parents[1] / "agentlas_cloud" / "workforce" / "ontology_v1.json"
+    raw = ontology_path.read_bytes()
+    ontology = load_ontology()
+    assert ontology["ontologyVersion"] == WORKFORCE_ONTOLOGY_VERSION == "awo:2026-07-15.2"
+    assert hashlib.sha256(raw).hexdigest() == WORKFORCE_ONTOLOGY_SNAPSHOT_SHA256
+    communities = {item["id"]: item for item in ontology["communities"]}
+    assert "payment" in communities["community:payments-engineering"]["aliases"]
+    assert "security" in communities["community:security-engineering"]["aliases"]
+
+
+def test_singular_payment_and_security_aliases_compile_to_their_occupational_communities():
+    payment = profile(
+        "release:payment-singular",
+        name="Payment Specialist",
+        capabilities=["webhook_integrity"],
+    )
+    security = profile(
+        "release:security-general",
+        name="Security Specialist",
+        capabilities=["risk_review"],
+    )
+    assert "community:payments-engineering" in payment["semantic"]["communities"]
+    assert "community:security-engineering" in security["semantic"]["communities"]
 
 
 def test_compiler_creates_multicommunity_profile_and_keeps_history_separate():
