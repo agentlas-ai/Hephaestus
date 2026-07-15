@@ -10,10 +10,11 @@ from typing import Any, Iterable, Mapping
 from .contracts import canonical_digest, normalized_strings
 
 
-WORKFORCE_RUNTIME_BUNDLE_DIGEST_SCHEMA = "agentlas.workforce-runtime-bundle-digest.v2"
-WORKFORCE_EXECUTION_PLAN_SCHEMA = "agentlas.workforce-execution-plan.v3"
+WORKFORCE_RUNTIME_BUNDLE_DIGEST_SCHEMA = "agentlas.workforce-runtime-bundle-digest.v3"
+WORKFORCE_EXECUTION_PLAN_SCHEMA = "agentlas.workforce-execution-plan.v4"
 
 _INTEROPERABLE_OBJECT_KEY_RE = re.compile(r"^[A-Za-z_$][A-Za-z0-9_.$:/@+~-]*$")
+_RESERVED_OBJECT_KEYS = frozenset({"__proto__", "prototype", "constructor"})
 _UNICODE_SURROGATE_RE = re.compile(r"[\ud800-\udfff]")
 _MAX_DIGEST_VALUE_DEPTH = 32
 _MAX_DIGEST_VALUE_NODES = 10_000
@@ -22,13 +23,14 @@ _MAX_DIGEST_VALUE_NODES = 10_000
 def _validate_interoperable_digest_value(value: Any) -> None:
     """Accept only JSON values with identical Python/ECMAScript encoding.
 
-    Digest v2 deliberately avoids the non-portable corners of generic JSON:
-    every numeric value, non-ASCII or numeric-first object keys, lone Unicode
-    surrogates, excessive nesting, and implementation-specific container
-    types. Arrays retain source order and ASCII identifier-like object keys are
-    sorted lexicographically before hashing. Unicode scalar values remain
-    valid in strings and are hashed as UTF-8. Producers encode quantities as
-    decimal strings when a directive genuinely needs one.
+    Digest v3 deliberately avoids the non-portable corners of generic JSON:
+    every numeric value, non-ASCII or numeric-first object keys, JavaScript
+    prototype-mutation keys, lone Unicode surrogates, excessive nesting, and
+    implementation-specific container types. Arrays retain source order and
+    ASCII identifier-like object keys are sorted lexicographically before
+    hashing. Unicode scalar values remain valid in strings and are hashed as
+    UTF-8. Producers encode quantities as decimal strings when a directive
+    genuinely needs one.
     """
 
     nodes = 0
@@ -54,7 +56,11 @@ def _validate_interoperable_digest_value(value: Any) -> None:
             return
         if isinstance(item, dict):
             for key, child in item.items():
-                if not isinstance(key, str) or not _INTEROPERABLE_OBJECT_KEY_RE.fullmatch(key):
+                if (
+                    not isinstance(key, str)
+                    or not _INTEROPERABLE_OBJECT_KEY_RE.fullmatch(key)
+                    or key in _RESERVED_OBJECT_KEYS
+                ):
                     raise ValueError("runtime bundle digest object keys must be ASCII identifiers")
                 visit(child, depth + 1)
             return
@@ -64,7 +70,7 @@ def _validate_interoperable_digest_value(value: Any) -> None:
 
 
 def workforce_runtime_bundle_canonical_json(roster_row: Mapping[str, Any]) -> str:
-    """Return the language-neutral canonical bytes contract for digest v2."""
+    """Return the language-neutral canonical bytes contract for digest v3."""
 
     payload = {
         "schemaVersion": WORKFORCE_RUNTIME_BUNDLE_DIGEST_SCHEMA,
@@ -159,8 +165,12 @@ def prepare_execution_plan(
                 for key in ("systemPrompt", "instructions", "agentMd")
                 if isinstance(bundle.get(key), str) and str(bundle.get(key)).strip()
             }
-        if not any(isinstance(value, str) and value.strip() for value in directive_bundle.values()):
+        if not any(
+            isinstance(directive_bundle.get(key), str) and str(directive_bundle[key]).strip()
+            for key in ("systemPrompt", "instructions", "agentMd")
+        ):
             issues.append(f"runtime_bundle_directive_missing:{release_id}")
+            continue
         if bundle.get("status") not in {None, "prepared", "ready"}:
             issues.append(f"runtime_bundle_not_ready:{release_id}")
         roster_row = {

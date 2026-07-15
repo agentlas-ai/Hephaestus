@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.1.43 - 2026-07-16
+
+- **Prepared plans now require a real executable directive.** Core accepts a
+  roster row only when `systemPrompt`, `instructions`, or `agentMd` is a
+  nonblank top-level string. An unrelated nonblank field can no longer produce
+  a schema-invalid "prepared" plan; missing directives reject the row and keep
+  the rejected execution roster schema-valid and empty.
+- **Prototype-mutation keys are excluded from the shared digest domain.**
+  `agentlas.workforce-execution-plan.v4` requires
+  `agentlas.workforce-runtime-bundle-digest.v3`, which rejects `__proto__`,
+  `prototype`, and `constructor` at every object depth. The authoritative
+  Python/JavaScript vectors now exercise those keys explicitly, preventing
+  ordinary JavaScript objects from dropping a key that Python would hash.
+
 ## v1.1.42 - 2026-07-16
 
 - **Runtime bundle hashes now have a genuinely cross-language canonical

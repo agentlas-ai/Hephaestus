@@ -7,12 +7,13 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const vectors = JSON.parse(fs.readFileSync(
-  path.join(root, "benchmarks/workforce-ontology/runtime-bundle-digest-v2-vectors.json"),
+  path.join(root, "benchmarks/workforce-ontology/runtime-bundle-digest-v3-vectors.json"),
   "utf8",
 ));
 
 const KEY_RE = /^[A-Za-z_$][A-Za-z0-9_.$:/@+~-]*$/u;
 const LONE_SURROGATE_RE = /[\uD800-\uDFFF]/u;
+const RESERVED_KEYS = new Set(["__proto__", "prototype", "constructor"]);
 const MAX_DEPTH = 32;
 const MAX_NODES = 10_000;
 
@@ -34,7 +35,7 @@ function validateDigestValue(value) {
     }
     if (item && Object.getPrototypeOf(item) === Object.prototype) {
       for (const [key, child] of Object.entries(item)) {
-        if (!KEY_RE.test(key)) throw new Error("digest object key is not an ASCII identifier");
+        if (!KEY_RE.test(key) || RESERVED_KEYS.has(key)) throw new Error("digest object key is unsafe");
         visit(child, depth + 1);
       }
       return;
@@ -93,4 +94,4 @@ for (const numeric of [NaN, Infinity, -Infinity, -0]) {
   if (!rejected) throw new Error("programmatic non-finite or negative-zero number was accepted");
 }
 
-console.log(`workforce digest v2 cross-language vectors: PASS (${vectors.accepted.length} accepted, ${vectors.rejected.length} rejected)`);
+console.log(`workforce digest v3 cross-language vectors: PASS (${vectors.accepted.length} accepted, ${vectors.rejected.length} rejected)`);

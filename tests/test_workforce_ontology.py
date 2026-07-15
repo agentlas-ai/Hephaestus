@@ -564,7 +564,7 @@ def test_prepare_execution_pins_exact_release_hashes_and_never_substitutes():
 def test_runtime_bundle_digest_has_cross_language_golden_vector() -> None:
     vectors_path = (
         Path(__file__).resolve().parents[1]
-        / "benchmarks/workforce-ontology/runtime-bundle-digest-v2-vectors.json"
+        / "benchmarks/workforce-ontology/runtime-bundle-digest-v3-vectors.json"
     )
     vectors = json.loads(vectors_path.read_text(encoding="utf-8"))
     assert vectors["digestSchemaVersion"] == WORKFORCE_RUNTIME_BUNDLE_DIGEST_SCHEMA
@@ -602,6 +602,25 @@ def test_prepare_execution_fails_closed_on_non_interoperable_directive_values() 
     assert prepared["status"] == "rejected"
     assert prepared["executionRoster"] == []
     assert prepared["issues"] == ["runtime_bundle_digest_domain_invalid:release:backend"]
+
+
+def test_prepare_execution_requires_an_explicit_executable_directive_field() -> None:
+    _order, candidates, _decision, validation = accepted_selection_fixture()
+    candidate = candidates["slots"][0]["candidates"][0]
+    prepared = prepare_execution_plan(
+        validation_receipt=validation,
+        candidate_set=candidates,
+        runtime_bundles=[{
+            "agentReleaseId": "release:backend",
+            "packageHash": candidate["packageHash"],
+            "contentDigest": candidate["contentDigest"],
+            "directiveBundle": {"slug": "looks-nonempty-but-is-not-executable"},
+            "status": "prepared",
+        }],
+    )
+    assert prepared["status"] == "rejected"
+    assert prepared["executionRoster"] == []
+    assert prepared["issues"] == ["runtime_bundle_directive_missing:release:backend"]
 
 
 def execution_receipt(*, fallback: bool = False, workers: int = 2, verifier: bool = True) -> dict:

@@ -9,7 +9,7 @@
     "candidateSetDigest", "decisionOwner", "substitutions", "executionRoster"
   ],
   "properties": {
-    "schemaVersion": { "const": "agentlas.workforce-execution-plan.v3" },
+    "schemaVersion": { "const": "agentlas.workforce-execution-plan.v4" },
     "status": { "enum": ["prepared", "rejected"] },
     "issues": { "$ref": "#/$defs/strings" },
     "preparationReceiptId": { "$ref": "#/$defs/id" },
@@ -52,7 +52,7 @@
               { "required": ["agentMd"] }
             ]
           },
-          "bundleDigestSchema": { "const": "agentlas.workforce-runtime-bundle-digest.v2" },
+          "bundleDigestSchema": { "const": "agentlas.workforce-runtime-bundle-digest.v3" },
           "bundleDigest": { "$ref": "#/$defs/hash" }
         }
       }
@@ -62,7 +62,11 @@
     "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{1,255}$" },
     "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
     "strings": { "type": "array", "maxItems": 256, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 500 } },
-    "digestObjectKey": { "type": "string", "pattern": "^[A-Za-z_$][A-Za-z0-9_.$:/@+~-]*$" },
+    "digestObjectKey": {
+      "type": "string",
+      "pattern": "^[A-Za-z_$][A-Za-z0-9_.$:/@+~-]*$",
+      "not": { "enum": ["__proto__", "prototype", "constructor"] }
+    },
     "digestString": { "type": "string", "pattern": "^[^\\uD800-\\uDFFF]*$" },
     "nonEmptyDigestString": { "allOf": [{ "$ref": "#/$defs/digestString" }, { "minLength": 1 }] },
     "digestValue": {

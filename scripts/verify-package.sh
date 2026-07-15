@@ -70,7 +70,7 @@ required_files=(
   "scripts/verify-mcp-surface.sh"
   "scripts/verify-builder-quality-contract.sh"
   "scripts/verify-experience-assets-contract.sh"
-  "scripts/verify-workforce-bundle-digest-v2.mjs"
+  "scripts/verify-workforce-bundle-digest-v3.mjs"
   ".agents/agentlas-core-engine-meta-agent/agent.md"
   ".agents/plugins/marketplace.json"
   ".agentlas/mode-map.json"
@@ -174,7 +174,7 @@ required_files=(
   "schemas/robustness-eval-result.schema.json"
   "benchmarks/robustness/public-agent-repair.tasks.jsonl"
   "benchmarks/robustness/example-results.jsonl"
-  "benchmarks/workforce-ontology/runtime-bundle-digest-v2-vectors.json"
+  "benchmarks/workforce-ontology/runtime-bundle-digest-v3-vectors.json"
   "scripts/score-robustness-eval.py"
   "templates/activation.json.tpl"
   "templates/agentlas.json.tpl"
@@ -626,7 +626,7 @@ scripts/verify-builder-quality-contract.sh
 python3 scripts/test-build-cloud-choice-contract.py
 scripts/verify-experience-assets-contract.sh
 scripts/verify-gateway-channel-contract.sh
-node scripts/verify-workforce-bundle-digest-v2.mjs
+node scripts/verify-workforce-bundle-digest-v3.mjs
 scripts/verify-team-package.sh tests/fixtures/team-valid >/dev/null
 if scripts/verify-team-package.sh tests/fixtures/team-degenerate >/tmp/agentlas-team-gate-negative.txt 2>&1; then
   cat /tmp/agentlas-team-gate-negative.txt >&2
