@@ -1,0 +1,182 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "agentlas-package-contract",
+  "artifacts": [
+    {
+      "path": "AGENTS.md",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "markdown",
+      "fill": "generate",
+      "template": "templates/AGENTS.md.tpl",
+      "schema": null,
+      "minLines": 3,
+      "description": "Package entry: name, one-line purpose, canonical command, role list"
+    },
+    {
+      "path": "agent.md",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "markdown",
+      "fill": "generate",
+      "template": "templates/agent.md.tpl",
+      "schema": null,
+      "minLines": 12,
+      "description": "Primary agent instructions: role, responsibilities, steps, output contract"
+    },
+    {
+      "path": "agentlas.json",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "json",
+      "fill": "fill",
+      "template": "templates/agentlas.json.tpl",
+      "schema": "schemas/agentlas-manifest.schema.json",
+      "description": "Package manifest: permissions, memory policy, read allow/deny lists"
+    },
+    {
+      "path": ".agentlas/agent-card.json",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "json",
+      "fill": "fill",
+      "template": "templates/agent-card.json.tpl",
+      "schema": "schemas/agent-card.schema.json",
+      "description": "Identity card: name, slug, summary, verb_object capabilities, entrypoints"
+    },
+    {
+      "path": ".agentlas/routing-card.json",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "json",
+      "fill": "fill",
+      "template": "templates/routing-card.json.tpl",
+      "schema": "schemas/routing-card.schema.json",
+      "lint": "routing-card",
+      "description": "Routing card: >=5 triggers (>=2 ko, >=2 en), >=3 anti-triggers, risk profile, entrypoints, memory behavior — no card, no auto-routing"
+    },
+    {
+      "path": ".agentlas/memory-map.json",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "json",
+      "fill": "fill",
+      "template": "templates/memory-map.json.tpl",
+      "schema": "schemas/memory-map.schema.json",
+      "description": "Memory ownership map"
+    },
+    {
+      "path": ".agentlas/global-commands.json",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "json",
+      "fill": "fill",
+      "template": "templates/global-commands.json.tpl",
+      "schema": "schemas/global-commands.schema.json",
+      "description": "Per-runtime slash command adapters"
+    },
+    {
+      "path": ".agentlas/mcp-policy.json",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "json",
+      "fill": "fill",
+      "template": "templates/mcp-policy.json.tpl",
+      "schema": "schemas/mcp-policy.schema.json",
+      "description": "MCP tool allowlist and resolution order"
+    },
+    {
+      "path": ".agentlas/skill-registry.json",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "json",
+      "fill": "fill",
+      "template": "templates/skill-registry.json.tpl",
+      "schema": "schemas/skill-registry.schema.json",
+      "description": "Skill registry (empty list allowed)"
+    },
+    {
+      "path": ".agentlas/capability-eval-plan.json",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "json",
+      "fill": "fill",
+      "template": "templates/capability-eval-plan.json.tpl",
+      "schema": null,
+      "description": "Positive/negative eval prompts with pass criteria"
+    },
+    {
+      "path": ".agentlas/work-brief.json",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "json",
+      "fill": "generate",
+      "template": null,
+      "schema": null,
+      "description": "Interview-derived work brief: goal, constraints, decisions"
+    },
+    {
+      "path": "benchmarks/routing-benchmark.jsonl",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "jsonl",
+      "fill": "generate",
+      "template": null,
+      "schema": null,
+      "minLines": 10,
+      "description": ">=10 routing benchmark cases (route + reject, ko + en)"
+    },
+    {
+      "path": "docs/builder-interview.md",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "markdown",
+      "fill": "generate",
+      "template": "templates/builder-interview.md.tpl",
+      "schema": null,
+      "minLines": 3,
+      "description": "Interview summary that grounded this package"
+    },
+    {
+      "path": "docs/research-sources.md",
+      "modes": ["single", "team", "package"],
+      "required": true,
+      "format": "markdown",
+      "fill": "generate",
+      "template": "templates/research-sources.md.tpl",
+      "schema": null,
+      "minLines": 2,
+      "description": "Sources consulted during build research"
+    },
+    {
+      "path": ".agentlas/company-blueprint.json",
+      "modes": ["team"],
+      "required": true,
+      "format": "json",
+      "fill": "fill",
+      "template": "templates/company-blueprint.json.tpl",
+      "schema": "schemas/company-blueprint.schema.json",
+      "description": "Team topology: orchestrator, nodes, edges"
+    },
+    {
+      "path": ".agentlas/sitemap.json",
+      "modes": ["team"],
+      "required": true,
+      "format": "json",
+      "fill": "fill",
+      "template": "templates/sitemap.json.tpl",
+      "schema": "schemas/sitemap.schema.json",
+      "description": "Task flow: produces/consumes graph"
+    },
+    {
+      "path": ".agentlas/super-ontology-contract.json",
+      "modes": ["single", "team", "package"],
+      "required": false,
+      "format": "json",
+      "fill": "static",
+      "template": "templates/super-ontology-contract.json.tpl",
+      "schema": null,
+      "description": "Governance contract seed (copied verbatim; export_only)"
+    }
+  ]
+}

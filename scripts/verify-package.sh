@@ -41,6 +41,8 @@ required_files=(
   "docs/super-ontology-candidate-contract.md"
   "docs/hephaestus-agentlas-gateway-architecture.md"
   "agent.md"
+  "package-contract.json"
+  "schemas/package-contract.schema.json"
   "agents/10-single-agent-builder/agent.md"
   "agents/20-multi-agent-team-builder/agent.md"
   "agents/30-agentlas-packager/agent.md"
@@ -237,6 +239,12 @@ required_files=(
   "assets/install-codex-chat.svg"
   "assets/install-codex-desktop-settings.svg"
   "assets/install-codex-cli.svg"
+  "assets/model2vec/potion-multilingual-128M-int8/manifest.json"
+  "assets/model2vec/potion-multilingual-128M-int8/embeddings.i8.part-000"
+  "assets/model2vec/potion-multilingual-128M-int8/embeddings.i8.part-001"
+  "assets/model2vec/potion-multilingual-128M-int8/scales.f32le"
+  "assets/model2vec/potion-multilingual-128M-int8/tokenizer.json"
+  "assets/model2vec/potion-multilingual-128M-int8/LICENSE.model.txt"
   "assets/model2vec/potion-base-8M-int8/manifest.json"
   "assets/model2vec/potion-base-8M-int8/embeddings.i8"
   "assets/model2vec/potion-base-8M-int8/scales.f32le"
@@ -444,9 +452,9 @@ for path in "${required_files[@]}"; do
   [[ -e "$path" ]] || fail "missing required file: $path"
 done
 
-rg -q 'assets/model2vec/potion-base-8M-int8' scripts/install-all-runtimes.sh \
+rg -q 'assets/model2vec/potion-multilingual-128M-int8' scripts/install-all-runtimes.sh \
   || fail "one-touch installer does not copy the bundled Model2Vec asset"
-rg -q 'models/model2vec/potion-base-8M-int8' scripts/install-all-runtimes.sh \
+rg -q 'models/model2vec/potion-multilingual-128M-int8' scripts/install-all-runtimes.sh \
   || fail "one-touch installer does not target the runtime Model2Vec path"
 rg -q -- '-m ontology.model_assets verify' scripts/install-all-runtimes.sh \
   || fail "one-touch installer does not verify the installed Model2Vec asset"

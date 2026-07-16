@@ -784,8 +784,6 @@ def federate_candidate_sets(
         selected_rows.sort(key=lambda row: (row[0], row[1]["agentReleaseId"]))
         cards = [deepcopy(row[1]["candidate"]) for row in selected_rows]
         coverage: set[str] = set()
-        if window_truncated:
-            coverage.add("gap:federation-window-truncated")
         if quarantined_identity:
             # Public evidence remains aggregate and finite: never echo the
             # conflicted definition or an attacker-controlled reason.

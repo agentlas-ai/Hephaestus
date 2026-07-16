@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # C-1: keep runtime code adapters as exact mirrors of the canonical core.
 #
-# Code assets (career_graph/, ontology/, agentlas_cloud/, bin/hephaestus) must be
-# byte-identical in every runtime adapter directory — adapters mirror the
-# canonical core, they are never a second source. SKILL.md adapters are
-# intentionally condensed per runtime and are NOT byte-checked here.
+# Runtime code (career_graph/, ontology/, agentlas_cloud/, bin/hephaestus) must
+# be byte-identical in every runtime adapter directory — adapters mirror the
+# canonical core, they are never a second source. The large Model2Vec payload is
+# a canonical runtime-release asset and is intentionally not duplicated into
+# plugin mirrors. SKILL.md adapters are intentionally condensed per runtime and
+# are NOT byte-checked here.
 #
 # Usage:
 #   scripts/sync-adapters.sh           # render core into adapter mirrors
@@ -25,7 +27,7 @@ code_dirs=(
   "career_graph"
   "ontology"
   "agentlas_cloud"
-  "assets/model2vec"
+  "schemas"
   "templates"
 )
 
@@ -38,6 +40,7 @@ hook_dir_mirrors=(
 )
 
 code_files=(
+  "package-contract.json"
   "bin/hephaestus"
   "bin/ontology"
   "bin/career-graph"

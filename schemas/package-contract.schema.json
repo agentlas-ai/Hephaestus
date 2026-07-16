@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "agentlas.package-contract.schema.json",
+  "title": "Agentlas Package Contract",
+  "description": "Machine-readable single source of truth for the artifacts every generated Agentlas package must contain. Prompts (hep-build.md, builder agents, Desktop Build) and gates (hephaestus contract verify) both derive from this file so the contract can never drift between surfaces.",
+  "type": "object",
+  "required": ["schemaVersion", "kind", "artifacts"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "kind": { "const": "agentlas-package-contract" },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "modes", "fill", "format"],
+        "properties": {
+          "path": { "type": "string", "description": "Package-relative artifact path" },
+          "modes": {
+            "type": "array",
+            "items": { "enum": ["single", "team", "package"] },
+            "minItems": 1
+          },
+          "required": { "type": "boolean", "default": true },
+          "format": { "enum": ["json", "jsonl", "markdown"] },
+          "fill": {
+            "enum": ["static", "fill", "generate"],
+            "description": "static: scaffolder copies the template verbatim (no model). fill: model fills template placeholders only (extraction-shaped; safe for schema-constrained decoding). generate: model writes free-form content first, then structures it — never constrain decoding here (reasoning degrades under premature serialization)."
+          },
+          "template": { "type": ["string", "null"], "description": "templates/*.tpl path or null" },
+          "schema": { "type": ["string", "null"], "description": "schemas/*.schema.json used by verify for top-level required-field checks" },
+          "lint": { "type": ["string", "null"], "enum": ["routing-card", null], "description": "Deep content lint to run beyond schema shape" },
+          "minLines": { "type": "integer", "minimum": 0 },
+          "description": { "type": "string", "description": "One line injected into builder prompts" }
+        }
+      }
+    }
+  }
+}

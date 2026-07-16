@@ -1,46 +1,50 @@
 #!/usr/bin/env bash
-# C-4: MCP surface preservation. The agentlas Hub MCP server registration
-# (tool transport + URL) must stay consistent across every runtime surface;
-# improvements to search/builders must not break the natural-language MCP
-# interface.
+# C-4: MCP surface preservation. Every local-capable host exposes exactly one
+# local Agentlas OS Core MCP. Cloud and Hub stay upstream behind that Core;
+# adapters must not register a second remote MCP that bypasses governance.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
-
-expected_url="https://agentlas.cloud/api/mcp/v1"
 
 fail() {
   echo "verify-mcp-surface: $*" >&2
   exit 1
 }
 
-# 1. Claude Code: bundled .mcp.json registers the HTTP server
-python3 - "$expected_url" <<'PY' || fail "claude plugin .mcp.json contract broken"
-import json, sys
-expected = sys.argv[1]
+# 1. Claude Code: bundled .mcp.json registers the local Core.
+python3 <<'PY' || fail "claude plugin .mcp.json contract broken"
+import json
 data = json.load(open("claude/plugins/agentlas-core-engine-meta-agent/.mcp.json"))
-server = data.get("agentlas") or {}
-assert server.get("type") == "http", data
-assert server.get("url") == expected, data
+assert set(data) == {"hephaestus-network"}, data
+server = data["hephaestus-network"]
+assert server.get("command") == "${CLAUDE_PLUGIN_ROOT}/bin/hephaestus", data
+assert server.get("args") == ["mcp", "serve"], data
 PY
 
-# 2. Gemini: extension manifest registers the same server
-python3 - "$expected_url" <<'PY' || fail "gemini extension MCP contract broken"
-import json, sys
-expected = sys.argv[1]
+# 2. Gemini: extension manifest registers the same local Core.
+python3 <<'PY' || fail "gemini extension MCP contract broken"
+import json
 data = json.load(open("gemini/extension/gemini-extension.json"))
-server = (data.get("mcpServers") or {}).get("agentlas") or {}
-assert server.get("httpUrl") == expected, data
+servers = data.get("mcpServers") or {}
+assert set(servers) == {"hephaestus-network"}, data
+server = servers["hephaestus-network"]
+assert server.get("command") == "${extensionPath}/bin/hephaestus", data
+assert server.get("args") == ["mcp", "serve"], data
 PY
 
-# 3. Codex + Antigravity: install script registers the same default URL
-grep -q "AGENTLAS_MCP_URL:-$expected_url" scripts/install-all-runtimes.sh \
-  || fail "install-all-runtimes.sh default MCP URL changed"
-grep -q '\[mcp_servers\.agentlas\]' scripts/install-all-runtimes.sh \
+# 3. Codex + Antigravity: the installer registers the same local Core and no
+# direct remote Hub endpoint.
+grep -q '\[mcp_servers\.hephaestus-network\]' scripts/install-all-runtimes.sh \
   || fail "codex MCP registration block missing"
 grep -q 'register_antigravity_mcp' scripts/install-all-runtimes.sh \
   || fail "antigravity MCP registration missing"
+if rg -q 'AGENTLAS_MCP_URL|agentlas\.cloud/api/mcp' \
+  scripts/install-all-runtimes.sh \
+  claude/plugins/agentlas-core-engine-meta-agent/.mcp.json \
+  gemini/extension/gemini-extension.json; then
+  fail "direct remote MCP bypass reintroduced"
+fi
 
 # 4. Ontology runtime output contract: the keys the MCP/natural-language
 #    surface relies on must stay present (additive changes only).

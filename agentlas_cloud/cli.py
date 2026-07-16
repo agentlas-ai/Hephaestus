@@ -261,6 +261,20 @@ def main(argv: list[str] | None = None) -> int:
     cards_migrate.add_argument("--overwrite", action="store_true")
     cards_migrate.add_argument("--no-global", action="store_true", help="Write package-local cards only")
 
+    contract = sub.add_parser("contract", help="Package contract: scaffold templates and verify completeness (machine-readable)")
+    contract_sub = contract.add_subparsers(dest="contract_command", required=True)
+    contract_scaffold = contract_sub.add_parser("scaffold", help="Copy contract templates into a workspace (never overwrites)")
+    contract_scaffold.add_argument("folder")
+    contract_scaffold.add_argument("--mode", choices=["single", "team", "package"], default="single")
+    contract_scaffold.add_argument("--id", default="", help="Package id/slug (default: folder name)")
+    contract_scaffold.add_argument("--name", default="", help="Display name (default: package id)")
+    contract_scaffold.add_argument("--command-slug", dest="command_slug", default="", help="Canonical slash command slug (default: package id)")
+    contract_verify = contract_sub.add_parser("verify", help="Verify a workspace against the package contract; JSON blockers for self-repair")
+    contract_verify.add_argument("folder")
+    contract_verify.add_argument("--mode", choices=["single", "team", "package"], default="single")
+    contract_prompt = contract_sub.add_parser("prompt", help="Render the contract artifact list as prompt bullet lines")
+    contract_prompt.add_argument("--mode", choices=["single", "team", "package"], default="single")
+
     ao = sub.add_parser("ao", help="Agent Ontology commands")
     ao_sub = ao.add_subparsers(dest="ao_command", required=True)
     ao_lint = ao_sub.add_parser("lint", help="Validate AO graph and grammar")
@@ -778,6 +792,19 @@ def main(argv: list[str] | None = None) -> int:
             from .networking.tokenize import tokenize
 
             return emit(record_feedback(tokenize(args.query), args.chosen, args.correct))
+    if args.command == "contract":
+        from .package_contract import contract_prompt_lines, scaffold, verify
+
+        if args.contract_command == "scaffold":
+            return emit(scaffold(args.folder, mode=args.mode, package_id=args.id, name=args.name, command=args.command_slug))
+        if args.contract_command == "verify":
+            report = verify(args.folder, mode=args.mode)
+            emit(report)
+            return 0 if report["ok"] else 1
+        if args.contract_command == "prompt":
+            emit({"mode": args.mode, "lines": contract_prompt_lines(args.mode)})
+            return 0
+
     if args.command == "cards":
         if args.cards_command == "lint":
             from .networking.bootstrap import networking_home, read_json
@@ -2098,7 +2125,7 @@ def run_field_test() -> dict[str, Any]:
             "agentId": "agent_private_instagram",
             "ownerId": "owner",
             "creatorId": "creator",
-            "version": "1.1.46",
+            "version": "1.1.47",
             "manifest": wizard["manifest"],
             "files": [{"path": "AGENTS.md", "content": (agent / "AGENTS.md").read_text(encoding="utf-8")}],
             "memory": {"scope": "private", "summary": "private campaign memory", "deltas": ["weekly cadence"]},

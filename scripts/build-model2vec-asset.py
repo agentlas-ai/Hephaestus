@@ -80,29 +80,11 @@ MODEL_PROFILES: dict[str, dict[str, Any]] = {
 }
 DEFAULT_MODEL = "potion-multilingual-128M-int8"
 DEFAULT_OUTPUT = ROOT / "assets" / "model2vec" / DEFAULT_MODEL
-SOURCE_MODEL_ID = "minishlab/potion-base-8M"
-SOURCE_REVISION = "bf8b056651a2c21b8d2565580b8569da283cab23"
-SOURCE_FILES = {
-    "config.json": {
-        "sha256": "2a6ac0e9aaa356a68a5688070db78fc3a464fefe85d2f06a1905ce3718687553",
-        "size": 202,
-    },
-    "tokenizer.json": {
-        "sha256": "e67e803f624fb4d67dea1c730d06e1067e1b14d830e2c2202569e3ef0f70bb50",
-        "size": 683666,
-    },
-    "model.safetensors": {
-        "sha256": "f65d0f325faadc1e121c319e2faa41170d3fa07d8c89abd48ca5358d9a223de2",
-        "size": 30236760,
-    },
-    "README.md": {
-        "sha256": "de8ec91bf63c5f4c0e20751c227b2d049953e1cab5f8d5d44211c59a44795bdd",
-        "size": 5203,
-    },
-}
+SOURCE_MODEL_ID = MODEL_PROFILES[DEFAULT_MODEL]["modelId"]
+SOURCE_REVISION = MODEL_PROFILES[DEFAULT_MODEL]["revision"]
 DIMENSIONS = 256
-VOCAB_SIZE = 29528
 ASSET_FORMAT = "agentlas-model2vec-int8-v1"
+EMBEDDING_PART_MAX_BYTES = 64 * 1024 * 1024
 # The exact tokenizer each asset is read with. Agentlas reimplements these in
 # TypeScript and Python rather than depending on the tokenizers library, so the
 # contract is pinned here and asserted by the parity gate.
@@ -153,11 +135,16 @@ SOFTWARE.
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Build or verify the pinned dependency-free potion-base-8M int8 release asset"
+        description="Build or verify a pinned dependency-free Agentlas Model2Vec int8 release asset"
     )
     parser.add_argument("--model", choices=sorted(MODEL_PROFILES), default=DEFAULT_MODEL)
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--source-cache", type=Path)
+    parser.add_argument(
+        "--prebuilt-asset",
+        type=Path,
+        help="Verified unsplit quantized asset to deterministically repartition after source-cache validation",
+    )
     parser.add_argument("--offline", action="store_true", help="Require all pinned upstream files in --source-cache")
     parser.add_argument("--check", action="store_true", help="Verify the existing release asset without network access")
     args = parser.parse_args()
@@ -183,16 +170,31 @@ def main() -> int:
     if args.source_cache:
         source_root = args.source_cache.expanduser().resolve()
         source_root.mkdir(parents=True, exist_ok=True)
-        build(source_root, args.output.expanduser().resolve(), offline=args.offline, model=args.model)
+        build(
+            source_root,
+            args.output.expanduser().resolve(),
+            offline=args.offline,
+            model=args.model,
+            prebuilt_asset=args.prebuilt_asset,
+        )
     else:
         if args.offline:
             parser.error("--offline requires --source-cache")
+        if args.prebuilt_asset:
+            parser.error("--prebuilt-asset requires --source-cache so pinned provenance is checked independently")
         with tempfile.TemporaryDirectory(prefix="agentlas-model2vec-source-") as temporary:
             build(Path(temporary), args.output.expanduser().resolve(), offline=False, model=args.model)
     return 0
 
 
-def build(source_root: Path, output: Path, *, offline: bool, model: str = DEFAULT_MODEL) -> None:
+def build(
+    source_root: Path,
+    output: Path,
+    *,
+    offline: bool,
+    model: str = DEFAULT_MODEL,
+    prebuilt_asset: Path | None = None,
+) -> None:
     profile = MODEL_PROFILES[model]
     for name, record in profile["files"].items():
         source = source_root / name
@@ -218,26 +220,30 @@ def build(source_root: Path, output: Path, *, offline: bool, model: str = DEFAUL
         raise SystemExit("pinned config/tokenizer shape contract changed")
 
     output.mkdir(parents=True, exist_ok=True)
-    embeddings_path = output / "embeddings.i8"
+    _clear_embedding_outputs(output)
     scales_path = output / "scales.f32le"
-    _quantize_safetensors(
-        source_root / "model.safetensors",
-        embeddings_path,
-        scales_path,
-        vocab_size=profile["vocabSize"],
-    )
-    shutil.copyfile(source_root / "tokenizer.json", output / "tokenizer.json")
-    (output / "LICENSE.model.txt").write_text(
-        f"{model} model asset\n"
-        f"\nSource: https://huggingface.co/{profile['modelId']}"
-        f"\nRevision: {profile['revision']}"
-        "\nLicense declared by the upstream model card: MIT"
-        "\nAuthors: Minish Lab (Stephan Tulkens and Thomas van Dongen)\n\n"
-        + LICENSE_BODY,
-        encoding="utf-8",
-    )
+    if prebuilt_asset is not None:
+        embedding_parts = _emit_prebuilt_asset(
+            prebuilt_asset.expanduser().resolve(),
+            output,
+            profile=profile,
+            model=model,
+        )
+    else:
+        embedding_parts = _quantize_safetensors(
+            source_root / "model.safetensors",
+            output,
+            scales_path,
+            vocab_size=profile["vocabSize"],
+            split_embeddings=profile["tokenizerType"] == "Unigram",
+        )
+        shutil.copyfile(source_root / "tokenizer.json", output / "tokenizer.json")
+        (output / "LICENSE.model.txt").write_text(
+            _license_text(model, profile),
+            encoding="utf-8",
+        )
 
-    payload_names = ["embeddings.i8", "scales.f32le", "tokenizer.json", "LICENSE.model.txt"]
+    payload_names = [*embedding_parts, "scales.f32le", "tokenizer.json", "LICENSE.model.txt"]
     files = {
         name: {"sha256": _sha256_file(output / name), "size": (output / name).stat().st_size}
         for name in payload_names
@@ -269,6 +275,8 @@ def build(source_root: Path, output: Path, *, offline: bool, model: str = DEFAUL
         "files": files,
         "contentSha256": _content_identity(files),
     }
+    if profile["tokenizerType"] == "Unigram":
+        manifest["embeddingParts"] = embedding_parts
     (output / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -311,11 +319,12 @@ def _download_source(
 
 def _quantize_safetensors(
     source: Path,
-    embeddings_output: Path,
+    output: Path,
     scales_output: Path,
     *,
-    vocab_size: int = VOCAB_SIZE,
-) -> None:
+    vocab_size: int,
+    split_embeddings: bool,
+) -> list[str]:
     with open(source, "rb") as source_handle, mmap.mmap(source_handle.fileno(), 0, access=mmap.ACCESS_READ) as mapped:
         header_size = struct.unpack_from("<Q", mapped, 0)[0]
         header = json.loads(mapped[8 : 8 + header_size])
@@ -329,23 +338,165 @@ def _quantize_safetensors(
         data_start = 8 + header_size
         unpack_row = struct.Struct(f"<{DIMENSIONS}f")
         pack_scale = struct.Struct("<f")
-        with open(embeddings_output, "wb") as embeddings, open(scales_output, "wb") as scales:
-            for row_index in range(vocab_size):
-                values = unpack_row.unpack_from(mapped, data_start + (row_index * unpack_row.size))
-                max_abs = max(abs(value) for value in values)
-                scale = max_abs / 127.0 if max_abs > 0.0 else 1.0
-                if not math.isfinite(scale) or scale <= 0.0:
-                    raise SystemExit(f"invalid quantization scale at row {row_index}")
-                quantized = bytearray(DIMENSIONS)
-                for index, value in enumerate(values):
-                    integer = max(-127, min(127, round(value / scale)))
-                    quantized[index] = integer & 0xFF
-                embeddings.write(quantized)
-                scales.write(pack_scale.pack(scale))
-    if embeddings_output.stat().st_size != vocab_size * DIMENSIONS:
-        raise SystemExit("int8 embedding output size mismatch")
+        rows_per_part = EMBEDDING_PART_MAX_BYTES // DIMENSIONS
+        embedding_parts: list[str] = []
+        embeddings = None
+        try:
+            with open(scales_output, "wb") as scales:
+                for row_index in range(vocab_size):
+                    if embeddings is None or (split_embeddings and row_index % rows_per_part == 0):
+                        if embeddings is not None:
+                            embeddings.close()
+                        part_index = len(embedding_parts)
+                        name = f"embeddings.i8.part-{part_index:03d}" if split_embeddings else "embeddings.i8"
+                        embedding_parts.append(name)
+                        embeddings = open(output / name, "wb")
+                    values = unpack_row.unpack_from(mapped, data_start + (row_index * unpack_row.size))
+                    max_abs = max(abs(value) for value in values)
+                    scale = max_abs / 127.0 if max_abs > 0.0 else 1.0
+                    if not math.isfinite(scale) or scale <= 0.0:
+                        raise SystemExit(f"invalid quantization scale at row {row_index}")
+                    quantized = bytearray(DIMENSIONS)
+                    for index, value in enumerate(values):
+                        integer = max(-127, min(127, round(value / scale)))
+                        quantized[index] = integer & 0xFF
+                    assert embeddings is not None
+                    embeddings.write(quantized)
+                    scales.write(pack_scale.pack(scale))
+        finally:
+            if embeddings is not None:
+                embeddings.close()
+    _validate_embedding_parts(output, embedding_parts, vocab_size=vocab_size, split_embeddings=split_embeddings)
     if scales_output.stat().st_size != vocab_size * 4:
         raise SystemExit("scale output size mismatch")
+    return embedding_parts
+
+
+def _clear_embedding_outputs(output: Path) -> None:
+    (output / "embeddings.i8").unlink(missing_ok=True)
+    for path in output.glob("embeddings.i8.part-*"):
+        if path.is_file() or path.is_symlink():
+            path.unlink()
+
+
+def _emit_prebuilt_asset(
+    source: Path,
+    output: Path,
+    *,
+    profile: dict[str, Any],
+    model: str,
+) -> list[str]:
+    manifest_path = source / "manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"invalid prebuilt asset manifest: {manifest_path}") from exc
+    expected_source = {
+        "modelId": profile["modelId"],
+        "revision": profile["revision"],
+        "files": profile["files"],
+    }
+    if (
+        manifest.get("format") != ASSET_FORMAT
+        or manifest.get("modelName") != model
+        or manifest.get("dimensions") != DIMENSIONS
+        or manifest.get("vocabSize") != profile["vocabSize"]
+        or manifest.get("source") != expected_source
+        or manifest.get("tokenizer") != TOKENIZER_CONTRACTS[profile["tokenizerType"]]
+        or manifest.get("runtime")
+        != {"engine": profile["engine"], "networkRequired": False, "externalPackages": []}
+    ):
+        raise SystemExit("prebuilt asset does not match the independently pinned source/runtime contract")
+    files = manifest.get("files")
+    required = {"embeddings.i8", "scales.f32le", "tokenizer.json", "LICENSE.model.txt"}
+    if not isinstance(files, dict) or set(files) != required:
+        raise SystemExit("prebuilt asset must contain exactly one unsplit embeddings payload and its metadata")
+    for name in sorted(required):
+        _verify_file(source / name, files[name])
+    if manifest.get("contentSha256") != _content_identity(files):
+        raise SystemExit("prebuilt asset contentSha256 does not match its payload records")
+    if files["embeddings.i8"]["size"] != profile["vocabSize"] * DIMENSIONS:
+        raise SystemExit("prebuilt int8 embedding size mismatch")
+    if files["scales.f32le"]["size"] != profile["vocabSize"] * 4:
+        raise SystemExit("prebuilt scale size mismatch")
+
+    split_embeddings = profile["tokenizerType"] == "Unigram"
+    if split_embeddings:
+        embedding_parts = _split_embeddings(
+            source / "embeddings.i8",
+            output,
+            vocab_size=profile["vocabSize"],
+        )
+    else:
+        shutil.copyfile(source / "embeddings.i8", output / "embeddings.i8")
+        embedding_parts = ["embeddings.i8"]
+    for name in ("scales.f32le", "tokenizer.json", "LICENSE.model.txt"):
+        shutil.copyfile(source / name, output / name)
+    _validate_embedding_parts(
+        output,
+        embedding_parts,
+        vocab_size=profile["vocabSize"],
+        split_embeddings=split_embeddings,
+    )
+    return embedding_parts
+
+
+def _split_embeddings(source: Path, output: Path, *, vocab_size: int) -> list[str]:
+    expected_size = vocab_size * DIMENSIONS
+    if source.stat().st_size != expected_size:
+        raise SystemExit("prebuilt int8 embedding size mismatch")
+    names: list[str] = []
+    with open(source, "rb") as input_handle:
+        while block := input_handle.read(EMBEDDING_PART_MAX_BYTES):
+            if len(block) % DIMENSIONS != 0:
+                raise SystemExit("embedding split is not row-aligned")
+            name = f"embeddings.i8.part-{len(names):03d}"
+            with open(output / name, "wb") as part:
+                part.write(block)
+            names.append(name)
+    _validate_embedding_parts(output, names, vocab_size=vocab_size, split_embeddings=True)
+    return names
+
+
+def _validate_embedding_parts(
+    output: Path,
+    names: list[str],
+    *,
+    vocab_size: int,
+    split_embeddings: bool,
+) -> None:
+    expected_count = math.ceil((vocab_size * DIMENSIONS) / EMBEDDING_PART_MAX_BYTES) if split_embeddings else 1
+    expected_names = (
+        [f"embeddings.i8.part-{index:03d}" for index in range(expected_count)]
+        if split_embeddings
+        else ["embeddings.i8"]
+    )
+    if names != expected_names:
+        raise SystemExit(f"unexpected embedding part sequence: {names!r}")
+    combined_size = 0
+    for index, name in enumerate(names):
+        size = (output / name).stat().st_size
+        if size <= 0 or size % DIMENSIONS != 0:
+            raise SystemExit(f"embedding part is not row-aligned: {name}")
+        if split_embeddings and size > EMBEDDING_PART_MAX_BYTES:
+            raise SystemExit(f"embedding part exceeds 64 MiB: {name}")
+        if split_embeddings and index < len(names) - 1 and size != EMBEDDING_PART_MAX_BYTES:
+            raise SystemExit(f"non-final embedding part is not exactly 64 MiB: {name}")
+        combined_size += size
+    if combined_size != vocab_size * DIMENSIONS:
+        raise SystemExit("combined int8 embedding part size mismatch")
+
+
+def _license_text(model: str, profile: dict[str, Any]) -> str:
+    display_name = "potion-base-8M" if model == "potion-base-8M-int8" else model
+    return (
+        f"{display_name} model asset\n"
+        f"\nSource: https://huggingface.co/{profile['modelId']}"
+        f"\nRevision: {profile['revision']}"
+        "\nLicense declared by the upstream model card: MIT"
+        "\nAuthors: Minish Lab (Stephan Tulkens and Thomas van Dongen)\n\n"
+        + LICENSE_BODY
+    )
 
 
 def _verify_file(path: Path, record: dict[str, Any]) -> None:

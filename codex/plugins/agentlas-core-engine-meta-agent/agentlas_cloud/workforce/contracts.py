@@ -117,7 +117,8 @@ def workforce_contract_metadata(kind: str) -> dict[str, Any]:
         "ontologyResource": WORKFORCE_ONTOLOGY_RESOURCE,
     }
     metadata["finiteIdPolicy"] = (
-        "pinned ontology/public-v1 IDs or <namespace>:opaque-<sha256>/<namespace>:ordinal-N"
+        "schema-valid redacted ontology constraints; public-v1 or "
+        "<namespace>:opaque-<sha256>/<namespace>:ordinal-N for bounded host IDs"
         if kind == "workOrder"
         else "slot/release/edge IDs from the exact WorkOrder/CandidateSet; public finite reason codes"
     )
@@ -380,7 +381,15 @@ def workforce_public_slot_ids() -> frozenset[str]:
 
 
 def validate_work_order_semantics(work_order: Mapping[str, Any]) -> list[dict[str, str]]:
-    """Validate pinned ontology concepts and finite IDs in a WorkOrder."""
+    """Validate ontology identity and bounded host IDs in a WorkOrder.
+
+    Role, community, skill, knowledge, and tool requirements are intentionally
+    open-world constraints. A schema-valid, privacy-safe concept that is absent
+    from the pinned snapshot must reach eligibility evaluation and produce a
+    finite aggregate coverage gap; it is not malformed input. The ontology
+    catalog remains a discovery hint, not an allowlist that can hide missing
+    workforce coverage.
+    """
 
     issues: list[dict[str, str]] = []
 
@@ -391,8 +400,6 @@ def validate_work_order_semantics(work_order: Mapping[str, Any]) -> list[dict[st
 
     if "ontologyVersion" in work_order and work_order.get("ontologyVersion") != WORKFORCE_ONTOLOGY_VERSION:
         add("ontologyVersion", "ontology_version_mismatch")
-
-    catalog = workforce_finite_concepts()
 
     public_slot_ids = workforce_public_slot_ids()
 
@@ -413,15 +420,6 @@ def validate_work_order_semantics(work_order: Mapping[str, Any]) -> list[dict[st
         "work_order_id_not_public_finite",
     )
 
-    def finite(values: Any, path: str, concept_kind: str) -> None:
-        if not isinstance(values, list):
-            return
-        allowed = catalog[concept_kind]
-        for index, value in enumerate(values):
-            if isinstance(value, str) and value not in allowed:
-                add(_index_path(path, index), f"unknown_{concept_kind}_concept")
-
-    finite(work_order.get("forbiddenCommunities"), "forbiddenCommunities", "community")
     slots = work_order.get("roleSlots")
     slot_ids = {
         str(slot.get("slotId"))
@@ -434,18 +432,6 @@ def validate_work_order_semantics(work_order: Mapping[str, Any]) -> list[dict[st
                 continue
             base = f"roleSlots[{index}]"
             public_or_opaque(slot.get("slotId"), f"{base}.slotId", public_slot_ids, "slot_id_not_public_finite")
-            for field in ("requiredCommunities", "optionalCommunities", "excludedCommunities"):
-                finite(slot.get(field), f"{base}.{field}", "community")
-            finite(slot.get("requiredRoles"), f"{base}.requiredRoles", "role")
-            for field in ("requiredSkills", "optionalSkills"):
-                finite(slot.get(field), f"{base}.{field}", "skill")
-            finite(slot.get("requiredToolCapabilities"), f"{base}.requiredToolCapabilities", "tool")
-            public_or_opaque_list(
-                slot.get("requiredKnowledge"),
-                f"{base}.requiredKnowledge",
-                frozenset(),
-                "knowledge_concept_not_public_finite",
-            )
             for field in ("consumes", "produces"):
                 public_or_opaque_list(
                     slot.get(field),
@@ -502,7 +488,6 @@ def validate_work_order_semantics(work_order: Mapping[str, Any]) -> list[dict[st
 WORKFORCE_COVERAGE_GAP_CODES = (
     "gap:minimum-candidate-count",
     "gap:no-hard-eligible-candidate",
-    "gap:federation-window-truncated",
     "gap:excluded:forbidden-community",
     "gap:excluded:release-not-active",
     "gap:excluded:structural-or-security-invalid",

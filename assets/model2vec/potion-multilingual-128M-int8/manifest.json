@@ -1,0 +1,79 @@
+{
+  "contentSha256": "aa806dbd4c6025f47b0242f8b92eb789109a0c612524980eb905fda3b5b73bde",
+  "dimensions": 256,
+  "embeddingParts": [
+    "embeddings.i8.part-000",
+    "embeddings.i8.part-001"
+  ],
+  "files": {
+    "LICENSE.model.txt": {
+      "sha256": "0dc10b087bd182f531d95df73327496f88bd959d78ebc6525cf0e3e38fe186e0",
+      "size": 1344
+    },
+    "embeddings.i8.part-000": {
+      "sha256": "e41c2cd2bf7f77925d5f6162242f22d31e731c4daec44adc4d71fbe27d51ac36",
+      "size": 67108864
+    },
+    "embeddings.i8.part-001": {
+      "sha256": "2720f905f4959b0067e875b38cbb70b72ab2107ec5026899294c700146439f3f",
+      "size": 60981504
+    },
+    "scales.f32le": {
+      "sha256": "bdc5c27a103942e27f83301af0e0f3dd0d1e6a7b1177aec9c13980227313ae67",
+      "size": 2001412
+    },
+    "tokenizer.json": {
+      "sha256": "19f1909063da3cfe3bd83a782381f040dccea475f4816de11116444a73e1b6a1",
+      "size": 18616131
+    }
+  },
+  "format": "agentlas-model2vec-int8-v1",
+  "license": {
+    "file": "LICENSE.model.txt",
+    "spdx": "MIT"
+  },
+  "modelName": "potion-multilingual-128M-int8",
+  "quantization": {
+    "dtype": "int8",
+    "formula": "q=round(value/(max_abs(row)/127)); reconstructed=q*scale",
+    "scaleDtype": "float32le",
+    "scheme": "symmetric_per_row_int8"
+  },
+  "runtime": {
+    "engine": "agentlas_pure_python_unigram_v1",
+    "externalPackages": [],
+    "networkRequired": false
+  },
+  "schemaVersion": "1.0",
+  "source": {
+    "files": {
+      "README.md": {
+        "sha256": "9505454b6a3efbb25257124de875cb73e02bd663a822528525a3c29b1c4d91ac",
+        "size": 5575
+      },
+      "config.json": {
+        "sha256": "595e4cab2093732efd5dbe084fd5c1826b5eea693b73b4c1fd971672867d2e54",
+        "size": 271
+      },
+      "model.safetensors": {
+        "sha256": "14b5eb39cb4ce5666da8ad1f3dc6be4346e9b2d601c073302fa0a31bf7943397",
+        "size": 512361560
+      },
+      "tokenizer.json": {
+        "sha256": "19f1909063da3cfe3bd83a782381f040dccea475f4816de11116444a73e1b6a1",
+        "size": 18616131
+      }
+    },
+    "modelId": "minishlab/potion-multilingual-128M",
+    "revision": "73908c3438cf03b6a01bcb9611d62b23d0726f08"
+  },
+  "tokenizer": {
+    "addSpecialTokens": false,
+    "normalizer": "NFKC + collapse whitespace",
+    "preTokenizer": "Metaspace(replacement=U+2581,prepend_scheme=always)",
+    "segmentation": "viterbi_max_log_prob",
+    "type": "Unigram",
+    "unknownToken": "[UNK]"
+  },
+  "vocabSize": 500353
+}

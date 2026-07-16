@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "package": "hephaestus",
-  "version": "1.1.46",
+  "version": "1.1.47",
   "description": "Portable three-agent meta-agent team with a local-first ontology runtime for source archive, GraphRAG, Memory Curator tickets, and Agent Working Memory.",
   "entrypoints": {
     "canonical": "AGENTS.md",
@@ -73,7 +73,7 @@
     "antigravityMemoryHook": "antigravity/hooks/agentlas-memory.json",
     "grokMemoryHook": "grok/hooks/agentlas-memory.json",
     "openCodeMemoryPlugin": "opencode/plugins/agentlas-memory.js",
-    "model2VecAsset": "assets/model2vec/potion-base-8M-int8/manifest.json",
+    "model2VecAsset": "assets/model2vec/potion-multilingual-128M-int8/manifest.json",
     "model2VecVerifier": "ontology/model_assets.py",
     "ontologyRuntime": "ontology/__init__.py",
     "ontologyVerification": "scripts/verify-ontology-runtime.sh",

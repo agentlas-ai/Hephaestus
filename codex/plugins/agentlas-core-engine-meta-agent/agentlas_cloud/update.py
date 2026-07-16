@@ -33,8 +33,15 @@ LOCK_STALE_SECONDS = 60 * 60
 HEALTHCHECK_TIMEOUT_SECONDS = 15
 MEMORY_HOOK_SYNC_TIMEOUT_SECONDS = 30
 MAX_RUNTIME_ARCHIVE_BYTES = 256 * 1024 * 1024
+# schemas/ carries the Workforce/Network contract files (workforce-work-order
+# 등). 2026-07-16 실측: 릴리스 아카이브에는 포함·강제되는데 이 목록에 없어서
+# 설치본에서만 통째로 유실 → 관리형 런타임의 hep-network가 스키마 결손으로 정지.
 RUNTIME_DIRS = ("bin", "agentlas_cloud", "career_graph", "ontology", "templates")
-MODEL2VEC_ASSET_NAME = "potion-base-8M-int8"
+RUNTIME_OPTIONAL_DIRS = ("schemas",)
+RUNTIME_FILES = ("package-contract.json",)
+MODEL2VEC_ASSET_NAME = "potion-multilingual-128M-int8"
+LEGACY_MODEL2VEC_ASSET_NAME = "potion-base-8M-int8"
+MODEL2VEC_ASSET_NAMES = (MODEL2VEC_ASSET_NAME, LEGACY_MODEL2VEC_ASSET_NAME)
 RELEASE_MODEL2VEC_PATH = Path("assets") / "model2vec" / MODEL2VEC_ASSET_NAME
 RUNTIME_MODEL2VEC_PATH = Path("models") / "model2vec" / MODEL2VEC_ASSET_NAME
 HEP_COMMANDS = (
@@ -362,6 +369,7 @@ def install_latest_runtime(release: dict[str, Any]) -> dict[str, Any]:
     memory_hook_sync: dict[str, Any] = {"status": "not_run", "installed": {}, "errors": {}}
     archive_sha256 = ""
     staged_target: Path | None = None
+    installed_model_path: Path | None = None
     lock_token = _acquire_lock(lock)
     try:
         with tempfile.TemporaryDirectory(prefix="hephaestus-update-") as tmp:
@@ -386,16 +394,25 @@ def install_latest_runtime(release: dict[str, Any]) -> dict[str, Any]:
             if len(source_dirs) != 1:
                 raise ValueError("downloaded release must contain exactly one source directory")
             source = source_dirs[0]
-            _validate_runtime_layout(source, release_source=True)
+            source_model = _validate_runtime_layout(source, release_source=True)
 
             staged_target = _unique_sibling(target, "staged")
             staged_target.mkdir(parents=True)
             for name in RUNTIME_DIRS:
                 src = source / name
                 shutil.copytree(src, staged_target / name)
-            runtime_model = staged_target / RUNTIME_MODEL2VEC_PATH
+            for name in RUNTIME_OPTIONAL_DIRS:
+                src = source / name
+                if src.is_dir():
+                    shutil.copytree(src, staged_target / name)
+            for name in RUNTIME_FILES:
+                src = source / name
+                if src.is_file():
+                    shutil.copy2(src, staged_target / name)
+            runtime_model = staged_target / "models" / "model2vec" / source_model.name
             runtime_model.parent.mkdir(parents=True)
-            shutil.copytree(source / RELEASE_MODEL2VEC_PATH, runtime_model)
+            shutil.copytree(source_model, runtime_model)
+            installed_model_path = target / "models" / "model2vec" / source_model.name
             (staged_target / "RELEASE").write_text(f"{tag}\n", encoding="utf-8")
             write_python_shims(staged_target / "bin", sys.executable)
             _healthcheck_runtime(staged_target)
@@ -415,7 +432,7 @@ def install_latest_runtime(release: dict[str, Any]) -> dict[str, Any]:
         "archive_digest": f"sha256:{archive_sha256}",
         "digest_verified": True,
         "archive_asset": archive_asset["name"],
-        "model_root": str(target / RUNTIME_MODEL2VEC_PATH),
+        "model_root": str(installed_model_path or target / RUNTIME_MODEL2VEC_PATH),
         "model_verified": True,
         "adapter_sync": adapter_sync,
         "memory_hook_sync": memory_hook_sync,
@@ -923,7 +940,16 @@ def _verified_runtime_archive_asset(release: dict[str, Any]) -> dict[str, Any]:
     raise ValueError(f"release is missing verified runtime asset: {expected_name}")
 
 
-def _validate_runtime_layout(runtime_root: Path, *, release_source: bool = False) -> None:
+def _model_path(runtime_root: Path, *, release_source: bool) -> Path | None:
+    base = runtime_root / ("assets" if release_source else "models") / "model2vec"
+    for name in MODEL2VEC_ASSET_NAMES:
+        candidate = base / name
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def _validate_runtime_layout(runtime_root: Path, *, release_source: bool = False) -> Path:
     missing: list[str] = []
     for name in RUNTIME_DIRS:
         if not (runtime_root / name).is_dir():
@@ -952,9 +978,22 @@ def _validate_runtime_layout(runtime_root: Path, *, release_source: bool = False
         ):
             if not (runtime_root / relative).is_file():
                 missing.append(str(relative))
-    model_path = runtime_root / (RELEASE_MODEL2VEC_PATH if release_source else RUNTIME_MODEL2VEC_PATH)
-    if not model_path.is_dir():
-        missing.append(f"{model_path.relative_to(runtime_root)}/")
+    # Old signed releases predate the package-contract/schemas surface. Keep
+    # them installable for rollback, but any runtime that ships the command
+    # module must carry the complete root contract and Workforce schemas.
+    if (runtime_root / "agentlas_cloud" / "package_contract.py").is_file():
+        for relative in (
+            Path("package-contract.json"),
+            Path("schemas") / "package-contract.schema.json",
+            Path("schemas") / "workforce-work-order.schema.json",
+            Path("schemas") / "workforce-selection.schema.json",
+        ):
+            if not (runtime_root / relative).is_file():
+                missing.append(str(relative))
+    model_path = _model_path(runtime_root, release_source=release_source)
+    if model_path is None:
+        layout = "assets" if release_source else "models"
+        missing.append(f"{layout}/model2vec/<verified-asset>/")
     if missing:
         raise ValueError(f"release runtime layout is incomplete: {', '.join(missing)}")
 
@@ -965,12 +1004,13 @@ def _validate_runtime_layout(runtime_root: Path, *, release_source: bool = False
     except (ModelAssetError, OSError, ValueError) as exc:
         layout = "release" if release_source else "installed runtime"
         raise ValueError(f"{layout} Model2Vec asset failed verification: {model_path}") from exc
+    return model_path
 
 
 def _healthcheck_runtime(runtime_root: Path) -> None:
     """Import the runnable surfaces from exactly the candidate runtime."""
 
-    _validate_runtime_layout(runtime_root)
+    model_path = _validate_runtime_layout(runtime_root)
     try:
         resolved_root = runtime_root.resolve(strict=True)
     except OSError as exc:
@@ -981,6 +1021,7 @@ def _healthcheck_runtime(runtime_root: Path) -> None:
     env["PYTHONPATH"] = str(resolved_root)
     env["PYTHONNOUSERSITE"] = "1"
     env["HEPHAESTUS_HEALTHCHECK_ROOT"] = str(resolved_root)
+    env["HEPHAESTUS_HEALTHCHECK_MODEL"] = str(model_path.resolve(strict=True))
     check = (
         "import os\n"
         "from pathlib import Path\n"
@@ -993,7 +1034,7 @@ def _healthcheck_runtime(runtime_root: Path) -> None:
         "root = Path(os.environ['HEPHAESTUS_HEALTHCHECK_ROOT']).resolve()\n"
         "modules = (agentlas_cloud, agentlas_cloud.cli, agentlas_cloud.update, career_graph, ontology)\n"
         "bad = [m.__name__ for m in modules if root not in Path(m.__file__).resolve().parents]\n"
-        f"verify_model_asset(root / {str(RUNTIME_MODEL2VEC_PATH)!r})\n"
+        "verify_model_asset(Path(os.environ['HEPHAESTUS_HEALTHCHECK_MODEL']))\n"
         "raise SystemExit(8 if bad else 0)\n"
     )
     try:

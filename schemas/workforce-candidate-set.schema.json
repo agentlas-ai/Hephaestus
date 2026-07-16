@@ -46,7 +46,6 @@
       "enum": [
         "gap:minimum-candidate-count",
         "gap:no-hard-eligible-candidate",
-        "gap:federation-window-truncated",
         "gap:excluded:forbidden-community",
         "gap:excluded:release-not-active",
         "gap:excluded:structural-or-security-invalid",
@@ -72,7 +71,7 @@
     },
     "coverageGaps": {
       "type": "array",
-      "maxItems": 24,
+      "maxItems": 23,
       "uniqueItems": true,
       "items": { "$ref": "#/$defs/coverageGap" }
     },

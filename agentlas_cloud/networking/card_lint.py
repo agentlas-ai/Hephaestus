@@ -97,11 +97,18 @@ def lint_card(card: dict[str, Any]) -> dict[str, Any]:
         ready_blockers.append(f"broad 'do anything' capabilities are not allowed: {broad}")
     if "required_inputs" not in card:
         ready_blockers.append("required_inputs must be declared (empty list is allowed)")
-    if not ((card.get("risk_profile") or {}).get("tier")):
-        ready_blockers.append("risk_profile.tier must be declared")
-    if not ((card.get("entrypoints") or {}).get("canonical_command")) and not (
-        (card.get("entrypoints") or {}).get("agent")
-    ):
+    # Model-authored cards can put a string where an object belongs (observed
+    # live: risk_profile: "low" from a local-model build). Malformed shape is a
+    # blocker to report, never a crash.
+    risk_profile = card.get("risk_profile")
+    if not (isinstance(risk_profile, dict) and risk_profile.get("tier")):
+        ready_blockers.append(
+            "risk_profile.tier must be declared"
+            if risk_profile is None or isinstance(risk_profile, dict)
+            else "risk_profile must be an object with a tier field"
+        )
+    entrypoints = card.get("entrypoints") if isinstance(card.get("entrypoints"), dict) else {}
+    if not entrypoints.get("canonical_command") and not entrypoints.get("agent"):
         ready_blockers.append("entrypoints must declare canonical_command or agent path")
     if not card.get("memory_behavior"):
         ready_blockers.append("memory_behavior must be declared")
@@ -111,7 +118,7 @@ def lint_card(card: dict[str, Any]) -> dict[str, Any]:
     score += min(trigger_total, 8) * 0.06
     score += min(anti_total, 5) * 0.05
     score += 0.15 if capabilities and not non_verb else 0.0
-    score += 0.10 if (card.get("risk_profile") or {}).get("tier") else 0.0
+    score += 0.10 if isinstance(risk_profile, dict) and risk_profile.get("tier") else 0.0
     score += 0.10 if card.get("memory_behavior") else 0.0
     score += min(bench_cases, 12) * 0.015
     if len(capabilities) > BREADTH_PENALTY_THRESHOLD:

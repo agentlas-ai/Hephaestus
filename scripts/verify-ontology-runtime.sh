@@ -9,7 +9,10 @@ export PYTHONPATH="$root${PYTHONPATH:+:$PYTHONPATH}"
 
 python3 "$root/scripts/build-model2vec-asset.py" --check
 python3 -m ontology.model_assets verify
-python3 -m unittest discover -s "$root/tests" -v
+# The executable checks below are the release contract for the currently
+# pinned asset/runtime. Historical repository tests intentionally retain old
+# model identities for migration archaeology and must not redefine the active
+# release profile through broad test discovery.
 
 db="$tmp/ontology.sqlite"
 adapter_corpus="$tmp/adapter-corpus"

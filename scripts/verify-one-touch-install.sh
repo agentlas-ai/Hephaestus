@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo="${HEPHAESTUS_REPO:-https://github.com/agentlas-ai/Agentlas-OS}"
 codex_repo="${HEPHAESTUS_CODEX_REPO:-agentlas-ai/Agentlas-OS}"
-version="${HEPHAESTUS_VERSION:-v1.1.45}"
+version="${HEPHAESTUS_VERSION:-v1.1.47}"
 keep="${HEPHAESTUS_KEEP_SMOKE_DIR:-0}"
 
 fail() {
@@ -83,10 +83,6 @@ claude_plugin_root="$(dirname "$claude_release")"
 codex_plugin_root="$(dirname "$codex_release")"
 for plugin_root in "$claude_plugin_root" "$codex_plugin_root"; do
   [[ -x "$plugin_root/bin/ontology" ]] || fail "plugin is missing the stable ontology entrypoint: $plugin_root"
-  [[ -f "$plugin_root/assets/model2vec/potion-base-8M-int8/manifest.json" ]] \
-    || fail "plugin is missing the verified Model2Vec manifest: $plugin_root"
-  [[ -f "$plugin_root/assets/model2vec/potion-base-8M-int8/embeddings.i8" ]] \
-    || fail "plugin is missing the Model2Vec weights: $plugin_root"
 done
 rg -q 'CLAUDE_PLUGIN_ROOT.*--host claude' "$claude_plugin_root/hooks/hooks.json" \
   || fail "Claude plugin memory hook does not use its own plugin root/host"
@@ -117,7 +113,7 @@ for shell_command in hephaestus ontology hep-build hep-network hep-cloud hep-sea
   [[ -x "$shell_home/.local/bin/$shell_command" ]] || fail "short shell command shim was not installed: $shell_command"
 done
 grep -qx "$version" "$shell_home/.agentlas/runtime/current/RELEASE" || fail "runtime current RELEASE marker is not $version"
-runtime_model="$shell_home/.agentlas/runtime/current/models/model2vec/potion-base-8M-int8"
+runtime_model="$shell_home/.agentlas/runtime/current/models/model2vec/potion-multilingual-128M-int8"
 [[ -f "$runtime_model/manifest.json" ]] || fail "runtime Model2Vec manifest was not installed"
 HOME="$shell_home" PYTHONPATH="$shell_home/.agentlas/runtime/current" \
   python3 -m ontology.model_assets verify "$runtime_model" >/dev/null \

@@ -98,7 +98,7 @@ def _profile_sets(profile: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _hard_eligibility(profile: Mapping[str, Any], slot: Mapping[str, Any]) -> tuple[bool, list[str]]:
-    """Apply only lifecycle, integrity, authority, and explicit deny gates."""
+    """Apply lifecycle, integrity, and every explicit required contract."""
 
     reasons: list[str] = []
     if profile.get("status") != "active":
@@ -117,12 +117,45 @@ def _hard_eligibility(profile: Mapping[str, Any], slot: Mapping[str, Any]) -> tu
         reasons.append("entity-kind-mismatch")
     if req["excluded_communities"] & have["communities"]:
         reasons.append("excluded-community")
+    if req["roles"] - have["roles"]:
+        reasons.append("missing-required-role")
+    if req["skills"] - have["skills"]:
+        reasons.append("missing-required-skill")
+    if req["knowledge"] - have["knowledge"]:
+        reasons.append("missing-required-knowledge")
+    if req["tools"] - have["tools"]:
+        reasons.append("missing-required-tool")
+    minimum_level = {"declared": 0, "checked": 1, "demonstrated": 2, "attested": 3}.get(
+        str(slot.get("minimumEvidenceLevel") or "declared"), 0
+    )
+    if any(have["skill_levels"].get(item, -1) < minimum_level for item in req["skills"]):
+        reasons.append("required-skill-evidence-below-minimum")
+    if any(have["tool_levels"].get(item, -1) < minimum_level for item in req["tools"]):
+        reasons.append("required-tool-evidence-below-minimum")
+    if req["consumes"] - have["consumes"]:
+        reasons.append("missing-consumed-artifact")
+    if req["produces"] - have["produces"]:
+        reasons.append("missing-produced-artifact")
     if req["authorities"] - have["authorities"]:
         reasons.append("missing-required-authority")
     if req["forbidden_authorities"] & have["authorities"]:
         reasons.append("forbidden-authority-conflict")
     if have["forbidden_authorities"] & req["authorities"]:
         reasons.append("candidate-prohibits-required-authority")
+    if req["runtimes"] and not req["runtimes"] & have["runtimes"]:
+        reasons.append("runtime-mismatch")
+    if req["languages"] and not req["languages"] & have["languages"]:
+        reasons.append("language-mismatch")
+    if req["modalities"] and not req["modalities"] & have["modalities"]:
+        reasons.append("modality-mismatch")
+
+    # Community edges are a broad-recall hint when a slot already names direct
+    # role/skill/tool requirements. Without any direct requirement, the
+    # community itself remains the explicit hard contract.
+    missing_communities = req["communities"] - have["communities"]
+    has_direct_evidence = bool(req["roles"] or req["skills"] or req["tools"])
+    if missing_communities and not has_direct_evidence:
+        reasons.append("missing-required-community")
     return not reasons, reasons
 
 

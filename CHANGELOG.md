@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.1.47 - 2026-07-16
+
+- **Korean and cross-lingual ontology recall now ships with the canonical
+  multilingual Model2Vec asset.** Core verifies the pinned model identity and
+  split tensor payload byte-for-byte, installs it once for every host adapter,
+  and retains the previous compact asset only as a degraded compatibility path.
+- **Project ontology ingestion is bounded and snapshot-safe.** Hidden files,
+  symlinks, non-regular files, excessive depth/count/size, and source changes
+  during parsing fail closed; the parser consumes the exact private snapshot
+  whose checksum was recorded.
+- **Agent and team packages share one machine-verifiable public contract.** The
+  CLI can scaffold, verify, and prompt against the same schemas and templates
+  used by Desktop, while public runtime archives exclude tests, fixtures,
+  benchmarks, internal docs, credentials, and signing material.
+- **Workforce and Network release gates no longer report false green.** Empty or
+  duplicate benchmark cases fail closed, receipts are revalidated, all required
+  capability axes remain hard gates, and unknown requirements produce explicit
+  coverage gaps instead of a boundary crash or silent fallback.
+
 ## v1.1.46 - 2026-07-16
 
 - **Agent Workforce routing is now a host-owned staffing protocol rather than

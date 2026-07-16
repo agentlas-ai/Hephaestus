@@ -44,6 +44,7 @@ runtime_paths=(
   "SECURITY.md"
   "agent.md"
   "manifest.json"
+  "package-contract.json"
   ".agents"
   ".claude"
   ".claude-plugin"
@@ -51,7 +52,7 @@ runtime_paths=(
   "agentlas_cloud"
   "agents"
   "antigravity"
-  "assets/model2vec/potion-base-8M-int8"
+  "assets/model2vec/potion-multilingual-128M-int8"
   "bin"
   "career_graph"
   "claude"
@@ -76,6 +77,8 @@ runtime_excludes=(
   ":(exclude)claude/plugins/agentlas-core-engine-meta-agent/benchmarks/**"
   ":(exclude)codex/plugins/agentlas-core-engine-meta-agent/benchmarks/**"
   ":(exclude)gemini/extension/benchmarks/**"
+  ":(exclude)templates/*benchmark*"
+  ":(exclude)templates/*fixture*"
 )
 
 git archive \
@@ -90,20 +93,27 @@ mv "$tmp" "$archive"
 tar -tzf "$archive" > "$manifest_tmp"
 prefix="Agentlas-OS-${tag#v}/"
 
-if grep -E '(^|/)(tests?|benchmarks?|docs|credentials|signing)(/|$)|(^|/)\.env($|\.)|(^|/)([^/]+\.(pem|key|p12|pfx|crt|cer)|id_(rsa|dsa|ecdsa|ed25519))$|(^|/)(test_[^/]*\.py|[^/]*_test\.py)$' "$manifest_tmp" >/dev/null; then
+forbidden_archive_pattern='(^|/)(tests?|benchmarks?|fixtures?|docs|credentials|signing)(/|$)|(^|/)\.env($|\.)|(^|/)([^/]+\.(pem|key|p12|pfx|crt|cer|jks|keystore|mobileprovision)|id_(rsa|dsa|ecdsa|ed25519))$|(^|/)(test[_-][^/]*|[^/]*[_-]test|[^/]*\.test|[^/]*benchmark[^/]*)\.[^/]+$'
+if grep -E "$forbidden_archive_pattern" "$manifest_tmp" >/dev/null; then
   echo "release archive contains a forbidden internal/test/secret path" >&2
-  grep -E '(^|/)(tests?|benchmarks?|docs|credentials|signing)(/|$)|(^|/)\.env($|\.)|(^|/)([^/]+\.(pem|key|p12|pfx|crt|cer)|id_(rsa|dsa|ecdsa|ed25519))$|(^|/)(test_[^/]*\.py|[^/]*_test\.py)$' "$manifest_tmp" >&2
+  grep -E "$forbidden_archive_pattern" "$manifest_tmp" >&2
   exit 2
 fi
 
 required_runtime_paths=(
   "manifest.json"
+  "package-contract.json"
   "bin/hephaestus"
   "agentlas_cloud/mcp_stdio.py"
   "agentlas_cloud/workforce/contracts.py"
   "schemas/workforce-work-order.schema.json"
   "schemas/workforce-selection.schema.json"
-  "assets/model2vec/potion-base-8M-int8/manifest.json"
+  "assets/model2vec/potion-multilingual-128M-int8/manifest.json"
+  "assets/model2vec/potion-multilingual-128M-int8/embeddings.i8.part-000"
+  "assets/model2vec/potion-multilingual-128M-int8/embeddings.i8.part-001"
+  "assets/model2vec/potion-multilingual-128M-int8/scales.f32le"
+  "assets/model2vec/potion-multilingual-128M-int8/tokenizer.json"
+  "assets/model2vec/potion-multilingual-128M-int8/LICENSE.model.txt"
   "scripts/install-all-runtimes.sh"
 )
 for required in "${required_runtime_paths[@]}"; do

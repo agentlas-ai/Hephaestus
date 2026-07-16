@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
+import stat
+import tempfile
 from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -23,6 +26,11 @@ from .utils import clamp, content_hash, estimate_tokens, json_dumps, json_loads,
 
 SCHEMA_VERSION = 4
 DEFAULT_DB_PATH = Path(".agentlas/ontology-runtime.sqlite")
+MAX_INGEST_FILES = 1_000
+MAX_ONTOLOGY_INBOX_FILES = 80
+MAX_INGEST_FILE_BYTES = 16 * 1024 * 1024
+MAX_INGEST_TOTAL_BYTES = 128 * 1024 * 1024
+MAX_INGEST_DEPTH = 12
 
 # Hybrid document retrieval (A-2/A-3) uses bounded fallback scans. Governed
 # experience retrieval is intentionally different: every eligible row is
@@ -33,8 +41,8 @@ RRF_MISSING_RANK = 10_000
 VECTOR_FALLBACK_SCAN_CAP = 5_000
 MIN_VECTOR_SCORE = 0.05
 MIN_EXPERIENCE_VECTOR_SCORE = 0.08
-MODEL2VEC_MIN_VECTOR_SCORE = 0.45
-MODEL2VEC_CJK_MIN_VECTOR_SCORE = 0.50
+MODEL2VEC_MIN_VECTOR_SCORE = 0.15
+MODEL2VEC_CJK_MIN_VECTOR_SCORE = 0.12
 VECTOR_RELATIVE_FLOOR = 0.72
 DEFAULT_EXPERIENCE_TOKEN_BUDGET = 800
 DEFAULT_EXPERIENCE_TOP_K = 8
@@ -67,9 +75,10 @@ class RuntimeConfig:
     hooks_run_locally: bool = False
     cloud_safe_scopes: tuple[str, ...] = ("public", "internal")
     rerank_candidate_limit: int = 20
-    # Auto uses the verified bundled/installed Model2Vec int8 hybrid. Hash-96
-    # is only a visible degraded fallback when no verified asset exists. Neither
-    # path downloads a model or calls a server embedding API at runtime.
+    # Auto uses the verified bundled/installed multilingual Model2Vec int8
+    # semantic vector. Hash-96 is only a visible degraded fallback when no
+    # verified asset exists. Neither path downloads a model or calls a server
+    # embedding API at runtime.
     vector_adapter: VectorAdapter | None = None
     vector_adapter_name: str = "auto"
     local_model_path: Path | str | None = None
@@ -456,15 +465,7 @@ class OntologyRuntime:
 
     def ingest_path(self, path: str | Path, access_scope: str = "internal", parent_source_id: str | None = None) -> dict[str, Any]:
         root = Path(path)
-        if root.is_file():
-            files = [root]
-        else:
-            files = sorted(
-                item
-                for item in root.rglob("*")
-                if item.is_file()
-                and not any(part.startswith(".") for part in item.relative_to(root).parts)
-            )
+        files, skipped_sources = self._bounded_source_files(root)
         summary = {
             "db_path": str(self.db_path),
             "sources": [],
@@ -472,16 +473,88 @@ class OntologyRuntime:
             "entities_written": 0,
             "relations_written": 0,
             "idempotent_skips": 0,
+            "bytes_read": 0,
+            "skipped_sources": skipped_sources,
         }
         with closing(self.connect()) as conn, conn:
             for source_path in files:
                 result = self._ingest_file(conn, source_path, access_scope, parent_source_id)
+                summary["bytes_read"] += result["bytes_read"]
+                if summary["bytes_read"] > MAX_INGEST_TOTAL_BYTES:
+                    raise ValueError(f"ontology ingest exceeds {MAX_INGEST_TOTAL_BYTES} total bytes")
                 summary["sources"].append(result["source"])
                 summary["chunks_written"] += result["chunks_written"]
                 summary["entities_written"] += result["entities_written"]
                 summary["relations_written"] += result["relations_written"]
                 summary["idempotent_skips"] += 1 if result["unchanged"] else 0
         return summary
+
+    def _bounded_source_files(self, root: Path) -> tuple[list[Path], list[dict[str, str]]]:
+        """Enumerate regular files without following links or unbounded trees."""
+
+        skipped: list[dict[str, str]] = []
+        if root.is_symlink():
+            raise ValueError(f"ontology ingest refuses a symlink source: {root}")
+        if root.is_file():
+            info = root.lstat()
+            if not stat.S_ISREG(info.st_mode):
+                raise ValueError(f"ontology ingest requires a regular file: {root}")
+            if info.st_size > MAX_INGEST_FILE_BYTES:
+                raise ValueError(f"ontology source exceeds {MAX_INGEST_FILE_BYTES} bytes: {root.name}")
+            return [root], skipped
+        if not root.is_dir():
+            return [], skipped
+
+        maximum_files = (
+            MAX_ONTOLOGY_INBOX_FILES
+            if root.name == "ontology-inbox" and root.parent.name == ".agentlas"
+            else MAX_INGEST_FILES
+        )
+        files: list[Path] = []
+        total_bytes = 0
+        stop = False
+        for current, dirnames, filenames in os.walk(root, topdown=True, followlinks=False):
+            current_path = Path(current)
+            relative = current_path.relative_to(root)
+            depth = 0 if relative == Path(".") else len(relative.parts)
+            allowed_dirs: list[str] = []
+            for name in sorted(dirnames):
+                candidate = current_path / name
+                if name.startswith(".") or candidate.is_symlink() or depth + 1 > MAX_INGEST_DEPTH:
+                    skipped.append({"path": str(candidate.relative_to(root)), "reason": "directory_not_allowed"})
+                    continue
+                allowed_dirs.append(name)
+            dirnames[:] = allowed_dirs
+            for name in sorted(filenames):
+                candidate = current_path / name
+                rel = str(candidate.relative_to(root))
+                if name.startswith("."):
+                    skipped.append({"path": rel, "reason": "hidden_file"})
+                    continue
+                try:
+                    info = candidate.lstat()
+                except OSError:
+                    skipped.append({"path": rel, "reason": "unreadable"})
+                    continue
+                if not stat.S_ISREG(info.st_mode):
+                    skipped.append({"path": rel, "reason": "non_regular_or_symlink"})
+                    continue
+                if info.st_size > MAX_INGEST_FILE_BYTES:
+                    skipped.append({"path": rel, "reason": "file_too_large"})
+                    continue
+                if len(files) >= maximum_files:
+                    skipped.append({"path": rel, "reason": "file_count_limit"})
+                    stop = True
+                    break
+                if total_bytes + info.st_size > MAX_INGEST_TOTAL_BYTES:
+                    skipped.append({"path": rel, "reason": "total_byte_limit"})
+                    stop = True
+                    break
+                files.append(candidate)
+                total_bytes += info.st_size
+            if stop:
+                break
+        return files, skipped
 
     def query(
         self,
@@ -1416,9 +1489,9 @@ class OntologyRuntime:
         return {"status": "ok", "import_path": str(source)}
 
     def _ingest_file(self, conn: sqlite3.Connection, path: Path, access_scope: str, parent_source_id: str | None) -> dict[str, Any]:
-        raw = path.read_bytes()
+        resolved, raw = self._read_source_snapshot(path)
         checksum = content_hash(raw)
-        uri = path.resolve().as_uri()
+        uri = resolved.as_uri()
         source_id = stable_hash(f"source:{uri}")
         existing = conn.execute("SELECT * FROM sources WHERE source_id = ?", (source_id,)).fetchone()
         if existing and existing["content_hash"] == checksum:
@@ -1428,6 +1501,7 @@ class OntologyRuntime:
                 "entities_written": 0,
                 "relations_written": 0,
                 "unchanged": True,
+                "bytes_read": len(raw),
             }
 
         if existing:
@@ -1438,7 +1512,13 @@ class OntologyRuntime:
             version = 1
             created_at = utc_now()
 
-        parsed = self.parser_registry.parse(path)
+        # Parse the exact bytes that were hashed. Parsers are path-based (PDF,
+        # Office, HWP, OCR), so a private same-suffix snapshot closes the
+        # checksum/parse TOCTOU gap without exposing the original path.
+        with tempfile.TemporaryDirectory(prefix="agentlas-ontology-source-") as temp_dir:
+            snapshot = Path(temp_dir) / f"source{path.suffix.lower()}"
+            snapshot.write_bytes(raw)
+            parsed = self.parser_registry.parse(snapshot)
         now = utc_now()
         lineage = {
             "source_id": source_id,
@@ -1514,7 +1594,35 @@ class OntologyRuntime:
             "entities_written": entities_written,
             "relations_written": relations_written,
             "unchanged": False,
+            "bytes_read": len(raw),
         }
+
+    def _read_source_snapshot(self, path: Path) -> tuple[Path, bytes]:
+        if path.is_symlink():
+            raise ValueError(f"ontology ingest refuses a symlink source: {path}")
+        resolved_before = path.resolve(strict=True)
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(path, flags)
+        try:
+            before = os.fstat(descriptor)
+            if not stat.S_ISREG(before.st_mode):
+                raise ValueError(f"ontology ingest requires a regular file: {path}")
+            if before.st_size > MAX_INGEST_FILE_BYTES:
+                raise ValueError(f"ontology source exceeds {MAX_INGEST_FILE_BYTES} bytes: {path.name}")
+            with os.fdopen(descriptor, "rb", closefd=False) as handle:
+                raw = handle.read(MAX_INGEST_FILE_BYTES + 1)
+            if len(raw) > MAX_INGEST_FILE_BYTES:
+                raise ValueError(f"ontology source exceeds {MAX_INGEST_FILE_BYTES} bytes: {path.name}")
+            after = os.fstat(descriptor)
+            identity_before = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+            identity_after = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+            if identity_before != identity_after or len(raw) != after.st_size:
+                raise ValueError(f"ontology source changed while being read: {path.name}")
+        finally:
+            os.close(descriptor)
+        if path.resolve(strict=True) != resolved_before:
+            raise ValueError(f"ontology source changed identity while being read: {path.name}")
+        return resolved_before, raw
 
     def _delete_source_derivatives(self, conn: sqlite3.Connection, source_id: str) -> None:
         chunk_ids = [row["chunk_id"] for row in conn.execute("SELECT chunk_id FROM chunks WHERE source_id = ?", (source_id,))]
@@ -1806,10 +1914,10 @@ class OntologyRuntime:
         return len(query_tokens & text_tokens) / len(query_tokens)
 
     def _minimum_vector_score(self, default: float, question: str = "") -> float:
-        if self.vector_adapter.name == "model2vec_potion_base_8m_int8_hybrid":
-            # potion-base-8M is English-first: unrelated CJK WordPiece fragments
-            # can cluster around 0.45 in the fixed hybrid. Keep the English
-            # semantic floor intact while requiring stronger CJK evidence.
+        if self.vector_adapter.name == "model2vec_potion_multilingual_128m_int8":
+            # Multilingual similarities have a lower, meaningful range than the
+            # old English WordPiece + hash96 hybrid. Keep lexical overlap in its
+            # separate RRF rank and apply the calibrated semantic noise floor.
             if CJK_RUN_PATTERN.search(question):
                 return max(default, MODEL2VEC_CJK_MIN_VECTOR_SCORE)
             return max(default, MODEL2VEC_MIN_VECTOR_SCORE)

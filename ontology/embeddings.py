@@ -6,6 +6,8 @@ import mmap
 import re
 import struct
 import unicodedata
+from array import array
+from bisect import bisect_right
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Protocol
@@ -55,44 +57,41 @@ class LocalHashingVectorAdapter:
 
 
 @dataclass
-class Model2VecInt8HybridAdapter:
-    """Dependency-free, verified Model2Vec int8 + hash96 hybrid.
+class Model2VecInt8Adapter:
+    """Dependency-free, verified 256-dimensional Model2Vec adapter.
 
-    The first 256 dimensions reproduce the pinned potion-base-8M WordPiece
-    mean from the local int8 asset. The final 96 dimensions preserve lexical
-    and CJK recall. Both components use equal L2 weight, so output is always a
-    fixed 352 dimensions and never switches identity by input language.
+    The multilingual release uses an ordered Unigram vocabulary and Viterbi
+    segmentation. Quantized embedding rows stay split on disk and are mapped
+    independently, so neither a 128 MB joined file nor a hash96 compensation
+    axis is introduced at runtime. Lexical evidence remains a separate
+    retrieval rank; hash-96 is used only when no verified local asset exists.
     """
 
     asset: VerifiedModelAsset | Path | str
-    name: str = "model2vec_potion_base_8m_int8_hybrid"
+    name: str = "model2vec_potion_multilingual_128m_int8"
     status: str = "available"
-    dimensions: int = 352
-    semantic_dimensions: int = 256
-    hash_dimensions: int = 96
-    max_tokens: int = 512
-    _hash_adapter: LocalHashingVectorAdapter = field(
-        default_factory=LocalHashingVectorAdapter,
-        init=False,
-        repr=False,
-    )
+    dimensions: int = 256
+    max_wordpiece_tokens: int = 512
     _vocab: dict[str, int] | None = field(default=None, init=False, repr=False)
+    _unigram_scores: array | None = field(default=None, init=False, repr=False)
     _unknown_id: int | None = field(default=None, init=False, repr=False)
-    _embeddings_handle: Any = field(default=None, init=False, repr=False)
-    _embeddings: mmap.mmap | None = field(default=None, init=False, repr=False)
+    _tokenizer_type: str | None = field(default=None, init=False, repr=False)
+    _embedding_handles: list[Any] = field(default_factory=list, init=False, repr=False)
+    _embedding_maps: list[mmap.mmap] = field(default_factory=list, init=False, repr=False)
+    _embedding_row_starts: list[int] = field(default_factory=list, init=False, repr=False)
     _scales: bytes | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.asset, VerifiedModelAsset):
             self.asset = verify_model_asset(self.asset)
-        if self.asset.dimensions != self.semantic_dimensions:
-            raise ValueError(
-                f"expected {self.semantic_dimensions} Model2Vec dimensions, got {self.asset.dimensions}"
-            )
+        if self.asset.dimensions != self.dimensions:
+            raise ValueError(f"expected {self.dimensions} Model2Vec dimensions, got {self.asset.dimensions}")
+        if self.asset.tokenizer_type != "Unigram":
+            self.name = "model2vec_potion_base_8m_int8_legacy"
 
     @property
     def identity(self) -> str:
-        return f"{self.asset.identity}:hybrid-hash96-v1:{self.dimensions}"
+        return f"{self.asset.identity}:semantic-v1:{self.dimensions}"
 
     @property
     def asset_metadata(self) -> dict[str, Any]:
@@ -105,20 +104,19 @@ class Model2VecInt8HybridAdapter:
             "source_revision": source["revision"],
             "license": self.asset.manifest["license"]["spdx"],
             "quantization": self.asset.manifest["quantization"]["scheme"],
-            "semantic_dimensions": self.semantic_dimensions,
-            "hash_dimensions": self.hash_dimensions,
-            "hybrid": "equal_weight_l2_concat_v1",
+            "dimensions": self.dimensions,
+            "tokenizer": self.asset.tokenizer_type,
+            "embedding_parts": list(self.asset.embedding_parts),
         }
 
     def embed(self, text: str) -> list[float]:
-        semantic = self._semantic_embed(text)
-        lexical = self._hash_adapter.embed(text)
-        weight = 1.0 / math.sqrt(2.0)
-        combined = [value * weight for value in semantic] + [value * weight for value in lexical]
-        norm = math.sqrt(sum(value * value for value in combined))
-        if norm == 0.0:
-            return combined
-        return [round(value / norm, 6) for value in combined]
+        return [round(value, 6) for value in self._semantic_embed(text)]
+
+    def token_ids(self, text: str) -> list[int]:
+        self._ensure_loaded()
+        if self._tokenizer_type == "Unigram":
+            return self.unigram_ids(text)
+        return self.wordpiece_ids(text)
 
     def wordpiece_ids(self, text: str) -> list[int]:
         self._ensure_loaded()
@@ -128,56 +126,126 @@ class Model2VecInt8HybridAdapter:
             pieces = _wordpiece(token, self._vocab)
             if pieces is None:
                 continue
-            output.extend(self._vocab[piece] for piece in pieces)
-            if len(output) >= self.max_tokens:
-                return output[: self.max_tokens]
+            for piece in pieces:
+                token_id = self._vocab[piece]
+                if token_id != self._unknown_id:
+                    output.append(token_id)
+                if len(output) >= self.max_wordpiece_tokens:
+                    return output
+        return output
+
+    def unigram_ids(self, text: str) -> list[int]:
+        self._ensure_loaded()
+        assert self._vocab is not None and self._unigram_scores is not None
+        characters = list(_unigram_normalize(text))
+        length = len(characters)
+        if length == 0:
+            return []
+        best_score = [float("-inf")] * (length + 1)
+        best_start = [-1] * (length + 1)
+        best_id = [-1] * (length + 1)
+        best_score[0] = 0.0
+        for start in range(length):
+            if best_score[start] == float("-inf"):
+                continue
+            limit = min(length, start + UNIGRAM_MAX_PIECE_CHARS)
+            for end in range(start + 1, limit + 1):
+                token_id = self._vocab.get("".join(characters[start:end]))
+                if token_id is None:
+                    continue
+                candidate = best_score[start] + self._unigram_scores[token_id]
+                if candidate > best_score[end]:
+                    best_score[end] = candidate
+                    best_start[end] = start
+                    best_id[end] = token_id
+        if best_score[length] == float("-inf"):
+            return []
+        output: list[int] = []
+        at = length
+        while at > 0:
+            start = best_start[at]
+            if start < 0:
+                return []
+            if best_id[at] != self._unknown_id:
+                output.append(best_id[at])
+            at = start
+        output.reverse()
         return output
 
     def _semantic_embed(self, text: str) -> list[float]:
-        ids = self.wordpiece_ids(text)
+        ids = self.token_ids(text)
         if not ids:
-            return [0.0] * self.semantic_dimensions
-        assert self._embeddings is not None and self._scales is not None
-        vector = [0.0] * self.semantic_dimensions
+            return [0.0] * self.dimensions
+        assert self._scales is not None
+        vector = [0.0] * self.dimensions
         for token_id in ids:
             scale = struct.unpack_from("<f", self._scales, token_id * 4)[0]
-            row_offset = token_id * self.semantic_dimensions
-            for index in range(self.semantic_dimensions):
-                raw = self._embeddings[row_offset + index]
+            part_index = bisect_right(self._embedding_row_starts, token_id) - 1
+            row_offset = (token_id - self._embedding_row_starts[part_index]) * self.dimensions
+            embeddings = self._embedding_maps[part_index]
+            for index in range(self.dimensions):
+                raw = embeddings[row_offset + index]
                 signed = raw if raw < 128 else raw - 256
                 vector[index] += signed * scale
         norm = math.sqrt(sum(value * value for value in vector))
         if norm == 0.0:
-            return [0.0] * self.semantic_dimensions
+            return [0.0] * self.dimensions
         return [value / norm for value in vector]
 
     def _ensure_loaded(self) -> None:
         if self._vocab is not None:
             return
         tokenizer = json.loads((self.asset.path / "tokenizer.json").read_text(encoding="utf-8"))
-        vocab = tokenizer["model"]["vocab"]
-        self._vocab = {str(token): int(token_id) for token, token_id in vocab.items()}
-        self._unknown_id = self._vocab.get("[UNK]")
-        self._embeddings_handle = open(self.asset.path / "embeddings.i8", "rb")
-        self._embeddings = mmap.mmap(self._embeddings_handle.fileno(), 0, access=mmap.ACCESS_READ)
+        model = tokenizer["model"]
+        self._tokenizer_type = self.asset.tokenizer_type
+        if self._tokenizer_type == "Unigram":
+            vocab: dict[str, int] = {}
+            scores = array("d")
+            for token_id, (token, score) in enumerate(model["vocab"]):
+                if token not in vocab:
+                    vocab[str(token)] = token_id
+                scores.append(float(score))
+            self._vocab = vocab
+            self._unigram_scores = scores
+            self._unknown_id = int(model["unk_id"])
+        else:
+            self._vocab = {str(token): int(token_id) for token, token_id in model["vocab"].items()}
+            self._unknown_id = self._vocab.get("[UNK]")
+
+        row_start = 0
+        for name in self.asset.embedding_parts:
+            handle = open(self.asset.path / name, "rb")
+            mapped = mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ)
+            self._embedding_handles.append(handle)
+            self._embedding_maps.append(mapped)
+            self._embedding_row_starts.append(row_start)
+            row_start += len(mapped) // self.dimensions
         self._scales = (self.asset.path / "scales.f32le").read_bytes()
 
     def close(self) -> None:
-        if self._embeddings is not None:
-            self._embeddings.close()
-            self._embeddings = None
-        if self._embeddings_handle is not None:
-            self._embeddings_handle.close()
-            self._embeddings_handle = None
+        for mapped in self._embedding_maps:
+            mapped.close()
+        for handle in self._embedding_handles:
+            handle.close()
+        self._embedding_maps.clear()
+        self._embedding_handles.clear()
+        self._embedding_row_starts.clear()
         self._scales = None
         self._vocab = None
+        self._unigram_scores = None
         self._unknown_id = None
+        self._tokenizer_type = None
 
     def __del__(self) -> None:  # pragma: no cover - best-effort process cleanup
         try:
             self.close()
         except Exception:
             pass
+
+
+# Import compatibility for callers that used the old class name. The adapter
+# itself is semantic-only; no hybrid/hash dimensions remain.
+Model2VecInt8HybridAdapter = Model2VecInt8Adapter
 
 
 def select_vector_adapter(
@@ -195,7 +263,7 @@ def select_vector_adapter(
         except ModelAssetError as exc:
             raise ValueError(str(exc)) from exc
         if asset is not None:
-            return Model2VecInt8HybridAdapter(asset=asset)
+            return Model2VecInt8Adapter(asset=asset)
         return LocalHashingVectorAdapter(
             dimensions=hashing_dimensions,
             status="degraded_fallback",
@@ -212,7 +280,7 @@ def select_vector_adapter(
             raise ValueError(str(exc)) from exc
         if asset is None:
             raise ValueError("adapter='model2vec' requires a verified local Agentlas Model2Vec asset")
-        return Model2VecInt8HybridAdapter(asset=asset)
+        return Model2VecInt8Adapter(asset=asset)
     raise ValueError(f"unsupported local vector adapter: {adapter}")
 
 
@@ -230,6 +298,18 @@ def vector_adapter_metadata(adapter: VectorAdapter) -> dict[str, Any]:
     if asset_metadata:
         metadata["asset"] = asset_metadata
     return metadata
+
+
+METASPACE = "\u2581"
+UNIGRAM_MAX_PIECE_CHARS = 24
+
+
+def _unigram_normalize(text: str) -> str:
+    normalized = unicodedata.normalize("NFKC", text)
+    collapsed = " ".join(normalized.split())
+    if not collapsed:
+        return ""
+    return METASPACE + collapsed.replace(" ", METASPACE)
 
 
 def _bert_basic_tokens(text: str) -> list[str]:

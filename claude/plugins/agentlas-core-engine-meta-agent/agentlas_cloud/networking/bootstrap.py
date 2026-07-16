@@ -346,6 +346,7 @@ def remove_source(path: Path | str, home: Path | str | None = None) -> dict[str,
 
 
 def network_status(home: Path | str | None = None) -> dict[str, Any]:
+    from .bench import validate_benchmark_state
     from .card_lint import effective_status
     from .card_store import load_global_cards
 
@@ -361,18 +362,32 @@ def network_status(home: Path | str | None = None) -> dict[str, Any]:
     policy = read_json(base / "policies" / "routing-policy.json", default=default_routing_policy())
     bench_status = read_json(base / "cache" / "bench-status.json", default=None)
     ready = counts.get("routing_ready", 0) + counts.get("trusted", 0)
-    bench_passed = bool(bench_status and bench_status.get("passed"))
-    auto_routing_enabled = ready >= int(policy.get("min_ready_cards", 5)) and bench_passed
+    benchmark_readiness = validate_benchmark_state(bench_status)
+    recorded_bench_passed = isinstance(bench_status, dict) and bench_status.get("passed") is True
+    bench_passed = bool(recorded_bench_passed and benchmark_readiness["ready"])
+    min_ready_cards = int(policy.get("min_ready_cards", 5))
+    auto_routing_enabled = ready >= min_ready_cards and bench_passed
+    benchmark = dict(bench_status) if isinstance(bench_status, dict) else {"note": "benchmark has not been run"}
+    if recorded_bench_passed != bench_passed:
+        benchmark["recorded_passed"] = recorded_bench_passed
+    benchmark["passed"] = bench_passed
+    benchmark["readiness"] = benchmark_readiness
+    auto_routing_reasons: list[str] = []
+    if ready < min_ready_cards:
+        auto_routing_reasons.append(f"requires >= {min_ready_cards} routing_ready cards (has {ready})")
+    if not benchmark_readiness["ready"]:
+        blocker_codes = ", ".join(str(item.get("code")) for item in benchmark_readiness["blockers"])
+        auto_routing_reasons.append(f"benchmark state is not ready ({blocker_codes})")
+    elif not recorded_bench_passed:
+        auto_routing_reasons.append("benchmark did not pass")
     return {
         "home": str(base),
         "initialized": True,
         "schema_version": (base / "VERSION").read_text(encoding="utf-8").strip(),
         "card_counts": counts,
         "ready_cards": ready,
-        "benchmark": bench_status or {"passed": False, "note": "benchmark has not been run"},
+        "benchmark": benchmark,
         "auto_routing_enabled": auto_routing_enabled,
-        "auto_routing_note": None
-        if auto_routing_enabled
-        else f"auto routing requires >= {policy.get('min_ready_cards', 5)} routing_ready cards and a passing benchmark",
+        "auto_routing_note": None if auto_routing_enabled else "auto routing disabled: " + "; ".join(auto_routing_reasons),
         "sources": read_json(base / "sources.json", default={}).get("sources", []),
     }

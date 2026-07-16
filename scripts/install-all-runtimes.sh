@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-version="${HEPHAESTUS_REF:-v1.1.46}"
+version="${HEPHAESTUS_REF:-v1.1.47}"
 repo="${HEPHAESTUS_REPO:-agentlas-ai/Agentlas-OS}"
 github_url="${HEPHAESTUS_GITHUB_URL:-https://github.com/$repo}"
 marketplace_name="${HEPHAESTUS_MARKETPLACE:-agentlas-core-engine}"
@@ -178,8 +178,8 @@ install_runtime_home() {
   ensure_downloaded_source || { warn "runtime home install skipped: no source."; return 1; }
   local plain="${version#v}"
   local home_dir="$HOME/.agentlas/runtime/$plain"
-  local model_source="$source_dir/assets/model2vec/potion-base-8M-int8"
-  local model_dest="$home_dir/models/model2vec/potion-base-8M-int8"
+  local model_source="$source_dir/assets/model2vec/potion-multilingual-128M-int8"
+  local model_dest="$home_dir/models/model2vec/potion-multilingual-128M-int8"
   local py=""
   py="$(resolve_python_cmd || true)"
   if [[ -z "$py" ]]; then
