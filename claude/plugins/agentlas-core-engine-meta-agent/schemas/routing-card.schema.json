@@ -1,0 +1,240 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentlas.cloud/schemas/routing-card.schema.json",
+  "title": "Hephaestus Network routing card v2",
+  "description": "Standardized routing card for agents, teams, and plugins. Cards below routing_ready are excluded from automatic routing (card_lint quality gates).",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "type",
+    "name",
+    "summary",
+    "capabilities",
+    "routing_status"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "routing-card/2.0" },
+    "card_version": { "type": "string" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "canonical_id": { "type": "string" },
+    "type": { "enum": ["agent", "team", "plugin"] },
+    "name": { "type": "string", "minLength": 1 },
+    "name_ko": { "type": ["string", "null"] },
+    "aliases": { "type": "array", "items": { "type": "string" } },
+    "supersedes": { "type": "array", "items": { "type": "string" } },
+    "summary": { "type": "string", "minLength": 1, "maxLength": 240 },
+    "summary_ko": { "type": ["string", "null"] },
+    "description": { "type": "string" },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)+$" },
+      "minItems": 1
+    },
+    "domains": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Coarse domain tags (see agentlas_cloud/networking/domains.py) driving the router's domain-coherence guard; populated by card generation/backfill."
+    },
+    "trigger_examples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": { "type": "string", "minLength": 2 },
+          "locale": { "enum": ["ko", "en"] }
+        }
+      }
+    },
+    "anti_triggers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": { "type": "string", "minLength": 2 },
+          "locale": { "enum": ["ko", "en"] }
+        }
+      }
+    },
+    "required_inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "optional_inputs": { "type": "array" },
+    "required_plugins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "min_permissions": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "supported_runtimes": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "claude-code",
+          "codex",
+          "gemini-cli",
+          "antigravity",
+          "cursor",
+          "terminal",
+          "agents-md",
+          "agentlas-desktop",
+          "agentlas-web"
+        ]
+      }
+    },
+    "entrypoints": {
+      "type": "object",
+      "properties": {
+        "canonical_command": { "type": ["string", "null"] },
+        "agent": { "type": ["string", "null"] },
+        "terminal": { "type": ["string", "null"] }
+      }
+    },
+    "risk_profile": {
+      "type": "object",
+      "required": ["tier"],
+      "properties": {
+        "tier": { "enum": ["low", "medium", "high"] },
+        "capabilities_at_risk": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "file_write",
+              "cloud_call",
+              "payment",
+              "publish",
+              "delete",
+              "private_data_export",
+              "external_tool"
+            ]
+          }
+        }
+      }
+    },
+    "approval_requirements": { "type": "array", "items": { "type": "string" } },
+    "memory_behavior": {
+      "type": "object",
+      "required": ["reads", "writes", "exports_to_cloud"],
+      "properties": {
+        "reads": { "enum": ["project", "none"] },
+        "writes": { "enum": ["project", "none"] },
+        "exports_to_cloud": { "type": "boolean" }
+      }
+    },
+    "cloud_delegation_policy": { "enum": ["never", "ask", "allowed_with_grant"] },
+    "cost_hints": {
+      "type": "object",
+      "properties": {
+        "model_calls": { "enum": ["low", "medium", "high"] },
+        "paid_api": { "type": "boolean" }
+      }
+    },
+    "produces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": { "type": "string" },
+          "path_hint": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "consumes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": { "type": "string" },
+          "required": { "type": "boolean" }
+        }
+      }
+    },
+    "benchmark_fixtures": { "type": ["string", "null"] },
+    "known_failure_cases": { "type": "array", "items": { "type": "string" } },
+    "locale_coverage": {
+      "type": "object",
+      "properties": {
+        "primary": { "type": "string" },
+        "ready": { "type": "array", "items": { "type": "string" } },
+        "partial": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "card_quality_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "routing_status": {
+      "enum": ["draft", "searchable", "candidate", "routing_ready", "trusted"]
+    },
+    "routing_status_reason": { "type": ["string", "null"] },
+    "agent_card_ref": {
+      "type": ["object", "null"],
+      "properties": {
+        "path": { "type": "string" },
+        "slug": { "type": "string" },
+        "content_hash": { "type": ["string", "null"] }
+      }
+    },
+    "data_access": {
+      "type": "object",
+      "properties": {
+        "reads": { "type": "array", "items": { "type": "string" } },
+        "writes": { "type": "array", "items": { "type": "string" } },
+        "exports": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "approval_scope": {
+      "type": "object",
+      "properties": {
+        "grant": { "enum": ["per_call", "session", "project", "global"] },
+        "ttl_seconds": { "type": ["integer", "null"] }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "properties": {
+        "content_hash": { "type": "string" },
+        "signature": { "type": ["string", "null"] },
+        "signing_key_id": { "type": ["string", "null"] }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "properties": {
+        "score": { "type": "number" },
+        "lint_version": { "type": "string" },
+        "evaluated_at": { "type": "string" },
+        "benchmark_suites": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "kind": { "enum": ["local_path", "hub"] },
+        "ref": { "type": "string" },
+        "package_hash": { "type": ["string", "null"] },
+        "package_version": { "type": ["string", "null"] }
+      }
+    },
+    "stale": { "type": "boolean" },
+    "updated_at": { "type": "string" }
+  },
+  "additionalProperties": true
+}

@@ -162,7 +162,7 @@ claim of regulated financial or legal trust services.
 | Value | What Agentlas does | Entry point in an external LLM host |
 | --- | --- | --- |
 | **Build** | Compiles a plain-language request into a runnable single-agent or team package with roles, tools, memory boundaries, permissions, routing, and verification contracts. | `/hep-build` |
-| **Borrow** | Finds public Hub specialists and brings the selected runtime bundle into your current Agentlas host. The publisher's private source work is not copied into your workspace. | `/hep-network` |
+| **Borrow** | Finds public Hub specialists and brings the selected runtime bundle into your current Agentlas host. The publisher's private source work is not copied into your workspace. | `/hep-hub` (Hub only) or `/hep-network` (Local + Cloud + Hub) |
 | **Own** | Keeps agents you create in a private, owner-scoped Agent Cloud so you can retrieve and call them again after changing models or computers. | Choose **private Agent Cloud** at `/hep-upload`, then retrieve with `/hep-cloud` |
 
 ### Portable package, local execution
@@ -186,7 +186,7 @@ travel with the package—you configure those separately on each computer.
 
 | Surface | What it contains | What it is for |
 | --- | --- | --- |
-| **Agentlas Hub** | Public packages from creators and teams | Find and borrow specialists with `/hep-network`; publish only through an explicit public-Hub choice. |
+| **Agentlas Hub** | Public packages from creators and teams | Find and borrow only public specialists with `/hep-hub`; `/hep-network` federates Hub with Local and owner Cloud. Publish only through an explicit public-Hub choice. |
 | **My Agent Cloud** | Only the signed-in owner's Cloud packages | Privately store, restore, and call packages you own with the `/hep-upload` Cloud choice and `/hep-cloud`. |
 | **Current host** | The installed runtime, chosen model, local project, credentials, and granted permissions | Execute the selected local, Cloud, or Hub package. |
 
@@ -345,7 +345,7 @@ claude plugin install hephaestus@agentlas-core-engine
 
 From your OS terminal:
 ```bash
-codex plugin marketplace add agentlas-ai/Agentlas-OS --ref v1.1.45
+codex plugin marketplace add agentlas-ai/Agentlas-OS --ref v1.1.46
 codex plugin add hephaestus@agentlas-core-engine
 ```
 *Note: Codex does not accept `/plugin marketplace add` inside the app — run the two commands above in your OS terminal. The OS-terminal CLI command is singular (`codex plugin`); inside the Codex app, the plugin browser slash command is plural (`/plugins`). After install, `/prompts:hep-build` is the in-app entry.*
@@ -390,8 +390,10 @@ Inside native Agentlas environments, Hephaestus operates commandless. External L
 | System Subsystem | Shell Command | Example |
 | :--- | :--- | :--- |
 | **Agent / Team Builder** | `/hep-build` | `/hep-build create a customer support agent for Shopify refunds` |
-| **Public Hub Specialist Routing** | `/hep-network` | `/hep-network split this launch plan into research, copy, QA, and release agents` |
-| **Owned Agent Retrieval** | `/hep-cloud` | `/hep-cloud use my saved finance analyst agent to review this report` |
+| **Workforce Federation (Local + Cloud + Hub)** | `/hep-network` | `/hep-network split this launch plan into research, copy, QA, and release agents` |
+| **Registered Local Agents Only** | `/hep-local` | `/hep-local use only agents registered on this machine` |
+| **Owned Cloud Agents Only** | `/hep-cloud` | `/hep-cloud use my saved finance analyst agent to review this report` |
+| **Public Hub Agents Only** | `/hep-hub` | `/hep-hub find public specialists for accessibility QA` |
 | **Directory Search** | `/hep-search` | `/hep-search find agents for a market report workflow` |
 | **Browser Hardpoint** | `/hep-browser` or `/prompts:hep-browser` | `/hep-browser https://example.com` |
 | **Inter-Process Call (IPC)** | `/hep-call` | `/hep-call market-researcher, report-writer {draft a market report}` |
@@ -423,11 +425,11 @@ A unified compilation factory using three builders. Every generated package regi
 
 <sub>Figure 2. A2A scheduling: LLM runtimes, local-first orchestrator, routing cards, local memory, and the Agentlas Hub A2A/MCP fallback.</sub>
 
-*   **Routing Cards:** Every agent, team, and plugin ships a standardized card containing triggers, anti-triggers, capabilities, risk profiles, and memory parameters. Cards failing verification are excluded from routing.
-*   **Local-First Dispatch:** Dispatch is resolved locally first (project overrides $\rightarrow$ local cards). Hub discovery receives redacted keywords rather than the raw routing prompt; model execution still follows the data policy of your selected host and provider.
-*   **Temporary Task Forces:** Composite requests decompose into Hub/local Task Force plans, packing Stormbreaker envelopes, session hints, and ontology pathways. Named specialists are scheduled dynamically, and a temporary orchestrator manages task handoffs.
-*   **Receipt-Driven Execution:** Every routing decision writes a receipt. The router determines only which agent or package to invoke; tool execution permissions remain governed by the active host and runtime.
-*   **Bilingual Benchmarking:** Auto-routing is gated by a bilingual (Korean + English) benchmark requiring top-3 recall $\ge 90\%$ and zero privacy leaks. Low-confidence paths escalate to runtime-level Router Agent re-ranking.
+*   **Typed Job Analysis:** The active host LLM turns the request into a redacted `WorkOrder` with explicit roles, skills, tools, artifacts, authority, cardinality, and handoffs. Core does not infer staffing intent from a substring list.
+*   **Exact Source Federation:** `local`, `cloud`, and `hub` are exact scopes; `network` is their sealed union. Each source returns a bounded, content-only menu, and Core records unavailable sources instead of silently widening scope.
+*   **Host-Owned Task Forces:** The host LLM reads the qualification evidence and authors the exact `Selection`. Core never chooses a deterministic winner or performs a hidden Router Agent re-rank; it validates governance, privacy, identity, cardinality, and graph integrity.
+*   **Pinned Execution:** After validation, Core fetches only the selected immutable releases from their original source sessions and verifies release, package, and content digests before distinct planner, worker, synthesis, and verifier invocations run.
+*   **Evidence-Scored Evaluation:** Retrieval coverage, host selection, immutable preparation, real child invocations, and final verification are scored as separate claims. A benchmark result never replaces the host staffing decision or turns usage history into routing authority.
 
 Details: [docs/hephaestus-network-2.0.md](docs/hephaestus-network-2.0.md) · Runtime support matrix: [docs/runtime-fallback-adapters.md](docs/runtime-fallback-adapters.md)
 
@@ -457,7 +459,7 @@ Ingested Files -> [Parser Adapter] -> [CJK trigram/bigram tokenization]
 
 Features first-party Korean document parsing (HWPX and legacy HWP5) with zero GPL dependencies. Fully local and SQLite-backed; confidential and private chunks are isolated, preventing them from reaching external cloud hooks.
 
-The v1.1.45 release contract ships and verifies a dependency-free
+The v1.1.46 release contract ships and verifies a dependency-free
 `potion-base-8M` int8 Model2Vec asset as the primary semantic adapter. Its
 normalized 256-dimensional semantic vector is combined with a normalized
 hash-96 vector into one fixed 352-dimensional local vector. Runtime queries
@@ -465,7 +467,7 @@ never download a model or call a hosted embedding API. Hash-only mode is an
 explicitly reported degraded fallback when the verified local asset is missing
 or rejected, not an alternative silent default.
 
-The v1.1.45 self-updater installs the complete one-touch runtime payload,
+The v1.1.46 self-updater installs the complete one-touch runtime payload,
 including Career Graph, templates, and the verified model under the versioned
 `models/model2vec/potion-base-8M-int8` directory. It checks that payload before
 and after switching `~/.agentlas/runtime/current`, then repairs merge-safe

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agentlas Agent Card",
+  "type": "object",
+  "required": ["schemaVersion", "name", "slug", "summary", "capabilities"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "name": { "type": "string" },
+    "slug": { "type": "string" },
+    "summary": { "type": "string" },
+    "capabilities": { "type": "array", "items": { "type": "string" } },
+    "entrypoints": { "type": "object" }
+  },
+  "additionalProperties": true
+}

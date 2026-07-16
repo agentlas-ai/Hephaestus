@@ -3,6 +3,15 @@
 This file adapts the Agentlas Core Engine Meta-Agent Team for Claude Code.
 `AGENTS.md` is canonical; this file stays thin.
 
+## Public Release Boundary
+
+The `Public Release Allowlist (Hard Rule)` in `AGENTS.md` is mandatory.
+For public GitHub work, stage only end-user install/runtime files and public
+README/LICENSE/CHANGELOG material. Never stage internal docs, research,
+benchmarks, tests or fixtures, logs/results, signing or credential material,
+environment files, private paths/memory, or unrelated local work. Verify the
+staged archive, not the dirty working tree.
+
 ## Route
 
 1. Read `AGENTS.md`.

@@ -15,10 +15,13 @@ from __future__ import annotations
 import json
 import os
 import sys
+from copy import deepcopy
 from typing import Any, Mapping
 
+from .workforce.contracts import load_workforce_contract_schema, workforce_contract_metadata
+
 PROTOCOL_VERSION = "2025-06-18"
-SERVER_INFO = {"name": "hephaestus-network", "version": "1.1.45"}
+SERVER_INFO = {"name": "hephaestus-network", "version": "1.1.46"}
 MODEL_ALLOCATION_POLICY_ENV = "AGENTLAS_MODEL_ALLOCATION_POLICY_JSON"
 _HOST_MODEL_POLICY_FIELDS = frozenset({
     "pinnedModelId",
@@ -26,6 +29,18 @@ _HOST_MODEL_POLICY_FIELDS = frozenset({
     "maxEffort",
     "requiredCapabilities",
 })
+
+
+def _contract_property(kind: str, description: str) -> dict[str, Any]:
+    metadata = workforce_contract_metadata(kind)
+    schema = deepcopy(load_workforce_contract_schema(kind))
+    schema["description"] = description
+    schema["x-agentlas-contract"] = metadata
+    return schema
+
+
+def _workforce_tool_contracts(*kinds: str) -> dict[str, dict[str, Any]]:
+    return {kind: workforce_contract_metadata(kind) for kind in kinds}
 
 
 def _host_model_allocation_policy() -> dict[str, Any]:
@@ -271,34 +286,61 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "workforce.search_candidates",
         "description": (
-            "Search the Hub Agent Workforce Ontology with a redacted structured work order. "
-            "Returns a broad content-only eligible candidate set; it never selects a team. "
+            "Search the Agent Workforce Ontology with a redacted structured work order. "
+            "sourceScope=network federates Local, owner Cloud, and public Hub menus; exact "
+            "local/cloud/hub values restrict discovery to that source. It never selects a team. "
             "The calling top-level LLM must author the work order and make the staffing decision."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "workOrder": {"type": "object", "description": "agentlas.workforce-work-order.v1"},
+                "workOrder": _contract_property(
+                    "workOrder",
+                    "Complete agentlas.workforce-work-order.v1; use the exact canonical schema and pinned ontology declared in x-agentlas-contract.",
+                ),
                 "expandSlotIds": {"type": "array", "items": {"type": "string"}},
+                "sourceScope": {
+                    "type": "string",
+                    "enum": ["network", "local", "cloud", "hub"],
+                    "description": (
+                        "Required typed source scope. network=Local+Cloud+Hub; exact scopes never widen and there is no implicit fallback."
+                    ),
+                },
             },
-            "required": ["workOrder"],
+            "required": ["workOrder", "sourceScope"],
         },
+        "x-agentlas-contracts": _workforce_tool_contracts("workOrder"),
     },
     {
         "name": "workforce.validate_selection",
         "description": (
-            "Validate a team selected by the calling host LLM against the exact Hub candidate set. "
-            "This tool cannot select, rerank, or silently substitute agents."
+            "Validate a team selected by the calling host LLM against an exact candidate set. "
+            "With federationResult, Agentlas Core validates its locally pinned federated session; "
+            "it never sends the merged menu to a remote source or selects/reranks/substitutes agents."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "workOrder": {"type": "object"},
+                "workOrder": _contract_property(
+                    "workOrder",
+                    "The exact complete WorkOrder used to create candidateSet.",
+                ),
                 "candidateSet": {"type": "object"},
-                "selection": {"type": "object", "description": "agentlas.workforce-selection.v1 authored by the host LLM"},
+                "federationResult": {
+                    "type": "object",
+                    "description": (
+                        "Exact locally pinned federation result from a source-scoped search. "
+                        "When present, Core validates locally and never sends the merged menu to a remote source."
+                    ),
+                },
+                "selection": _contract_property(
+                    "selection",
+                    "Complete agentlas.workforce-selection.v1 authored by the host LLM; use the exact canonical schema declared in x-agentlas-contract.",
+                ),
             },
-            "required": ["workOrder", "candidateSet", "selection"],
+            "required": ["workOrder", "candidateSet", "selection", "federationResult"],
         },
+        "x-agentlas-contracts": _workforce_tool_contracts("workOrder", "selection"),
     },
     {
         "name": "workforce.prepare_execution",
@@ -310,13 +352,28 @@ TOOLS: list[dict[str, Any]] = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "workOrder": {"type": "object"},
+                "workOrder": _contract_property(
+                    "workOrder",
+                    "The exact complete WorkOrder used to create candidateSet.",
+                ),
                 "candidateSet": {"type": "object"},
-                "selection": {"type": "object"},
+                "selection": _contract_property(
+                    "selection",
+                    "The exact complete host-LLM Selection accepted by validationReceipt or federatedSelection.",
+                ),
                 "validationReceipt": {"type": "object"},
+                "federationResult": {"type": "object"},
+                "federatedSelection": {
+                    "type": "object",
+                    "description": "Exact accepted result returned by federated workforce.validate_selection.",
+                },
             },
-            "required": ["workOrder", "candidateSet", "selection", "validationReceipt"],
+            "required": [
+                "workOrder", "candidateSet", "selection",
+                "federationResult", "federatedSelection",
+            ],
         },
+        "x-agentlas-contracts": _workforce_tool_contracts("workOrder", "selection"),
     },
 ]
 
@@ -382,14 +439,20 @@ def _call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         "workforce.validate_selection",
         "workforce.prepare_execution",
     }:
-        from .workforce import validate_hub_work_order_boundary
+        from .workforce import validate_hub_selection_boundary, validate_hub_work_order_boundary
         from .networking.hub_client import call_hub_tool
+        from .workforce.federation_store import FederationSessionStore
+        from .workforce.provenance import (
+            FederatedProvenanceError,
+            prepare_federated_execution_plan,
+            validate_federated_host_selection,
+        )
+        from .workforce.source_service import WorkforceSourceError, WorkforceSourceService
 
-        # The local MCP surface is a transparent authenticated bridge.  The
-        # Hub owns catalog state; Core must not reconstruct a different team or
-        # fall back to lexical cards if the workforce service refuses a call.
-        # Privacy validation is the sole exception: it is local, deterministic,
-        # non-mutating, and must complete before the first outbound byte.
+        # Agentlas OS is the canonical Workforce entrypoint. Core owns source
+        # federation plus deterministic governance/provenance validation; the
+        # active host LLM alone authors the staffing decision. Privacy checks
+        # are local, non-mutating, and complete before the first outbound byte.
         work_order = arguments.get("workOrder")
         if not isinstance(work_order, Mapping):
             return {
@@ -417,6 +480,172 @@ def _call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
                 "hubCalls": 0,
                 "boundary": boundary,
             }
+        source_scope = arguments.get("sourceScope")
+        expand_slot_ids: list[str] = []
+        if name == "workforce.search_candidates":
+            if source_scope is None:
+                return {
+                    "action": name,
+                    "status": "rejected",
+                    "error": "workforce_source_scope_required",
+                    "repairable": True,
+                    "hubCalls": 0,
+                }
+            if source_scope is not None and source_scope not in {"network", "local", "cloud", "hub"}:
+                return {
+                    "action": name,
+                    "status": "rejected",
+                    "error": "workforce_source_scope_invalid",
+                    "repairable": True,
+                    "hubCalls": 0,
+                }
+            raw_expand_slot_ids = arguments.get("expandSlotIds", [])
+            work_order_slots = {
+                str(slot.get("slotId"))
+                for slot in work_order.get("roleSlots") or []
+                if isinstance(slot, Mapping) and isinstance(slot.get("slotId"), str)
+            }
+            if (
+                not isinstance(raw_expand_slot_ids, list)
+                or len(raw_expand_slot_ids) > 32
+                or any(not isinstance(item, str) or item not in work_order_slots for item in raw_expand_slot_ids)
+                or len(raw_expand_slot_ids) != len(set(raw_expand_slot_ids))
+            ):
+                return {
+                    "action": name,
+                    "status": "rejected",
+                    "error": "workforce_expand_slots_invalid",
+                    "repairable": True,
+                    "hubCalls": 0,
+                }
+            expand_slot_ids = list(raw_expand_slot_ids)
+        if name == "workforce.search_candidates":
+            try:
+                return WorkforceSourceService().search(
+                    work_order,
+                    source_scope=str(source_scope),
+                    expand_slot_ids=list(expand_slot_ids),
+                )
+            except (WorkforceSourceError, ValueError) as exc:
+                return {
+                    "action": name,
+                    "status": "error",
+                    "error": getattr(exc, "code", "workforce_source_search_failed"),
+                }
+        if name != "workforce.search_candidates":
+            candidate_set = arguments.get("candidateSet")
+            selection = arguments.get("selection")
+            federation_result = arguments.get("federationResult")
+            federated_selection = arguments.get("federatedSelection")
+            if not isinstance(candidate_set, Mapping) or not isinstance(selection, Mapping):
+                return {
+                    "action": name,
+                    "status": "rejected",
+                    "error": "selection_hub_boundary_rejected",
+                    "repairable": True,
+                    "hubCalls": 0,
+                    "boundary": {
+                        "schemaVersion": "agentlas.workforce-selection-hub-boundary.v1",
+                        "contract": workforce_contract_metadata("selection"),
+                        "status": "rejected",
+                        "repairable": True,
+                        "mutation": "none",
+                        "selectionDigest": None,
+                        "issues": [{"path": "selection", "code": "schema_type"}],
+                    },
+                }
+            federated_candidate_set = (
+                federation_result.get("candidateSet")
+                if isinstance(federation_result, Mapping)
+                and isinstance(federation_result.get("candidateSet"), Mapping)
+                else None
+            )
+            boundary_candidate_set = federated_candidate_set or candidate_set
+            selection_boundary = validate_hub_selection_boundary(
+                selection,
+                work_order=work_order,
+                candidate_set=boundary_candidate_set,
+            )
+            if selection_boundary["status"] != "accepted":
+                return {
+                    "action": name,
+                    "status": "rejected",
+                    "error": "selection_hub_boundary_rejected",
+                    "repairable": True,
+                    "hubCalls": 0,
+                    "boundary": selection_boundary,
+                }
+            if not isinstance(federation_result, Mapping):
+                return {
+                    "action": name,
+                    "status": "rejected",
+                    "error": "federation_result_required",
+                    "repairable": True,
+                    "hubCalls": 0,
+                }
+            if federation_result is not None or federated_selection is not None:
+                if (
+                    not isinstance(federated_candidate_set, Mapping)
+                    or any(
+                        candidate_set.get(field) != federated_candidate_set.get(field)
+                        for field in (
+                            "schemaVersion", "selectionSessionId", "candidateSetDigest",
+                            "workOrderId", "ontologyVersion",
+                        )
+                    )
+                ):
+                    return {
+                        "action": name,
+                        "status": "rejected",
+                        "error": "federated_candidate_set_mismatch",
+                        "repairable": True,
+                        "hubCalls": 0,
+                    }
+                store = FederationSessionStore()
+                try:
+                    if name == "workforce.validate_selection":
+                        if federated_selection is not None:
+                            return {
+                                "action": name,
+                                "status": "rejected",
+                                "error": "federated_selection_not_allowed_during_validation",
+                                "repairable": True,
+                                "hubCalls": 0,
+                            }
+                        return validate_federated_host_selection(
+                            selection,
+                            federation_result=federation_result,
+                            work_order=work_order,
+                            session_store=store,
+                        )
+                    if not isinstance(federated_selection, Mapping):
+                        return {
+                            "action": name,
+                            "status": "rejected",
+                            "error": "federated_selection_required",
+                            "repairable": True,
+                            "hubCalls": 0,
+                        }
+                    service = WorkforceSourceService(session_store=store)
+                    source_bundles = service.fetch_selected_runtime_bundles(
+                        federated_selection,
+                        work_order=work_order,
+                        selection=selection,
+                    )
+                    return prepare_federated_execution_plan(
+                        work_order=work_order,
+                        selection=selection,
+                        federated_selection=federated_selection,
+                        federation_result=federation_result,
+                        source_runtime_bundles=source_bundles,
+                        session_store=store,
+                    )
+                except (FederatedProvenanceError, WorkforceSourceError, ValueError) as exc:
+                    return {
+                        "action": name,
+                        "status": "error",
+                        "error": getattr(exc, "code", "federated_workforce_invalid"),
+                    }
         return call_hub_tool(name, arguments)
     if name == "hephaestus_route":
         allow_local_routing = bool(arguments.get("allow_local_routing", False))

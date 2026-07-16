@@ -19,6 +19,27 @@ in the canonical Agentlas OS checkout.
 Run `scripts/install-main-only-git-guard.sh` after cloning. The tracked Git
 hooks reject non-`main` local branch updates and non-`main` branch pushes.
 
+## Public Release Allowlist (Hard Rule)
+
+Before any commit, push, tag, release, or upload to a public GitHub repository,
+construct and review an explicit allowlist. Public source and release artifacts
+may contain only files required for an end user to install and run the product,
+plus public-facing `README`, `LICENSE`, and `CHANGELOG` material.
+
+Never publish internal design or research documents, plans, benchmarks,
+benchmark prompts or results, tests, fixtures, test data, scores, logs,
+screenshots, signing material, certificates, credentials, environment files,
+operator notes, private paths, local memory, or recovery artifacts. Run tests
+and benchmarks only in local/private temporary storage or private CI; publish
+neither their inputs nor their artifacts. Existing unrelated local work must
+remain unstaged.
+
+For a public release, do not use a blanket `git add -A`. Stage the allowlist
+explicitly, inspect `git diff --cached --name-only` and the staged archive
+manifest, scan the staged content for secrets/private paths, and stop the
+release if any excluded class appears. A passing test does not authorize
+publishing the test.
+
 This repository is a portable three-agent meta-agent team. Use it to create or
 package Agentlas-compatible single agents and multi-agent teams for Codex,
 Claude Code, Gemini CLI, Antigravity, Cursor, OpenCode, OpenClaw, Hermes
@@ -170,9 +191,9 @@ behavior into English before writing runtime instructions.
 Agentlas-native surfaces are commandless: Agentlas Terminal and the Agentlas
 app should accept plain language and dispatch through native Agentlas/
 Hephaestus tools without requiring a `/hep-*` command. External LLM hosts
-registered through MCP, plugins, prompts, or command files expose exactly six
-explicit commands: `/hep-build`, `/hep-network`, `/hep-cloud`, `/hep-search`,
-`/hep-call`, and `/hep-upload` (Codex prompt equivalents use
+registered through MCP, plugins, prompts, or command files expose the core
+commands `/hep-build`, `/hep-network`, `/hep-local`, `/hep-cloud`, `/hep-hub`,
+`/hep-search`, `/hep-call`, and `/hep-upload` (Codex prompt equivalents use
 `/prompts:hep-*`). Stormbreaker, research loadouts, route options, and other
 lower-level controls must be selected automatically from context unless the
 operator is using a debug/automation shell directly.
@@ -180,16 +201,22 @@ operator is using a debug/automation shell directly.
 `/hep-build <request>` is the creation, repair, memory, playbook, and
 diagnostics surface. `/hep-network <request>` (alias
 `@Hephaestus <request>`, terminal `hep-network "<request>"`) is the
-Agent Workforce Ontology staffing surface: the active host LLM creates a
-redacted work order, calls `workforce.search_candidates`, chooses the exact
-roster, calls `workforce.validate_selection`, then calls
-`workforce.prepare_execution` and runs distinct worker/synthesis/verifier
-invocations. Hub supplies content and qualification evidence; deterministic
-code enforces hard constraints but never picks the final team. The standalone
-shell alias can only report `host_llm_required`; the old card router is an
-explicit `HEPHAESTUS_LEGACY_ROUTER=1` compatibility/debug surface.
-`/hep-cloud <request>` uses the signed-in user's own
-Agentlas Cloud packages. `/hep-search <request>` compares Cloud and Hub
+Agent Workforce Ontology staffing surface across Local, Cloud, and Hub.
+`/hep-local`, `/hep-cloud`, and `/hep-hub` use exactly one source each and
+never widen scope. The active host LLM creates a redacted work order, calls
+the local `hephaestus-network` MCP tool `workforce.search_candidates` with
+`sourceScope`, preserves its complete response as `federationResult`, chooses
+the exact roster, calls `workforce.validate_selection` with that result, then
+passes both `federationResult` and `federatedSelection` to
+`workforce.prepare_execution`. It then runs distinct
+worker/synthesis/verifier invocations. Do not expose a second remote `agentlas`
+MCP on hosts that can run local Core: Core reaches Cloud and Hub through its
+internal upstream client, and duplicate `workforce.*` tools would bypass the
+federation and privacy boundary. Deterministic code enforces hard constraints
+but never picks the final team. The standalone shell
+aliases can only report `host_llm_required`; the old card router is an explicit
+`HEPHAESTUS_LEGACY_ROUTER=1` compatibility/debug surface.
+`/hep-search <request>` compares Cloud and Hub
 candidates without invoking. `/hep-call <slugs> <context>` prepares explicitly
 named agents. `/hep-upload <agent-folder>` is the upload gate: before any
 package, publish, register, add-source, reindex, or upload API call, ask whether
@@ -211,11 +238,12 @@ compile into immutable workforce profiles and lifecycle events.
 `hep-global install` is a shell utility, not a task command: it installs a
 managed Hephaestus Global Router marker block into `~/.codex/AGENTS.md` and
 `~/.claude/CLAUDE.md`, and `~/.gemini/GEMINI.md` for Antigravity/Gemini. That
-block makes ordinary host prompts follow the intended fallback order: Network,
-then Cloud, then explicitly requested local agents, then local skills. Network
-does not silently fall back when a workforce MCP call is rejected or no
-qualified slot coverage exists. If Network or Cloud is blocked by credits,
-entitlement, or fit, the host reports that exact boundary. Status lines must
+block makes ordinary host prompts use Network federation unless an exact
+Local, Cloud, or Hub scope was requested. Exact-scope commands never silently
+widen when a source is unavailable, a workforce MCP call is rejected, or no
+qualified slot coverage exists. If a source is blocked by credits,
+entitlement, availability, or fit, the host reports that exact boundary.
+Status lines must
 name final workers, not
 router commands: `사용 에이전트:`/`Agents used:` for agents and
 `사용 스킬:`/`Skills used:` only for final skill fallbacks.

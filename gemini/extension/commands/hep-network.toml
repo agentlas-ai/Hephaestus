@@ -1,31 +1,34 @@
-description = "Staff and run a task from the Agentlas Hub Workforce Ontology."
+description = "Staff a task from registered Local, owner Cloud, and public Hub agents."
 prompt = """
 Update fallback: 자동 업데이트가 안 되면 `hephaestus update`를 한 번 실행하세요. 업데이트하지 않아도 현재 버전 명령은 그대로 동작합니다.
-
 # /hep-network
 
 Request: {{args}}
 
-The active Gemini model is the temporary top-level orchestrator. Do not call
-the legacy lexical router. Build a redacted
-`agentlas.workforce-work-order.v1` with distinct role slots and explicit
-skills, MCP tools, artifacts, runtimes, languages, authorities, cardinality,
-and collaboration edges; private project context stays local.
+Act as the temporary top-level workforce orchestrator. Use the local Agentlas
+OS MCP server `hephaestus-network`, the only host-visible Workforce MCP. Core
+reaches Cloud and Hub through its internal upstream client. Network means registered Local + signed-in owner
+Cloud + public Hub.
 
-Call Agentlas Hub MCP in this exact sequence:
-`workforce.search_candidates` -> `workforce.validate_selection` ->
-`workforce.prepare_execution`.
+1. Author a redacted `agentlas.workforce-work-order.v1`; private grounding
+   stays on-host.
+2. Call `workforce.search_candidates` with
+   `{workOrder, sourceScope: "network"}` and keep the response as
+   `federationResult`, preserving every source receipt and provenance row.
+3. Author `agentlas.workforce-selection.v1` yourself from content and
+   qualification evidence, then call `workforce.validate_selection` with
+   `{workOrder, candidateSet: federationResult.candidateSet, selection,
+   federationResult}` and keep the response as `federatedSelection`. Revise on rejection;
+   deterministic code may govern but may not choose, rerank, or substitute.
+4. Call `workforce.prepare_execution` with
+   `{workOrder, candidateSet: federationResult.candidateSet, selection,
+   federationResult, federatedSelection}` and require
+   exact source/release/package/content/runtime/permission/context pins.
+5. Run distinct planner/manager, worker, synthesis, and verifier invocations
+   with explicit handoffs and preserve Team graphs.
 
-After search, you must author `agentlas.workforce-selection.v1` as
-`decisionAuthor.kind=host_llm` using exact release ids and content evidence.
-Popularity, history, ratings, and local availability are not semantic fit.
-Revise on validation failure; never use a deterministic or unrelated fallback.
-Require the prepared roster to pin release version, package hash, and content
-digest with a directive bundle for every selected worker.
-
-Run manager/planner, every worker, synthesis, and verifier as distinct model
-invocations with explicit artifact handoffs. Report `executed` only when the
-joined receipt proves planner parse success with no fallback, all child
-invocations, synthesis, and a passing verifier. Otherwise report the last
-truthful state such as selected, prepared, blocked, or failed.
+Report execution only from a receipt proving every child invocation and a
+passing verifier. Otherwise report the last truthful state, including every
+unavailable source. Do not call legacy `hephaestus_route`, bypass Core with
+direct remote search, or use popularity/history/price/availability as fit.
 """

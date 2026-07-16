@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentlas.dev/schemas/memory-ticket.schema.json",
+  "title": "Agentlas Memory Ticket",
+  "type": "object",
+  "required": ["id", "timestamp", "sourceAgent", "scope", "trustLabel", "summary", "evidence", "action", "status"],
+  "properties": {
+    "id": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "sourceAgent": { "type": "string" },
+    "scope": { "enum": ["project", "agent_repo", "sitemap", "team_memory", "session", "discard"] },
+    "trustLabel": { "enum": ["verified", "memory_derived", "inferred", "stale_check_needed"] },
+    "summary": { "type": "string" },
+    "evidence": { "type": "array", "items": { "type": "string" } },
+    "action": { "enum": ["promote", "update", "merge", "discard", "needs_review"] },
+    "status": { "enum": ["open", "accepted", "rejected", "blocked"] }
+  },
+  "additionalProperties": false
+}

@@ -197,10 +197,12 @@ Usage:
   bin/hephaestus ao diff [dir] | ao migrate [dir] [--no-write] [--overwrite]
   bin/hephaestus route "<request>" [--project <dir>] [--no-hub] [--approve-hub] [--hub-only] [--scope network|cloud] [--caller <agent-id>]
   bin/hephaestus local-gui "<shortcut>" [--detach] [--no-open]   # restore/open packaged GUI shortcuts
-  bin/hephaestus hep-network "<request>"           # public Hub / temporary TF surface
+  bin/hephaestus hep-network "<request>"           # Local + owner Cloud + public Hub temporary TF
+  bin/hephaestus hep-local "<request>"             # registered Local only
+  bin/hephaestus hep-hub "<request>"               # public Hub only
   bin/hephaestus stormbreaker run "<request>" [--background] [--executor-command <cmd>] [--research-evidence] [--research-loadout auto|safe|public-web|social|browser|full|recommended]  # auto-run pipeline packets
   bin/hephaestus hep-storm "<request>" [--background] [--executor-command <cmd>] [--research-evidence] [--research-loadout auto|safe|public-web|social|browser|full|recommended]  # shorthand
-  bin/hephaestus hep-cloud "<request>" [--project <dir>] [--no-hub]   # search ONLY my own cloud packages (보관함)
+  bin/hephaestus hep-cloud "<request>"              # owner Cloud only (보관함)
   bin/hephaestus hep-search "<request>" [--limit 10]     # show cloud + Hub candidates only
   bin/hephaestus hep-browser <url-or-query> [--setup|--check]  # use Agentlas browser hardpoint first
   bin/hephaestus research doctor|status|credentials|modules|armory|profile|bridge-contract|bridge-check|platform-contract|platform-check|loadouts | research plan <url> [--loadout public-web|browser] [--depth deep] | research gather "<query>" [--variant docs] [--follow-results 3] | research search "<query>" [--variant reddit] [--loadout safe|public-web|social] | research read <url> [--loadout public-web|browser] [--depth deep] [--max-weight browser_heavy]  # lightweight Research Engine
@@ -311,32 +313,43 @@ EOF
 	    run_python_module agentlas_cloud "$command" "$@"
 	    ;;
 	  hep-network|hephaestus-network|hephaests-network)
-	    if [[ "${HEPHAESTUS_LEGACY_ROUTER:-0}" != "1" ]]; then
-	      printf '%s\n' '{"action":"workforce_orchestration_required","status":"host_llm_required","decision_owner":"host_llm","legacy_router":"disabled","mcp_sequence":["workforce.search_candidates","workforce.validate_selection","workforce.prepare_execution"],"detail":"Run /hep-network or @Hephaestus inside an MCP-capable host LLM. A shell process cannot make the final workforce staffing decision."}'
-	      exit 3
-	    fi
-	    if [[ "${HEPHAESTUS_NETWORK_GUI_SHORTCUTS:-1}" != "0" ]]; then
-	      set +e
-	      gui_args=("$@" "--detach")
-	      if [[ "${HEPHAESTUS_NETWORK_GUI_NO_OPEN:-0}" == "1" ]]; then
-	        gui_args+=("--no-open")
+	    if [[ "${HEPHAESTUS_LEGACY_ROUTER:-0}" == "1" ]]; then
+	      # Explicit compatibility/debug opt-in only. The normal command path
+	      # remains host-LLM staffing through the Workforce MCP contract below.
+	      if [[ "${HEPHAESTUS_NETWORK_GUI_SHORTCUTS:-1}" != "0" ]]; then
+	        set +e
+	        gui_args=("$@" "--detach")
+	        if [[ "${HEPHAESTUS_NETWORK_GUI_NO_OPEN:-0}" == "1" ]]; then
+	          gui_args+=("--no-open")
+	        fi
+	        gui_output="$(run_python_module agentlas_cloud local-gui "${gui_args[@]}" 2>/dev/null)"
+	        gui_status=$?
+	        set -e
+	        if [[ "$gui_status" == "0" ]]; then
+	          printf '%s\n' "$gui_output"
+	          exit 0
+	        elif [[ "$gui_status" != "4" ]]; then
+	          printf '%s\n' "$gui_output"
+	          exit "$gui_status"
+	        fi
 	      fi
-	      gui_output="$(run_python_module agentlas_cloud local-gui "${gui_args[@]}" 2>/dev/null)"
-	      gui_status=$?
-	      set -e
-	      if [[ "$gui_status" == "0" ]]; then
-	        printf '%s\n' "$gui_output"
-	        exit 0
-	      elif [[ "$gui_status" != "4" ]]; then
-	        printf '%s\n' "$gui_output"
-	        exit "$gui_status"
+	      if [[ "${HEPHAESTUS_NETWORK_AUTO_RUN:-1}" == "0" ]]; then
+	        run_python_module agentlas_cloud route "$@" --hub-only --scope network
+	      else
+	        run_python_module agentlas_cloud route "$@" --hub-only --scope network --auto-run --background
 	      fi
+	      exit $?
 	    fi
-	    if [[ "${HEPHAESTUS_NETWORK_AUTO_RUN:-1}" == "0" ]]; then
-	      run_python_module agentlas_cloud route "$@" --hub-only --scope network
-	    else
-	      run_python_module agentlas_cloud route "$@" --hub-only --scope network --auto-run --background
-	    fi
+	    printf '%s\n' '{"action":"workforce_orchestration_required","status":"host_llm_required","sourceScope":"network","sources":["local","cloud","hub"],"decisionOwner":"host_llm","legacyRouter":"disabled","detail":"Run /hep-network or @Hephaestus inside an MCP-capable host. Core federates source menus; the host LLM selects the team."}'
+	    exit 3
+	    ;;
+	  hep-local|hephaestus-local)
+	    printf '%s\n' '{"action":"workforce_orchestration_required","status":"host_llm_required","sourceScope":"local","sources":["local"],"decisionOwner":"host_llm","legacyRouter":"disabled"}'
+	    exit 3
+	    ;;
+	  hep-hub|hephaestus-hub)
+	    printf '%s\n' '{"action":"workforce_orchestration_required","status":"host_llm_required","sourceScope":"hub","sources":["hub"],"decisionOwner":"host_llm","legacyRouter":"disabled"}'
+	    exit 3
 	    ;;
 		  stormbreaker)
 		    run_python_module agentlas_cloud stormbreaker "$@"
@@ -371,10 +384,8 @@ EOF
 		    run_python_module agentlas_cloud call "$@"
 		    ;;
 		  cloud|hep-cloud|hephaestus-cloud)
-		    # /hep-cloud: route through the owner's OWN cloud packages only
-		    # (보관함). Reuses the route command with the cloud scope (owner-scoped
-		    # Hub query; implies --hub-only).
-		    run_python_module agentlas_cloud route "$@" --scope cloud
+		    printf '%s\n' '{"action":"workforce_orchestration_required","status":"host_llm_required","sourceScope":"cloud","sources":["cloud"],"decisionOwner":"host_llm","legacyRouter":"disabled"}'
+		    exit 3
 		    ;;
       upload|hep-upload|hephaestus-upload)
         run_upload_gate "$@"

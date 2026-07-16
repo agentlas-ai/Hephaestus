@@ -580,18 +580,37 @@ def main(argv: list[str] | None = None) -> int:
     mcp_sub = mcp.add_subparsers(dest="mcp_command", required=True)
     mcp_sub.add_parser("serve", help="Serve the network router as a local stdio MCP server")
 
-    workforce = sub.add_parser("workforce", help="Use the Hub Agent Workforce Ontology contracts")
+    workforce = sub.add_parser("workforce", help="Use Local, owner Cloud, and public Hub Workforce contracts")
     workforce_sub = workforce.add_subparsers(dest="workforce_command", required=True)
     workforce_search = workforce_sub.add_parser("search", help="Return content-fit candidates; never select a team")
     workforce_search.add_argument("work_order", help="Path to an agentlas.workforce-work-order.v1 JSON file")
     workforce_search.add_argument("--expand-slot", action="append", default=[])
+    workforce_search.add_argument(
+        "--scope",
+        choices=["network", "local", "cloud", "hub"],
+        default="network",
+        help="network=Local+Cloud+Hub; or restrict to one exact source",
+    )
+    workforce_register = workforce_sub.add_parser("local-register", help="Register one explicit local agent/team root")
+    workforce_register.add_argument("path")
+    workforce_remove = workforce_sub.add_parser("local-remove", help="Remove one local definition or source root")
+    workforce_remove.add_argument("target")
+    workforce_sub.add_parser("local-list", help="List registered local Workforce definitions")
+    workforce_reconcile = workforce_sub.add_parser("local-reconcile", help="Reconcile explicit networking sources/cards")
+    workforce_reconcile.add_argument("--networking-home", default=None)
     workforce_validate = workforce_sub.add_parser("validate", help="Validate a host-LLM staffing decision")
     workforce_validate.add_argument("work_order")
-    workforce_validate.add_argument("candidate_set")
+    workforce_validate.add_argument(
+        "candidate_set",
+        help="CandidateSet JSON, or the complete federation result returned by source-scoped search",
+    )
     workforce_validate.add_argument("selection")
     workforce_prepare = workforce_sub.add_parser("prepare", help="Pin exact selected releases and fetch BYOM bundles")
     workforce_prepare.add_argument("work_order")
-    workforce_prepare.add_argument("candidate_set")
+    workforce_prepare.add_argument(
+        "candidate_set",
+        help="CandidateSet JSON, or the complete federation result returned by source-scoped search",
+    )
     workforce_prepare.add_argument("selection")
     workforce_prepare.add_argument("validation_receipt")
 
@@ -803,7 +822,8 @@ def main(argv: list[str] | None = None) -> int:
         return serve()
     if args.command == "workforce":
         from .networking.hub_client import call_hub_tool
-        from .workforce import validate_hub_work_order_boundary
+        from .workforce import validate_hub_selection_boundary, validate_hub_work_order_boundary
+        from .workforce.local_registry import LocalWorkforceRegistry
 
         def load_object(path: str) -> dict[str, Any]:
             value = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -812,6 +832,15 @@ def main(argv: list[str] | None = None) -> int:
             return value
 
         try:
+            if args.workforce_command.startswith("local-"):
+                registry = LocalWorkforceRegistry()
+                if args.workforce_command == "local-register":
+                    return emit(registry.register(args.path))
+                if args.workforce_command == "local-remove":
+                    return emit(registry.unregister(args.target))
+                if args.workforce_command == "local-list":
+                    return emit({"status": "ok", "registrations": registry.list_registrations()})
+                return emit(registry.reconcile(args.networking_home))
             work_order = load_object(args.work_order)
             boundary = validate_hub_work_order_boundary(work_order)
             if boundary["status"] != "accepted":
@@ -824,16 +853,80 @@ def main(argv: list[str] | None = None) -> int:
                     "boundary": boundary,
                 }) or 2
             if args.workforce_command == "search":
-                payload = {"workOrder": work_order}
-                if args.expand_slot:
-                    payload["expandSlotIds"] = list(args.expand_slot)
-                return emit(call_hub_tool("workforce.search_candidates", payload))
-            candidate_set = load_object(args.candidate_set)
+                from .workforce.source_service import WorkforceSourceService
+
+                return emit(
+                    WorkforceSourceService().search(
+                        work_order,
+                        source_scope=args.scope,
+                        expand_slot_ids=list(args.expand_slot),
+                    )
+                )
+            candidate_input = load_object(args.candidate_set)
+            federation_result = (
+                candidate_input
+                if candidate_input.get("schemaVersion") == "agentlas.workforce-federation-result.v1"
+                else None
+            )
+            candidate_set = (
+                dict(federation_result.get("candidateSet") or {})
+                if federation_result is not None
+                else candidate_input
+            )
             selection = load_object(args.selection)
+            selection_boundary = validate_hub_selection_boundary(
+                selection,
+                work_order=work_order,
+                candidate_set=candidate_set,
+            )
+            if selection_boundary["status"] != "accepted":
+                return emit({
+                    "action": f"workforce.{args.workforce_command}",
+                    "status": "rejected",
+                    "error": "selection_hub_boundary_rejected",
+                    "repairable": True,
+                    "hubCalls": 0,
+                    "boundary": selection_boundary,
+                }) or 2
             payload = {"workOrder": work_order, "candidateSet": candidate_set, "selection": selection}
             if args.workforce_command == "validate":
+                if federation_result is not None:
+                    from .workforce.federation_store import FederationSessionStore
+                    from .workforce.provenance import validate_federated_host_selection
+
+                    return emit(
+                        validate_federated_host_selection(
+                            selection,
+                            federation_result=federation_result,
+                            work_order=work_order,
+                            session_store=FederationSessionStore(),
+                        )
+                    )
                 return emit(call_hub_tool("workforce.validate_selection", payload))
-            payload["validationReceipt"] = load_object(args.validation_receipt)
+            validation_receipt = load_object(args.validation_receipt)
+            if federation_result is not None:
+                from .workforce.federation_store import FederationSessionStore
+                from .workforce.provenance import prepare_federated_execution_plan
+                from .workforce.source_service import WorkforceSourceService
+
+                store = FederationSessionStore()
+                service = WorkforceSourceService(session_store=store)
+                source_bundles = service.fetch_selected_runtime_bundles(
+                    validation_receipt,
+                    work_order=work_order,
+                    selection=selection,
+                )
+                return emit(
+                    prepare_federated_execution_plan(
+                        work_order=work_order,
+                        selection=selection,
+                        federated_selection=validation_receipt,
+                        federation_result=federation_result,
+                        source_runtime_bundles=source_bundles,
+                        session_store=store,
+                    )
+                )
+            payload["validationReceipt"] = validation_receipt
             return emit(call_hub_tool("workforce.prepare_execution", payload))
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             return emit({"action": "workforce", "status": "error", "error": str(exc)}) or 2
@@ -2005,7 +2098,7 @@ def run_field_test() -> dict[str, Any]:
             "agentId": "agent_private_instagram",
             "ownerId": "owner",
             "creatorId": "creator",
-            "version": "1.1.45",
+            "version": "1.1.46",
             "manifest": wizard["manifest"],
             "files": [{"path": "AGENTS.md", "content": (agent / "AGENTS.md").read_text(encoding="utf-8")}],
             "memory": {"scope": "private", "summary": "private campaign memory", "deltas": ["weekly cadence"]},

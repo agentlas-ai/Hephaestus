@@ -1,10 +1,16 @@
-"""Content-only workforce retrieval after deterministic hard eligibility."""
+"""Broad-recall workforce retrieval after deterministic governance eligibility."""
 
 from __future__ import annotations
 
 from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping
+
+from ontology.embeddings import (
+    LocalHashingVectorAdapter,
+    cosine_similarity,
+    select_vector_adapter,
+)
 
 from .contracts import (
     WORKFORCE_COVERAGE_GAP_CODES,
@@ -22,6 +28,7 @@ from .privacy import assert_hub_work_order_boundary
 
 
 _COVERAGE_GAP_CODES = frozenset(WORKFORCE_COVERAGE_GAP_CODES)
+_RRF_K = 60
 
 
 def _excluded_gap(reason: str) -> str:
@@ -91,7 +98,7 @@ def _profile_sets(profile: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _hard_eligibility(profile: Mapping[str, Any], slot: Mapping[str, Any]) -> tuple[bool, list[str]]:
-    """Return exact pass/fail only; no threshold-overage ranking."""
+    """Apply only lifecycle, integrity, authority, and explicit deny gates."""
 
     reasons: list[str] = []
     if profile.get("status") != "active":
@@ -110,56 +117,112 @@ def _hard_eligibility(profile: Mapping[str, Any], slot: Mapping[str, Any]) -> tu
         reasons.append("entity-kind-mismatch")
     if req["excluded_communities"] & have["communities"]:
         reasons.append("excluded-community")
-    if req["roles"] - have["roles"]:
-        reasons.append("missing-required-role")
-    if req["skills"] - have["skills"]:
-        reasons.append("missing-required-skill")
-    if req["knowledge"] - have["knowledge"]:
-        reasons.append("missing-required-knowledge")
-    if req["tools"] - have["tools"]:
-        reasons.append("missing-required-tool")
-    minimum_level = {"declared": 0, "checked": 1, "demonstrated": 2, "attested": 3}.get(
-        str(slot.get("minimumEvidenceLevel") or "declared"), 0
-    )
-    if any(have["skill_levels"].get(item, -1) < minimum_level for item in req["skills"]):
-        reasons.append("required-skill-evidence-below-minimum")
-    if any(have["tool_levels"].get(item, -1) < minimum_level for item in req["tools"]):
-        reasons.append("required-tool-evidence-below-minimum")
-    if req["consumes"] - have["consumes"]:
-        reasons.append("missing-consumed-artifact")
-    if req["produces"] - have["produces"]:
-        reasons.append("missing-produced-artifact")
     if req["authorities"] - have["authorities"]:
         reasons.append("missing-required-authority")
     if req["forbidden_authorities"] & have["authorities"]:
         reasons.append("forbidden-authority-conflict")
     if have["forbidden_authorities"] & req["authorities"]:
         reasons.append("candidate-prohibits-required-authority")
-    if req["runtimes"] and not req["runtimes"] & have["runtimes"]:
-        reasons.append("runtime-mismatch")
-    if req["languages"] and not req["languages"] & have["languages"]:
-        reasons.append("language-mismatch")
-    if req["modalities"] and not req["modalities"] & have["modalities"]:
-        reasons.append("modality-mismatch")
-
-    # A required occupational community is a semantic recall constraint, not an
-    # exclusion shortcut.  Direct role/skill/tool evidence may satisfy an
-    # open-world candidate whose community edge has not been curated yet.
-    missing_communities = req["communities"] - have["communities"]
-    has_direct_evidence = bool(req["roles"] or req["skills"] or req["tools"])
-    if missing_communities and not has_direct_evidence:
-        reasons.append("missing-required-community")
     return not reasons, reasons
 
 
-def _fit_evidence(profile: Mapping[str, Any], slot: Mapping[str, Any]) -> tuple[list[str], list[str], int]:
+def _profile_search_text(profile: Mapping[str, Any]) -> str:
+    """Project only immutable semantic content into the retrieval corpus."""
+
+    semantic = profile.get("semantic") if isinstance(profile.get("semantic"), Mapping) else {}
+    values: list[Any] = [
+        semantic.get("names"), semantic.get("summaries"), semantic.get("communities"),
+        semantic.get("roles"), semantic.get("consumes"), semantic.get("produces"),
+        semantic.get("runtimes"), semantic.get("languages"), semantic.get("modalities"),
+    ]
+    values.extend(
+        item.get("concept")
+        for key in ("capabilities", "skills", "knowledge")
+        for item in (semantic.get(key) or [])
+        if isinstance(item, Mapping) and item.get("concept")
+    )
+    values.extend(
+        item.get("capability")
+        for item in (semantic.get("toolCapabilities") or [])
+        if isinstance(item, Mapping) and item.get("capability")
+    )
+    parts: list[str] = []
+    for value in values:
+        if isinstance(value, (list, tuple, set, frozenset)):
+            parts.extend(normalized_strings(value, limit=2048))
+        else:
+            parts.extend(normalized_strings([value]))
+    return " ".join(normalized_strings(parts, limit=2048))
+
+
+def _slot_search_text(slot: Mapping[str, Any]) -> str:
+    req = _slot_requirements(slot)
+    return " ".join(
+        normalized_strings(
+            [
+                slot.get("title"), slot.get("task"),
+                *sorted(req["communities"]), *sorted(req["roles"]),
+                *sorted(req["skills"]), *sorted(req["knowledge"]),
+                *sorted(req["tools"]), *sorted(req["consumes"]),
+                *sorted(req["produces"]), *sorted(req["runtimes"]),
+                *sorted(req["languages"]), *sorted(req["modalities"]),
+            ],
+            limit=2048,
+        )
+    )
+
+
+def _missing_id(axis: str, value: str) -> str:
+    return stable_id(f"missing-{axis}", value)
+
+
+def _fit_evidence(
+    profile: Mapping[str, Any], slot: Mapping[str, Any]
+) -> tuple[list[str], list[str], list[str], float, float]:
     req = _slot_requirements(slot)
     have = _profile_sets(profile)
     evidence: list[str] = []
+    mandatory_gaps: list[str] = []
     optional_gaps: list[str] = []
-    for axis in ("communities", "roles", "skills", "knowledge", "tools", "consumes", "produces", "authorities", "runtimes", "languages", "modalities"):
+    fit_axes = (
+        "communities", "roles", "skills", "knowledge", "tools", "consumes",
+        "produces", "authorities", "runtimes", "languages", "modalities",
+    )
+    for axis in fit_axes:
         for item in sorted(req[axis] & have[axis]):
             evidence.append(f"fit:{axis}:{item}")
+
+    required_all = {
+        "community": (req["communities"], have["communities"]),
+        "role": (req["roles"], have["roles"]),
+        "skill": (req["skills"], have["skills"]),
+        "knowledge": (req["knowledge"], have["knowledge"]),
+        "tool": (req["tools"], have["tools"]),
+        "consumes": (req["consumes"], have["consumes"]),
+        "produces": (req["produces"], have["produces"]),
+    }
+    for axis, (required, available) in required_all.items():
+        mandatory_gaps.extend(_missing_id(axis, item) for item in sorted(required - available))
+    singular_axes = {
+        "runtimes": "runtime",
+        "languages": "language",
+        "modalities": "modality",
+    }
+    for axis, singular_axis in singular_axes.items():
+        if req[axis] and not req[axis] & have[axis]:
+            mandatory_gaps.extend(
+                _missing_id(singular_axis, item) for item in sorted(req[axis])
+            )
+
+    levels = {"declared": 0, "checked": 1, "demonstrated": 2, "attested": 3}
+    minimum_name = str(slot.get("minimumEvidenceLevel") or "declared")
+    minimum_level = levels.get(minimum_name, 0)
+    for item in sorted(req["skills"] & have["skills"]):
+        if have["skill_levels"].get(item, -1) < minimum_level:
+            mandatory_gaps.append(_missing_id("skill-evidence", f"{item}-{minimum_name}"))
+    for item in sorted(req["tools"] & have["tools"]):
+        if have["tool_levels"].get(item, -1) < minimum_level:
+            mandatory_gaps.append(_missing_id("tool-evidence", f"{item}-{minimum_name}"))
 
     optional_communities = _strings(slot.get("optionalCommunities"))
     optional_skills = _strings(slot.get("optionalSkills"))
@@ -176,15 +239,25 @@ def _fit_evidence(profile: Mapping[str, Any], slot: Mapping[str, Any]) -> tuple[
     query_tokens = content_tokens(slot.get("title"), slot.get("task"))
     candidate_tokens = content_tokens(
         semantic.get("names"), semantic.get("summaries"), semantic.get("roles"),
-        semantic.get("communities"), [item.get("concept") for item in semantic.get("skills") or [] if isinstance(item, Mapping)],
+        semantic.get("communities"),
+        [
+            item.get("concept")
+            for item in semantic.get("skills") or []
+            if isinstance(item, Mapping)
+        ],
     )
     overlap = sorted(query_tokens & candidate_tokens)
     for token in overlap[:12]:
         evidence.append(f"fit:text:{stable_id('term', token)}")
-    # Internal recall score is content-only and used solely to bound the set.
-    # It is intentionally absent from the candidate card.
-    recall_score = len(evidence) * 10 + len(overlap)
-    return sorted(set(evidence)), sorted(set(optional_gaps)), recall_score
+    lexical_score = float(len(overlap))
+    structured_score = float(len(evidence) * 2 - len(mandatory_gaps) * 3)
+    return (
+        sorted(set(evidence)),
+        sorted(set(mandatory_gaps)),
+        sorted(set(optional_gaps)),
+        lexical_score,
+        structured_score,
+    )
 
 
 def _qualification_evidence(profile: Mapping[str, Any]) -> list[str]:
@@ -199,7 +272,12 @@ def _qualification_evidence(profile: Mapping[str, Any]) -> list[str]:
     return sorted(set(result))
 
 
-def _candidate_card(profile: Mapping[str, Any], evidence: list[str], optional_gaps: list[str]) -> dict[str, Any]:
+def _candidate_card(
+    profile: Mapping[str, Any],
+    evidence: list[str],
+    mandatory_gaps: list[str],
+    optional_gaps: list[str],
+) -> dict[str, Any]:
     semantic = profile.get("semantic") if isinstance(profile.get("semantic"), Mapping) else {}
     operational = profile.get("operational") if isinstance(profile.get("operational"), Mapping) else {}
     names = normalized_strings(semantic.get("names"))
@@ -225,51 +303,96 @@ def _candidate_card(profile: Mapping[str, Any], evidence: list[str], optional_ga
             "summaries": normalized_strings(semantic.get("summaries")),
             "roles": sorted(_strings(semantic.get("roles"))),
             "skills": concepts(semantic.get("skills"), "concept"),
+            "knowledge": concepts(semantic.get("knowledge"), "concept"),
             "toolCapabilities": concepts(semantic.get("toolCapabilities"), "capability"),
             "consumes": sorted(_strings(semantic.get("consumes"))),
             "produces": sorted(_strings(semantic.get("produces"))),
             "authorities": sorted(_strings(semantic.get("authorities"))),
             "runtimes": sorted(_strings(semantic.get("runtimes"))),
             "languages": sorted(_strings(semantic.get("languages"))),
+            "modalities": sorted(_strings(semantic.get("modalities"))),
         },
         "fitEvidence": evidence,
         "qualificationEvidence": _qualification_evidence(profile),
+        "missingMandatory": mandatory_gaps,
         "optionalGaps": optional_gaps,
         "operational": {
             "callable": bool(operational.get("callable")),
             "installable": bool(operational.get("installable")),
-            "unavailableReasons": [stable_id("unavailable", item) for item in normalized_strings(operational.get("unavailableReasons"))],
+            "unavailableReasons": [
+                stable_id("unavailable", item)
+                for item in normalized_strings(operational.get("unavailableReasons"))
+            ],
         },
     }
 
 
-def _diverse_window(rows: list[tuple[dict[str, Any], int]], limit: int) -> list[dict[str, Any]]:
-    groups: dict[str, deque[tuple[dict[str, Any], int]]] = defaultdict(deque)
+def _diverse_window(rows: list[tuple[dict[str, Any], float]], limit: int) -> list[dict[str, Any]]:
+    groups: dict[str, deque[tuple[dict[str, Any], float]]] = defaultdict(deque)
     for card, score in sorted(rows, key=lambda item: (-item[1], item[0]["agentReleaseId"])):
         primary = card.get("communities", ["community:unclassified"])
         group = str(primary[0]) if primary else "community:unclassified"
         groups[group].append((card, score))
-    ordered_groups = sorted(groups)
     result: list[dict[str, Any]] = []
-    while len(result) < limit and ordered_groups:
-        remaining: list[str] = []
+    while len(result) < limit:
+        ordered_groups = sorted(
+            (group for group, queue in groups.items() if queue),
+            key=lambda group: (-groups[group][0][1], group),
+        )
+        if not ordered_groups:
+            break
         for group in ordered_groups:
             if groups[group]:
                 result.append(groups[group].popleft()[0])
                 if len(result) >= limit:
                     break
-            if groups[group]:
-                remaining.append(group)
-        ordered_groups = remaining
+    return result
+
+
+def _descending_ranks(
+    rows: list[dict[str, Any]],
+    score_key: str,
+) -> dict[str, int]:
+    """Assign equal content scores equal rank; release IDs are not evidence."""
+
+    ranked = sorted(
+        rows,
+        key=lambda row: (-float(row[score_key]), row["card"]["agentReleaseId"]),
+    )
+    result: dict[str, int] = {}
+    previous_score: float | None = None
+    current_rank = 0
+    for position, row in enumerate(ranked, 1):
+        score = round(float(row[score_key]), 12)
+        if previous_score is None or score != previous_score:
+            current_rank = position
+            previous_score = score
+        result[row["card"]["agentReleaseId"]] = current_rank
     return result
 
 
 class WorkforceIndex:
     """In-memory reference index used by local Core and contract tests."""
 
-    def __init__(self, profiles: Iterable[Mapping[str, Any]] | None = None, *, ontology: Mapping[str, Any] | None = None):
+    def __init__(
+        self,
+        profiles: Iterable[Mapping[str, Any]] | None = None,
+        *,
+        ontology: Mapping[str, Any] | None = None,
+        vector_adapter: Any | None = None,
+    ):
         self.ontology = dict(ontology or load_ontology())
+        if vector_adapter is None:
+            try:
+                vector_adapter = select_vector_adapter("auto")
+            except (OSError, ValueError):
+                vector_adapter = LocalHashingVectorAdapter(
+                    status="degraded_fallback",
+                    fallback_reason="verified_local_model2vec_asset_unavailable",
+                )
+        self.vector_adapter = vector_adapter
         self.profiles: dict[str, dict[str, Any]] = {}
+        self._profile_vectors: dict[str, list[float] | None] = {}
         for profile in profiles or []:
             self.upsert(profile)
 
@@ -279,9 +402,14 @@ class WorkforceIndex:
             raise ValueError("agentReleaseId is required")
         verify_profile_integrity(profile)
         self.profiles[release_id] = dict(profile)
+        try:
+            self._profile_vectors[release_id] = self.vector_adapter.embed(_profile_search_text(profile))
+        except Exception:
+            self._profile_vectors[release_id] = None
 
     def remove(self, release_id: str) -> None:
         self.profiles.pop(release_id, None)
+        self._profile_vectors.pop(release_id, None)
 
     def search_candidates(
         self,
@@ -331,8 +459,13 @@ class WorkforceIndex:
         for slot in slots:
             if not isinstance(slot, Mapping) or not slot.get("slotId"):
                 raise ValueError("invalid role slot")
-            rows: list[tuple[dict[str, Any], int]] = []
+            ranked_inputs: list[dict[str, Any]] = []
             exclusion_reasons: set[str] = set()
+            slot_text = _slot_search_text(slot)
+            try:
+                slot_vector = self.vector_adapter.embed(slot_text)
+            except Exception:
+                slot_vector = None
             for profile in self.profiles.values():
                 forbidden = _strings(work_order.get("forbiddenCommunities"))
                 if forbidden & _profile_sets(profile)["communities"]:
@@ -342,8 +475,51 @@ class WorkforceIndex:
                 if not eligible:
                     exclusion_reasons.update(reasons)
                     continue
-                evidence, optional_gaps, score = _fit_evidence(profile, slot)
-                rows.append((_candidate_card(profile, evidence, optional_gaps), score))
+                (
+                    evidence,
+                    mandatory_gaps,
+                    optional_gaps,
+                    lexical_score,
+                    structured_score,
+                ) = _fit_evidence(profile, slot)
+                release_id = str(profile.get("agentReleaseId"))
+                profile_vector = self._profile_vectors.get(release_id)
+                vector_available = slot_vector is not None and profile_vector is not None
+                vector_score = cosine_similarity(slot_vector, profile_vector) if vector_available else 0.0
+                if lexical_score > 0:
+                    evidence.append("fit:retrieval:lexical")
+                if vector_available and vector_score > 0.15:
+                    evidence.append(stable_id("fit-retrieval", str(getattr(self.vector_adapter, "name", "local"))))
+                ranked_inputs.append(
+                    {
+                        "card": _candidate_card(
+                            profile,
+                            sorted(set(evidence)),
+                            mandatory_gaps,
+                            optional_gaps,
+                        ),
+                        "lexical": lexical_score,
+                        "structured": structured_score,
+                        "vector": vector_score,
+                        "vectorAvailable": vector_available,
+                    }
+                )
+            lexical_rank = _descending_ranks(ranked_inputs, "lexical")
+            structured_rank = _descending_ranks(ranked_inputs, "structured")
+            vector_rank = _descending_ranks(
+                [row for row in ranked_inputs if row["vectorAvailable"]],
+                "vector",
+            )
+            rows: list[tuple[dict[str, Any], float]] = []
+            for row in ranked_inputs:
+                release_id = row["card"]["agentReleaseId"]
+                rrf_score = (
+                    1.0 / (_RRF_K + lexical_rank[release_id])
+                    + 1.0 / (_RRF_K + structured_rank[release_id])
+                )
+                if release_id in vector_rank:
+                    rrf_score += 1.0 / (_RRF_K + vector_rank[release_id])
+                rows.append((row["card"], rrf_score))
             slot_limit = min(100, maximum * 2) if str(slot["slotId"]) in expanded else maximum
             cards = _diverse_window(rows, slot_limit)
             gaps: list[str] = []

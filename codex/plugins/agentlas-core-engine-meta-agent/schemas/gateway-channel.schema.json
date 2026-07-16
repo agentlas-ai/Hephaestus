@@ -1,0 +1,466 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentlas.ai/schemas/gateway-channel.schema.json",
+  "title": "Agentlas Gateway Channel Contract",
+  "description": "Value-free gateway configuration contract for messaging channels that route Telegram, Slack, Discord, WhatsApp, email, SMS, and similar surfaces into Hephaestus/Agentlas agents.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "gatewayId", "channels"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "agentlas.gateway-channel.v1"
+    },
+    "gatewayId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "ownerWorkspaceId": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "defaultAgentId": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "channels": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "#/$defs/channel"
+      }
+    },
+    "bindings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/binding"
+      },
+      "default": []
+    },
+    "delivery": {
+      "$ref": "#/$defs/deliveryDefaults"
+    },
+    "security": {
+      "$ref": "#/$defs/securityDefaults"
+    },
+    "setup": {
+      "$ref": "#/$defs/setupExperience"
+    }
+  },
+  "$defs": {
+    "setupExperience": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operatorGoal": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "recommendedFlow": {
+          "type": "string",
+          "enum": ["oauth", "guided_token", "import_existing", "manual"]
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "choose_agent",
+              "choose_channel",
+              "authorize_provider",
+              "save_credential_ref",
+              "choose_conversation",
+              "approve_pairing",
+              "send_test_message",
+              "confirm_receipt"
+            ]
+          },
+          "default": [
+            "choose_agent",
+            "choose_channel",
+            "authorize_provider",
+            "save_credential_ref",
+            "choose_conversation",
+            "approve_pairing",
+            "send_test_message",
+            "confirm_receipt"
+          ]
+        },
+        "successChecks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 180
+          },
+          "default": []
+        },
+        "troubleshooting": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["code", "operatorMessage"],
+            "properties": {
+              "code": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "operatorMessage": {
+                "type": "string",
+                "maxLength": 240
+              }
+            }
+          },
+          "default": []
+        }
+      }
+    },
+    "credentialRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "id"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["env", "local_vault", "agentlas_vault", "host_secret", "manual"]
+        },
+        "provider": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 160
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "enabled", "mode", "accounts"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["long_polling", "webhook", "socket", "relay", "manual", "local_bridge"]
+        },
+        "capabilities": {
+          "$ref": "#/$defs/capabilities"
+        },
+        "accounts": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/account"
+          }
+        },
+        "defaults": {
+          "$ref": "#/$defs/accessPolicy"
+        },
+        "setup": {
+          "$ref": "#/$defs/setupExperience"
+        }
+      }
+    },
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "credentials": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/credentialRef"
+          },
+          "description": "Value-free credential references only. Raw token values must never appear in this contract."
+        },
+        "transport": {
+          "$ref": "#/$defs/transport"
+        },
+        "access": {
+          "$ref": "#/$defs/accessPolicy"
+        },
+        "commands": {
+          "$ref": "#/$defs/commandPolicy"
+        },
+        "messageLimits": {
+          "$ref": "#/$defs/messageLimits"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": ["string", "number", "boolean", "null"]
+          }
+        }
+      }
+    },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "webhookPath": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "relayUrl": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "publicBaseUrl": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "verifySignature": {
+          "type": "boolean",
+          "default": true
+        },
+        "restartBackoff": {
+          "type": "string",
+          "enum": ["bounded", "none"],
+          "default": "bounded"
+        }
+      }
+    },
+    "accessPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dmPolicy": {
+          "type": "string",
+          "enum": ["pairing", "allowlist", "open", "disabled"],
+          "default": "pairing"
+        },
+        "allowFrom": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "groupPolicy": {
+          "type": "string",
+          "enum": ["allowlist", "open", "disabled"],
+          "default": "allowlist"
+        },
+        "groupAllowFrom": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "groups": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "requireMention": {
+                "type": "boolean",
+                "default": true
+              },
+              "allowFrom": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {}
+        }
+      }
+    },
+    "commandPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "adminFrom": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "userAllowedCommands": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$"
+          },
+          "default": ["help", "whoami"]
+        },
+        "dangerousActionApproval": {
+          "type": "string",
+          "enum": ["required", "owner_only", "disabled"],
+          "default": "required"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "boolean", "default": true },
+        "images": { "type": "boolean", "default": false },
+        "files": { "type": "boolean", "default": false },
+        "voice": { "type": "boolean", "default": false },
+        "threads": { "type": "boolean", "default": false },
+        "reactions": { "type": "boolean", "default": false },
+        "typing": { "type": "boolean", "default": false },
+        "streamingEdits": { "type": "boolean", "default": false },
+        "backgroundDelivery": { "type": "boolean", "default": false }
+      }
+    },
+    "messageLimits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxTextChars": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "chunking": {
+          "type": "string",
+          "enum": ["adapter", "core", "disabled"],
+          "default": "adapter"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["plain", "markdown", "platform_native"],
+          "default": "platform_native"
+        }
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agentId", "match"],
+      "properties": {
+        "agentId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "sessionKey": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "match": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["channel"],
+          "properties": {
+            "channel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "accountId": {
+              "type": "string",
+              "maxLength": 120
+            },
+            "peer": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "id"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["direct", "group", "channel", "thread", "topic"]
+                },
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 240
+                },
+                "parentId": {
+                  "type": "string",
+                  "maxLength": 240
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "deliveryDefaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "toolProgress": {
+          "type": "string",
+          "enum": ["off", "new", "all", "verbose"],
+          "default": "new"
+        },
+        "progressGrouping": {
+          "type": "string",
+          "enum": ["accumulate", "separate"],
+          "default": "accumulate"
+        },
+        "backgroundNotifications": {
+          "type": "string",
+          "enum": ["all", "result", "error", "off"],
+          "default": "result"
+        },
+        "silenceTokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["SILENT", "NO_REPLY"]
+        }
+      }
+    },
+    "securityDefaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "defaultDenyUnknownSenders": {
+          "type": "boolean",
+          "default": true
+        },
+        "pairingCodeTtlSeconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400,
+          "default": 3600
+        },
+        "pairingRateLimitSeconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 86400,
+          "default": 600
+        },
+        "redactIdentifiersInLogs": {
+          "type": "boolean",
+          "default": true
+        },
+        "storeRawMessageBodies": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  }
+}

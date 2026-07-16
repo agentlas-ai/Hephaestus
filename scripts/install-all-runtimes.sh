@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-version="${HEPHAESTUS_REF:-v1.1.45}"
+version="${HEPHAESTUS_REF:-v1.1.46}"
 repo="${HEPHAESTUS_REPO:-agentlas-ai/Agentlas-OS}"
 github_url="${HEPHAESTUS_GITHUB_URL:-https://github.com/$repo}"
 marketplace_name="${HEPHAESTUS_MARKETPLACE:-agentlas-core-engine}"
@@ -10,7 +10,6 @@ old_plugin_name="${HEPHAESTUS_OLD_PLUGIN:-agentlas-meta-agent}"
 requested_source_dir="${HEPHAESTUS_SOURCE_DIR:-}"
 source_dir="$requested_source_dir"
 force="${HEPHAESTUS_FORCE:-1}"
-mcp_url="${AGENTLAS_MCP_URL:-https://agentlas.cloud/api/mcp/v1}"
 
 ok=0
 failed=0
@@ -194,7 +193,9 @@ install_runtime_home() {
   log "== Hephaestus runtime home =="
   rm -rf "$home_dir"
   mkdir -p "$home_dir"
-  cp -R "$source_dir/bin" "$source_dir/agentlas_cloud" "$source_dir/career_graph" "$source_dir/ontology" "$source_dir/templates" "$home_dir/" || return 1
+  cp -R "$source_dir/bin" "$source_dir/agentlas_cloud" "$source_dir/career_graph" \
+    "$source_dir/ontology" "$source_dir/schemas" "$source_dir/templates" \
+    "$home_dir/" || return 1
   mkdir -p "$(dirname "$model_dest")"
   cp -R "$model_source" "$model_dest" || return 1
   if ! PYTHONUTF8=1 PYTHONIOENCODING=utf-8 PYTHONPATH="$home_dir${PYTHONPATH:+:$PYTHONPATH}" \
@@ -207,7 +208,9 @@ install_runtime_home() {
     "$home_dir/bin/career-graph" \
     "$home_dir/bin/hep-build" \
     "$home_dir/bin/hep-network" \
+    "$home_dir/bin/hep-local" \
     "$home_dir/bin/hep-cloud" \
+    "$home_dir/bin/hep-hub" \
     "$home_dir/bin/hep-search" \
     "$home_dir/bin/hep-browser" \
 	    "$home_dir/bin/hep-call" \
@@ -236,7 +239,7 @@ install_runtime_home() {
   local user_bin="$HOME/.local/bin"
   if mkdir -p "$user_bin" 2>/dev/null; then
 	  local -a shell_commands=(
-	    hephaestus ontology hep-build hep-network hep-cloud hep-search hep-browser hep-call hep-upload hep-storm hep-global
+	    hephaestus ontology hep-build hep-network hep-local hep-cloud hep-hub hep-search hep-browser hep-call hep-upload hep-storm hep-global
 	  )
     local command
     for command in "${shell_commands[@]}"; do
@@ -249,7 +252,7 @@ EOF
     done
     if [[ -x "$user_bin/hephaestus" ]]; then
       case ":$PATH:" in
-	        *":$user_bin:"*) log "Installed shell commands: hephaestus, ontology, hep-build, hep-network, hep-cloud, hep-search, hep-browser, hep-call, hep-upload, hep-storm, hep-global" ;;
+	        *":$user_bin:"*) log "Installed shell commands: hephaestus, ontology, hep-build, hep-network, hep-local, hep-cloud, hep-hub, hep-search, hep-browser, hep-call, hep-upload, hep-storm, hep-global" ;;
         *) log "Installed shell commands in $user_bin (add ~/.local/bin to PATH to use them)" ;;
       esac
     fi
@@ -362,7 +365,7 @@ install_claude() {
   run claude plugin install "$plugin_name@$marketplace_name" || return 1
   try claude plugin enable "$plugin_name@$marketplace_name" >/dev/null 2>&1 || true
   write_claude_commands || warn "Claude global command refresh failed; copy .claude/commands/hep-*.md to ~/.claude/commands manually."
-  log "agentlas Hub MCP is bundled with the plugin (.mcp.json) and registers automatically."
+  log "Bundled MCP: local hephaestus-network Core (Cloud/Hub upstream stays behind Core)."
   ok=$((ok + 1))
 }
 
@@ -373,7 +376,7 @@ write_claude_commands() {
   ensure_downloaded_source || return 1
   mkdir -p "$HOME/.claude/commands"
   local name src dest
-  for name in hep-build.md hep-network.md hep-cloud.md hep-search.md hep-browser.md hep-call.md hep-upload.md hep-connect.md hep-storm.md; do
+  for name in hep-build.md hep-network.md hep-local.md hep-cloud.md hep-hub.md hep-search.md hep-browser.md hep-call.md hep-upload.md hep-connect.md hep-storm.md; do
     src="$source_dir/.claude/commands/$name"
     dest="$HOME/.claude/commands/$name"
     rm -f "$dest"
@@ -383,7 +386,7 @@ write_claude_commands() {
         "$HOME/.claude/commands/hephaestus-build.md" "$HOME/.claude/commands/hephaestus-network.md" \
         "$HOME/.claude/commands/hephaestus-cloud.md" "$HOME/.claude/commands/hephaestus-search.md" \
         "$HOME/.claude/commands/hephaestus-call.md"
-  log "Refreshed Claude commands: /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-connect, /hep-storm"
+  log "Refreshed Claude commands: /hep-build, /hep-network, /hep-local, /hep-cloud, /hep-hub, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-connect, /hep-storm"
 }
 
 remove_codex_existing() {
@@ -402,7 +405,7 @@ write_codex_prompts() {
   [[ -d "$prompts_src" ]] || { warn "codex prompts not found: $prompts_src"; return 1; }
   mkdir -p "$HOME/.codex/prompts"
   local name
-  for name in hep-build.md hep-network.md hep-cloud.md hep-search.md hep-browser.md hep-call.md hep-upload.md hep-connect.md hep-storm.md; do
+  for name in hep-build.md hep-network.md hep-local.md hep-cloud.md hep-hub.md hep-search.md hep-browser.md hep-call.md hep-upload.md hep-connect.md hep-storm.md; do
     rm -f "$HOME/.codex/prompts/$name"
     cp "$prompts_src/$name" "$HOME/.codex/prompts/$name" || return 1
   done
@@ -410,7 +413,7 @@ write_codex_prompts() {
         "$HOME/.codex/prompts/hephaestus-build.md" "$HOME/.codex/prompts/hephaestus-network.md" \
         "$HOME/.codex/prompts/hephaestus-cloud.md" "$HOME/.codex/prompts/hephaestus-search.md" \
         "$HOME/.codex/prompts/hephaestus-call.md"
-  log "Installed Codex custom prompts: /prompts:hep-build, /prompts:hep-network, /prompts:hep-cloud, /prompts:hep-search, /prompts:hep-browser, /prompts:hep-call, /prompts:hep-upload, /prompts:hep-connect, /prompts:hep-storm"
+  log "Installed Codex custom prompts: /prompts:hep-build, /prompts:hep-network, /prompts:hep-local, /prompts:hep-cloud, /prompts:hep-hub, /prompts:hep-search, /prompts:hep-browser, /prompts:hep-call, /prompts:hep-upload, /prompts:hep-connect, /prompts:hep-storm"
 }
 
 install_codex() {
@@ -458,10 +461,10 @@ stamp_plugin_cache_releases() {
 }
 
 # Codex 플러그인은 MCP 번들을 지원하지 않으므로 config.toml에 직접 등록한다.
-# Codex 0.144+ has native remote MCP support; the old
-# `experimental_use_rmcp_client` switch is now an unknown config key and can
-# make strict-config startup fail. Remove only that obsolete line while
-# preserving the rest of the user's feature table.
+# Workforce must have one canonical MCP entrypoint. Remove the old direct
+# `agentlas` table (which bypassed Core) and replace the owned local table while
+# preserving every unrelated user table. The obsolete remote-MCP feature flag
+# is also removed because strict Codex versions reject it.
 register_codex_mcp() {
   local cfg="$HOME/.codex/config.toml"
   mkdir -p "$HOME/.codex"
@@ -472,21 +475,21 @@ register_codex_mcp() {
       && mv "$cfg.tmp" "$cfg" || return 1
   fi
 
-  if ! grep -q '^\[mcp_servers\.agentlas\]' "$cfg"; then
-    printf '\n[mcp_servers.agentlas]\nurl = "%s"\n' "$mcp_url" >> "$cfg"
-  fi
-  if ! grep -q '^\[mcp_servers\.hephaestus-network\]' "$cfg"; then
-    printf '\n[mcp_servers.hephaestus-network]\ncommand = "%s"\nargs = ["mcp", "serve"]\n' \
-      "$HOME/.agentlas/runtime/current/bin/hephaestus" >> "$cfg"
-  fi
-  log "Registered agentlas Hub MCP + local hephaestus-network MCP in $cfg"
+  awk '
+    /^[[:space:]]*\[mcp_servers\.("?agentlas"?|"?hephaestus-network"?)(\.|\])[[:space:]]*/ { skip=1; next }
+    skip && /^[[:space:]]*\[/ { skip=0 }
+    !skip { print }
+  ' "$cfg" > "$cfg.tmp" && mv "$cfg.tmp" "$cfg" || return 1
+  printf '\n[mcp_servers.hephaestus-network]\ncommand = "%s"\nargs = ["mcp", "serve"]\n' \
+    "$HOME/.agentlas/runtime/current/bin/hephaestus" >> "$cfg"
+  log "Registered canonical local hephaestus-network MCP in $cfg"
 }
 
 write_gemini_fallback_command() {
   local command_dir="$HOME/.gemini/commands"
   mkdir -p "$command_dir"
   local name
-  for name in hep-build.toml hep-network.toml hep-cloud.toml hep-search.toml hep-browser.toml hep-call.toml hep-upload.toml hep-storm.toml; do
+  for name in hep-build.toml hep-network.toml hep-local.toml hep-cloud.toml hep-hub.toml hep-search.toml hep-browser.toml hep-call.toml hep-upload.toml hep-storm.toml; do
     rm -f "$command_dir/$name"
     cp "$source_dir/gemini/extension/commands/$name" "$command_dir/$name" || return 1
   done
@@ -494,7 +497,7 @@ write_gemini_fallback_command() {
         "$command_dir/hephaestus-build.toml" "$command_dir/hephaestus-network.toml" \
         "$command_dir/hephaestus-cloud.toml" "$command_dir/hephaestus-search.toml" \
         "$command_dir/hephaestus-call.toml"
-  log "Installed Gemini fallback commands: /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-storm"
+  log "Installed Gemini fallback commands: /hep-build, /hep-network, /hep-local, /hep-cloud, /hep-hub, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-storm"
 }
 
 install_gemini() {
@@ -511,6 +514,7 @@ install_gemini() {
     warn "Gemini extension manifest not found: $gemini_extension_dir/gemini-extension.json"
     return 1
   fi
+  chmod +x "$gemini_extension_dir/bin/hephaestus" 2>/dev/null || true
   if [[ -z "${HEPHAESTUS_SOURCE_DIR:-}" ]]; then
     local stable_gemini_source="$HOME/.gemini/hephaestus-extension-source"
     rm -rf "$stable_gemini_source"
@@ -547,7 +551,7 @@ install_antigravity() {
   log "== Antigravity workflow =="
   ensure_downloaded_source || return 1
 
-  # 두 데이터 디렉토리 변형 모두에 설치한다 — 어느 앱을 쓰든 새 3개 명령이 보이게.
+  # 두 데이터 디렉토리 변형 모두에 설치한다 — 어느 앱을 쓰든 같은 명령 집합이 보이게.
   local installed=0
   local data_dir
   for data_dir in "$HOME/.gemini/antigravity" "$HOME/.gemini/antigravity-ide"; do
@@ -556,7 +560,7 @@ install_antigravity() {
       local global_dir="$data_dir/global_workflows"
       mkdir -p "$global_dir"
       local name
-      for name in hep-build.md hep-network.md hep-cloud.md hep-search.md hep-browser.md hep-call.md hep-upload.md hep-storm.md; do
+      for name in hep-build.md hep-network.md hep-local.md hep-cloud.md hep-hub.md hep-search.md hep-browser.md hep-call.md hep-upload.md hep-storm.md; do
         rm -f "$global_dir/$name"
         cp "$source_dir/antigravity/workflows/$name" "$global_dir/$name" || return 1
       done
@@ -564,7 +568,7 @@ install_antigravity() {
             "$global_dir/hephaestus-build.md" "$global_dir/hephaestus-network.md" \
             "$global_dir/hephaestus-cloud.md" "$global_dir/hephaestus-search.md" \
             "$global_dir/hephaestus-call.md"
-      log "Installed Antigravity global workflows: /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-storm"
+      log "Installed Antigravity global workflows: /hep-build, /hep-network, /hep-local, /hep-cloud, /hep-hub, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-storm"
       installed=$((installed + 1))
     fi
   done
@@ -580,26 +584,93 @@ register_antigravity_mcp() {
   local py=""
   py="$(resolve_python_cmd || true)"
   if [[ -z "$py" ]]; then
-    warn "python3 not found; add agentlas MCP to $cfg manually."
+    warn "python3 not found; add local hephaestus-network MCP to $cfg manually."
     return 0
   fi
   mkdir -p "$cfg_dir"
-  AGENTLAS_MCP_URL="$mcp_url" "$py" - "$cfg" <<'PY' || return 1
+  AGENTLAS_LOCAL_MCP="$HOME/.agentlas/runtime/current/bin/hephaestus" \
+    "$py" - "$cfg" <<'PY' || return 1
 import json, os, sys
 path = sys.argv[1]
-url = os.environ["AGENTLAS_MCP_URL"]
+local = os.environ["AGENTLAS_LOCAL_MCP"]
 try:
     with open(path) as f:
         data = json.load(f)
-except (FileNotFoundError, ValueError):
+except FileNotFoundError:
     data = {}
+except ValueError as exc:
+    raise SystemExit(f"refusing to overwrite invalid MCP config {path}: {exc}")
 servers = data.setdefault("mcpServers", {})
-servers.setdefault("agentlas", {"serverUrl": url})
+servers.pop("agentlas", None)
+servers["hephaestus-network"] = {"command": local, "args": ["mcp", "serve"]}
 with open(path, "w") as f:
     json.dump(data, f, indent=2)
     f.write("\n")
 PY
-  log "Registered agentlas Hub MCP in $cfg"
+  log "Registered canonical local hephaestus-network Core in $cfg"
+}
+
+# Cursor uses one merge-safe JSON registry. Migrate the old direct remote key
+# away and own only the canonical local Workforce key.
+register_cursor_mcp() {
+  local cfg="$HOME/.cursor/mcp.json"
+  local py=""
+  py="$(resolve_python_cmd || true)"
+  [[ -n "$py" ]] || { warn "python3 not found; skipped Cursor MCP registration."; return 1; }
+  mkdir -p "$(dirname "$cfg")"
+  AGENTLAS_LOCAL_MCP="$HOME/.agentlas/runtime/current/bin/hephaestus" \
+    "$py" - "$cfg" <<'PY' || return 1
+import json, os, sys
+path = sys.argv[1]
+try:
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+except FileNotFoundError:
+    data = {}
+except ValueError as exc:
+    raise SystemExit(f"refusing to overwrite invalid Cursor MCP config {path}: {exc}")
+servers = data.setdefault("mcpServers", {})
+servers.pop("agentlas", None)
+servers["hephaestus-network"] = {
+    "command": os.environ["AGENTLAS_LOCAL_MCP"],
+    "args": ["mcp", "serve"],
+}
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+PY
+}
+
+# OpenCode's global JSON config keeps one local Workforce MCP under `mcp`.
+# JSONC-only user configs are left untouched; unrelated keys are preserved.
+register_opencode_mcp() {
+  local cfg="$HOME/.config/opencode/opencode.json"
+  local py=""
+  py="$(resolve_python_cmd || true)"
+  [[ -n "$py" ]] || { warn "python3 not found; skipped OpenCode MCP registration."; return 1; }
+  mkdir -p "$(dirname "$cfg")"
+  AGENTLAS_LOCAL_MCP="$HOME/.agentlas/runtime/current/bin/hephaestus" \
+    "$py" - "$cfg" <<'PY' || return 1
+import json, os, sys
+path = sys.argv[1]
+try:
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+except FileNotFoundError:
+    data = {}
+except ValueError as exc:
+    raise SystemExit(f"refusing to overwrite invalid OpenCode config {path}: {exc}")
+servers = data.setdefault("mcp", {})
+servers.pop("agentlas", None)
+servers["hephaestus-network"] = {
+    "type": "local",
+    "command": [os.environ["AGENTLAS_LOCAL_MCP"], "mcp", "serve"],
+    "enabled": True,
+}
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+PY
 }
 
 # Cursor reads global commands (~/.cursor/commands/*.md) and skills
@@ -613,7 +684,7 @@ install_cursor() {
   ensure_downloaded_source || return 1
   mkdir -p "$HOME/.cursor/commands" "$HOME/.cursor/skills"
   local name
-  for name in hep-build.md hep-network.md hep-cloud.md hep-search.md hep-browser.md hep-call.md hep-upload.md hep-storm.md; do
+  for name in hep-build.md hep-network.md hep-local.md hep-cloud.md hep-hub.md hep-search.md hep-browser.md hep-call.md hep-upload.md hep-storm.md; do
     rm -f "$HOME/.cursor/commands/$name"
     cp "$source_dir/cursor/plugin/commands/$name" "$HOME/.cursor/commands/$name" || return 1
   done
@@ -625,7 +696,8 @@ install_cursor() {
     rm -rf "$HOME/.cursor/skills/$name"
     cp -R "$source_dir/skills/$name" "$HOME/.cursor/skills/$name" || return 1
   done
-  log "Installed Cursor commands (/hep-build, /hep-network, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-storm) and skills."
+  register_cursor_mcp || warn "Cursor MCP registration failed; add local hephaestus-network to ~/.cursor/mcp.json manually."
+  log "Installed Cursor commands (/hep-build, /hep-network, /hep-local, /hep-cloud, /hep-hub, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-storm), skills, and canonical Workforce MCP."
   ok=$((ok + 1))
 }
 
@@ -640,7 +712,7 @@ install_opencode() {
   ensure_downloaded_source || return 1
   mkdir -p "$HOME/.config/opencode/commands"
   local name
-  for name in hep-build.md hep-network.md hep-cloud.md hep-search.md hep-browser.md hep-call.md hep-upload.md hep-storm.md; do
+  for name in hep-build.md hep-network.md hep-local.md hep-cloud.md hep-hub.md hep-search.md hep-browser.md hep-call.md hep-upload.md hep-storm.md; do
     rm -f "$HOME/.config/opencode/commands/$name"
     cp "$source_dir/opencode/commands/$name" "$HOME/.config/opencode/commands/$name" || return 1
   done
@@ -648,7 +720,8 @@ install_opencode() {
         "$HOME/.config/opencode/commands/hephaestus-build.md" "$HOME/.config/opencode/commands/hephaestus-network.md" \
         "$HOME/.config/opencode/commands/hephaestus-cloud.md" "$HOME/.config/opencode/commands/hephaestus-search.md" \
         "$HOME/.config/opencode/commands/hephaestus-call.md"
-  log "Installed OpenCode commands: /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-storm"
+  register_opencode_mcp || warn "OpenCode MCP registration failed; add local hephaestus-network to ~/.config/opencode/opencode.json manually."
+  log "Installed OpenCode commands and canonical Workforce MCP: /hep-build, /hep-network, /hep-local, /hep-cloud, /hep-hub, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-storm"
   ok=$((ok + 1))
 }
 
@@ -821,18 +894,18 @@ main() {
   log "Restart open Claude Code, Codex, Gemini, Antigravity, Cursor, OpenCode, OpenClaw, and Hermes apps."
   log "Then use:"
   log "  Agentlas:    describe the task in plain language; native tools choose the path"
-  log "  Claude Code: /reload-plugins, then /hep-build, /hep-network, /hep-storm, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-connect"
-  log "  Codex:       /prompts:hep-build, /prompts:hep-network, /prompts:hep-storm, /prompts:hep-cloud, /prompts:hep-search, /prompts:hep-browser, /prompts:hep-call, /prompts:hep-upload, /prompts:hep-connect"
-  log "  Gemini CLI:  /extensions list or /commands list, then /hep-build, /hep-network, /hep-storm, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload"
-  log "  Antigravity: reopen the workspace, then /hep-build, /hep-network, /hep-storm, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload"
-  log "  Cursor:      /hep-build, /hep-network, /hep-storm, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload"
-  log "  OpenCode:    /hep-build, /hep-network, /hep-storm, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload"
+	  log "  Claude Code: /reload-plugins, then /hep-build, /hep-network, /hep-local, /hep-cloud, /hep-hub, /hep-storm, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-connect"
+	  log "  Codex:       /prompts:hep-build, /prompts:hep-network, /prompts:hep-local, /prompts:hep-cloud, /prompts:hep-hub, /prompts:hep-storm, /prompts:hep-search, /prompts:hep-browser, /prompts:hep-call, /prompts:hep-upload, /prompts:hep-connect"
+	  log "  Gemini CLI:  /extensions list or /commands list, then /hep-build, /hep-network, /hep-local, /hep-cloud, /hep-hub, /hep-storm, /hep-search, /hep-browser, /hep-call, /hep-upload"
+	  log "  Antigravity: reopen the workspace, then /hep-build, /hep-network, /hep-local, /hep-cloud, /hep-hub, /hep-storm, /hep-search, /hep-browser, /hep-call, /hep-upload"
+	  log "  Cursor:      /hep-build, /hep-network, /hep-local, /hep-cloud, /hep-hub, /hep-storm, /hep-search, /hep-browser, /hep-call, /hep-upload"
+	  log "  OpenCode:    /hep-build, /hep-network, /hep-local, /hep-cloud, /hep-hub, /hep-storm, /hep-search, /hep-browser, /hep-call, /hep-upload"
 	  log "  OpenClaw:    /skill hephaestus-storm <request> or /skill hephaestus-network <request>"
 	  log "  Hermes:      hephaestus-storm/hephaestus-network skills (+ MCP, see hermes/README.md)"
-	  log "  Shell/debug: ontology <command>, hep-build \"<request>\", hep-network \"<request>\", hep-cloud \"<request>\", hep-search \"<request>\", hep-browser <url-or-query>, hep-call \"agent-a,agent-b\" \"<context>\", hep-upload <agent-folder>, hep-global install, or hep-storm \"<request>\" --background"
-  log "  Ollama/Gemma/DeepSeek local models: docs/local-models.md (MCP: hephaestus mcp serve)"
+	  log "  Shell/debug: ontology <command>, hep-build \"<request>\", hep-network \"<request>\", hep-local \"<request>\", hep-cloud \"<request>\", hep-hub \"<request>\", hep-search \"<request>\", hep-browser <url-or-query>, hep-call \"agent-a,agent-b\" \"<context>\", hep-upload <agent-folder>, hep-global install, or hep-storm \"<request>\" --background"
+  log "  Ollama/Gemma/DeepSeek local models: use the local MCP entrypoint 'hephaestus mcp serve'"
   log ""
-  log "agentlas Hub MCP (agentlas.search, marketplace.*, agentlas.teams.*) was registered too."
+  log "MCP topology: hephaestus-network is the only host-visible Workforce entrypoint; Cloud/Hub upstream stays inside Agentlas OS Core."
   log "Try a plain-language prompt in any runtime, e.g.:"
   log "  \"agentlas에서 ASO 도와주는 에이전트 찾아줘\"  /  \"find an agentlas agent for app store reviews\""
 

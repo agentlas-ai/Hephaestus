@@ -22,10 +22,10 @@ hep-global install --target claude
 ```
 
 This appends a managed Hephaestus block to `~/.claude/CLAUDE.md`, so ordinary
-Claude Code prompts follow the Hephaestus fallback order: Network first, Cloud
-second, local agents third, and local host skills last. If Network or Cloud is
-blocked by credits, entitlement, or a poor match, Claude Code reports that
-boundary and falls back. Claude Code should announce final workers as `Agents
+Claude Code prompts use Network federation unless the request explicitly names
+Local, Cloud, or Hub. Exact scopes never widen. If a requested source is
+blocked by credits, entitlement, availability, or fit, Claude Code reports
+that boundary. Claude Code should announce final workers as `Agents
 used: ...` in English contexts or `사용 에이전트: ...` in Korean contexts, not as
 `hep-network`. Use `hep-global remove --target claude` to remove only that
 managed block.
@@ -48,8 +48,9 @@ To enable this during one-command install:
 curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Agentlas-OS/main/scripts/install-all-runtimes.sh | HEPHAESTUS_INSTALL_GLOBAL_ROUTER=1 bash
 ```
 
-After this surface is installed, `/hep-build`, `/hep-network`, `/hep-cloud`,
-`/hep-search`, `/hep-browser`, `/hep-call`, `/hep-upload`, and `/hep-connect` first run the app-host
+After this surface is installed, `/hep-build`, `/hep-network`, `/hep-local`,
+`/hep-cloud`, `/hep-hub`, `/hep-search`, `/hep-browser`, `/hep-call`,
+`/hep-upload`, and `/hep-connect` first run the app-host
 auto-update preflight inside Claude Code when the Bash tool is available. That
 preflight refreshes `~/.agentlas/runtime/current` and existing plugin cache
 surfaces without asking the user to open a separate terminal. If the existing
@@ -86,12 +87,20 @@ Use the same slash command for builder work:
 /hep-build create a research agent for SEC filing analysis
 /hep-build package this existing Claude agent into Agentlas architecture
 /hep-network split this launch into research, copy, QA, and release agents
+/hep-local staff this only from agents registered on this machine
 /hep-cloud use my saved analyst agent
+/hep-hub find only public Hub agents for accessibility QA
 /hep-search find agents for market report research
 /hep-browser https://example.com
 /hep-call market-researcher, report-writer {draft a market report brief}
 /hep-connect Telegram for Marketing Agent Team
 ```
+
+The plugin registers one Workforce MCP, `hephaestus-network`, backed by local
+Agentlas OS Core. Its public staffing tools are
+`workforce.search_candidates`, `workforce.validate_selection`, and
+`workforce.prepare_execution`. Core reaches Cloud and Hub internally; adding a
+second direct `agentlas` MCP would bypass the local federation/privacy boundary.
 
 After generation, the final handoff must include `global_commands` for the
 created agent or team. For teams, that command routes to the orchestrator/HQ.

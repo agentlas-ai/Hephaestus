@@ -21,7 +21,7 @@ from .parsers import ParsedRecord, SourceParserRegistry
 from .utils import clamp, content_hash, estimate_tokens, json_dumps, json_loads, normalize_name, normalized_key, stable_hash, utc_now
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 DEFAULT_DB_PATH = Path(".agentlas/ontology-runtime.sqlite")
 
 # Hybrid document retrieval (A-2/A-3) uses bounded fallback scans. Governed
@@ -173,6 +173,7 @@ class OntologyRuntime:
                   confidence REAL NOT NULL,
                   evidence_chunk_id TEXT NOT NULL REFERENCES chunks(chunk_id) ON DELETE CASCADE,
                   source_id TEXT NOT NULL REFERENCES sources(source_id) ON DELETE CASCADE,
+                  privacy_scope TEXT NOT NULL DEFAULT 'private',
                   source_lineage_json TEXT NOT NULL,
                   valid_from TEXT,
                   valid_to TEXT,
@@ -262,6 +263,7 @@ class OntologyRuntime:
                 """
             )
             self._ensure_memory_candidate_columns(conn)
+            self._ensure_relation_privacy_scope(conn)
             self.fts_tokenizer = self._ensure_fts_table(conn)
             applied = {row[0] for row in conn.execute("SELECT version FROM schema_migrations")}
             vector_config = vector_adapter_metadata(self.vector_adapter)
@@ -316,6 +318,63 @@ class OntologyRuntime:
         for name, ddl in additions.items():
             if name not in existing:
                 conn.execute(f"ALTER TABLE memory_candidates ADD COLUMN {name} {ddl}")
+
+    @staticmethod
+    def _ensure_relation_privacy_scope(conn: sqlite3.Connection) -> None:
+        """Add and safely backfill relation scope for pre-v4 databases.
+
+        The additive column defaults to ``private`` so a crash, corrupt legacy
+        row, or missing provenance can never turn unknown relation data into a
+        public/internal result. Only rows whose evidence chunk and source agree
+        on a valid scope are backfilled to that proven scope.
+        """
+
+        existing = {row["name"] for row in conn.execute("PRAGMA table_info(relations)")}
+        if "privacy_scope" not in existing:
+            conn.execute("ALTER TABLE relations ADD COLUMN privacy_scope TEXT NOT NULL DEFAULT 'private'")
+            conn.execute(
+                """
+                UPDATE relations
+                SET privacy_scope = (
+                  SELECT c.privacy_scope
+                  FROM chunks c
+                  JOIN sources s ON s.source_id = c.source_id
+                  WHERE c.chunk_id = relations.evidence_chunk_id
+                    AND c.source_id = relations.source_id
+                    AND c.privacy_scope = s.privacy_scope
+                    AND c.privacy_scope IN ('public', 'internal', 'private')
+                )
+                WHERE EXISTS (
+                  SELECT 1
+                  FROM chunks c
+                  JOIN sources s ON s.source_id = c.source_id
+                  WHERE c.chunk_id = relations.evidence_chunk_id
+                    AND c.source_id = relations.source_id
+                    AND c.privacy_scope = s.privacy_scope
+                    AND c.privacy_scope IN ('public', 'internal', 'private')
+                )
+                """
+            )
+
+        # Imported or manually edited rows can still carry an invalid or
+        # provenance-mismatched scope. Fail closed on every startup rather than
+        # trusting an unproved label.
+        conn.execute(
+            """
+            UPDATE relations
+            SET privacy_scope = 'private'
+            WHERE privacy_scope NOT IN ('public', 'internal', 'private')
+               OR NOT EXISTS (
+                 SELECT 1
+                 FROM chunks c
+                 JOIN sources s ON s.source_id = c.source_id
+                 WHERE c.chunk_id = relations.evidence_chunk_id
+                   AND c.source_id = relations.source_id
+                   AND c.privacy_scope = relations.privacy_scope
+                   AND s.privacy_scope = relations.privacy_scope
+               )
+            """
+        )
 
     def _register_vector_adapter(self, conn: sqlite3.Connection) -> None:
         metadata = vector_adapter_metadata(self.vector_adapter)
@@ -443,8 +502,8 @@ class OntologyRuntime:
         experience_scopes = requested_scopes or (["public", "internal", "private"] if agent_id else ["public", "internal"])
         with closing(self.connect()) as conn, conn:
             chunks = self._search_chunks(conn, question, document_scopes, limit)
-            entities = self._related_entities(conn, question, chunks)
-            relations = self._relation_edges(conn, entities, chunks)
+            entities = self._related_entities(conn, question, chunks, document_scopes)
+            relations = self._relation_edges(conn, entities, chunks, document_scopes)
             experience = (
                 self._query_experience(
                     conn,
@@ -886,14 +945,20 @@ class OntologyRuntime:
             )
         return links
 
-    def graph_entity(self, name: str) -> dict[str, Any]:
+    def graph_entity(self, name: str, allowed_scopes: Iterable[str] | None = None) -> dict[str, Any]:
+        document_scopes = list(allowed_scopes) if allowed_scopes is not None else ["public", "internal"]
         with closing(self.connect()) as conn, conn:
             entity = self._find_entity(conn, name)
             if entity is None:
                 return {"entity": None, "aliases": [], "relations": [], "evidence_chunks": []}
-            relations = self._relations_for_entity(conn, entity["entity_id"])
+            relations = self._relations_for_entity(conn, entity["entity_id"], document_scopes)
+            if not relations:
+                # Entity and alias rows are globally deduplicated, so existence
+                # alone is not safe to expose. A caller sees an entity only when
+                # at least one relation has provenance in an allowed scope.
+                return {"entity": None, "aliases": [], "relations": [], "evidence_chunks": []}
             chunk_ids = sorted({relation["evidence_chunk_id"] for relation in relations})
-            evidence = self._chunks_by_ids(conn, chunk_ids)
+            evidence = self._chunks_by_ids(conn, chunk_ids, document_scopes)
             aliases = [
                 row["alias"]
                 for row in conn.execute("SELECT alias FROM entity_aliases WHERE entity_id = ? ORDER BY alias", (entity["entity_id"],))
@@ -1540,9 +1605,9 @@ class OntologyRuntime:
                 """
                 INSERT OR IGNORE INTO relations(
                   relation_id, subject_entity_id, object_entity_id, relation_type, confidence,
-                  evidence_chunk_id, source_id, source_lineage_json, valid_from, valid_to,
+                  evidence_chunk_id, source_id, privacy_scope, source_lineage_json, valid_from, valid_to,
                   observed_at, status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, 'active', ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, 'active', ?, ?)
                 """,
                 (
                     relation_id,
@@ -1552,6 +1617,7 @@ class OntologyRuntime:
                     confidence,
                     chunk["chunk_id"],
                     chunk["source_id"],
+                    chunk["privacy_scope"],
                     json_dumps(chunk["source_lineage"]),
                     now,
                     now,
@@ -1752,23 +1818,39 @@ class OntologyRuntime:
     def _vector_adapter_matches(self, stored_adapter: str | None) -> bool:
         return stored_adapter in {self.vector_adapter.name, self.vector_adapter.identity}
 
-    def _related_entities(self, conn: sqlite3.Connection, question: str, chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _related_entities(
+        self,
+        conn: sqlite3.Connection,
+        question: str,
+        chunks: list[dict[str, Any]],
+        allowed_scopes: list[str],
+    ) -> list[dict[str, Any]]:
+        if not allowed_scopes:
+            return []
         chunk_ids = [chunk["chunk_id"] for chunk in chunks]
         entity_ids: set[str] = set()
         if chunk_ids:
-            marks = ", ".join(["?"] * len(chunk_ids))
+            chunk_marks = ", ".join(["?"] * len(chunk_ids))
+            scope_marks = ", ".join(["?"] * len(allowed_scopes))
             for row in conn.execute(
                 f"""
-                SELECT subject_entity_id AS entity_id FROM relations WHERE evidence_chunk_id IN ({marks})
-                UNION
-                SELECT object_entity_id AS entity_id FROM relations WHERE evidence_chunk_id IN ({marks})
+                SELECT r.subject_entity_id, r.object_entity_id
+                FROM relations r
+                JOIN chunks c ON c.chunk_id = r.evidence_chunk_id
+                JOIN sources src ON src.source_id = r.source_id
+                WHERE r.evidence_chunk_id IN ({chunk_marks})
+                  AND r.privacy_scope IN ({scope_marks})
+                  AND c.source_id = r.source_id
+                  AND c.privacy_scope = r.privacy_scope
+                  AND src.privacy_scope = r.privacy_scope
                 """,
-                (*chunk_ids, *chunk_ids),
+                (*chunk_ids, *allowed_scopes),
             ):
-                entity_ids.add(row["entity_id"])
+                entity_ids.add(row["subject_entity_id"])
+                entity_ids.add(row["object_entity_id"])
         for name in extract_entity_names(question):
             entity = self._find_entity(conn, name)
-            if entity:
+            if entity and self._entity_has_accessible_relation(conn, entity["entity_id"], allowed_scopes):
                 entity_ids.add(entity["entity_id"])
         if not entity_ids:
             return []
@@ -1776,7 +1858,15 @@ class OntologyRuntime:
         rows = conn.execute(f"SELECT * FROM entities WHERE entity_id IN ({marks}) ORDER BY canonical_name", tuple(entity_ids)).fetchall()
         return [self._entity_row(row) for row in rows]
 
-    def _relation_edges(self, conn: sqlite3.Connection, entities: list[dict[str, Any]], chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _relation_edges(
+        self,
+        conn: sqlite3.Connection,
+        entities: list[dict[str, Any]],
+        chunks: list[dict[str, Any]],
+        allowed_scopes: list[str],
+    ) -> list[dict[str, Any]]:
+        if not allowed_scopes:
+            return []
         entity_ids = [entity["entity_id"] for entity in entities]
         chunk_ids = [chunk["chunk_id"] for chunk in chunks]
         clauses = []
@@ -1792,13 +1882,21 @@ class OntologyRuntime:
             args.extend(chunk_ids)
         if not clauses:
             return []
+        scope_marks = ", ".join(["?"] * len(allowed_scopes))
+        args.extend(allowed_scopes)
         rows = conn.execute(
             f"""
             SELECT r.*, s.canonical_name AS subject, o.canonical_name AS object
             FROM relations r
             JOIN entities s ON s.entity_id = r.subject_entity_id
             JOIN entities o ON o.entity_id = r.object_entity_id
+            JOIN chunks c ON c.chunk_id = r.evidence_chunk_id
+            JOIN sources src ON src.source_id = r.source_id
             WHERE r.status = 'active' AND ({" OR ".join(clauses)})
+              AND r.privacy_scope IN ({scope_marks})
+              AND c.source_id = r.source_id
+              AND c.privacy_scope = r.privacy_scope
+              AND src.privacy_scope = r.privacy_scope
             ORDER BY r.confidence DESC, r.observed_at DESC
             LIMIT 20
             """,
@@ -1930,31 +2028,81 @@ class OntologyRuntime:
         ).fetchone()
         return self._entity_row(row) if row else None
 
-    def _relations_for_entity(self, conn: sqlite3.Connection, entity_id: str) -> list[dict[str, Any]]:
+    def _entity_has_accessible_relation(
+        self,
+        conn: sqlite3.Connection,
+        entity_id: str,
+        allowed_scopes: list[str],
+    ) -> bool:
+        if not allowed_scopes:
+            return False
+        scope_marks = ", ".join(["?"] * len(allowed_scopes))
+        row = conn.execute(
+            f"""
+            SELECT 1
+            FROM relations r
+            JOIN chunks c ON c.chunk_id = r.evidence_chunk_id
+            JOIN sources src ON src.source_id = r.source_id
+            WHERE (r.subject_entity_id = ? OR r.object_entity_id = ?)
+              AND r.status = 'active'
+              AND r.privacy_scope IN ({scope_marks})
+              AND c.source_id = r.source_id
+              AND c.privacy_scope = r.privacy_scope
+              AND src.privacy_scope = r.privacy_scope
+            LIMIT 1
+            """,
+            (entity_id, entity_id, *allowed_scopes),
+        ).fetchone()
+        return row is not None
+
+    def _relations_for_entity(
+        self,
+        conn: sqlite3.Connection,
+        entity_id: str,
+        allowed_scopes: list[str],
+    ) -> list[dict[str, Any]]:
+        if not allowed_scopes:
+            return []
+        scope_marks = ", ".join(["?"] * len(allowed_scopes))
         rows = conn.execute(
-            """
+            f"""
             SELECT r.*, s.canonical_name AS subject, o.canonical_name AS object
             FROM relations r
             JOIN entities s ON s.entity_id = r.subject_entity_id
             JOIN entities o ON o.entity_id = r.object_entity_id
-            WHERE r.subject_entity_id = ? OR r.object_entity_id = ?
+            JOIN chunks c ON c.chunk_id = r.evidence_chunk_id
+            JOIN sources src ON src.source_id = r.source_id
+            WHERE (r.subject_entity_id = ? OR r.object_entity_id = ?)
+              AND r.status = 'active'
+              AND r.privacy_scope IN ({scope_marks})
+              AND c.source_id = r.source_id
+              AND c.privacy_scope = r.privacy_scope
+              AND src.privacy_scope = r.privacy_scope
             ORDER BY r.confidence DESC, r.observed_at DESC
             """,
-            (entity_id, entity_id),
+            (entity_id, entity_id, *allowed_scopes),
         ).fetchall()
         return [self._relation_row(row) for row in rows]
 
-    def _chunks_by_ids(self, conn: sqlite3.Connection, chunk_ids: list[str]) -> list[dict[str, Any]]:
-        if not chunk_ids:
+    def _chunks_by_ids(
+        self,
+        conn: sqlite3.Connection,
+        chunk_ids: list[str],
+        allowed_scopes: list[str],
+    ) -> list[dict[str, Any]]:
+        if not chunk_ids or not allowed_scopes:
             return []
-        marks = ", ".join(["?"] * len(chunk_ids))
+        chunk_marks = ", ".join(["?"] * len(chunk_ids))
+        scope_marks = ", ".join(["?"] * len(allowed_scopes))
         rows = conn.execute(
             f"""
             SELECT c.*, s.uri AS source_uri, s.source_type
             FROM chunks c JOIN sources s ON s.source_id = c.source_id
-            WHERE c.chunk_id IN ({marks})
+            WHERE c.chunk_id IN ({chunk_marks})
+              AND c.privacy_scope IN ({scope_marks})
+              AND s.privacy_scope = c.privacy_scope
             """,
-            tuple(chunk_ids),
+            (*chunk_ids, *allowed_scopes),
         ).fetchall()
         return [self._chunk_row(row) for row in rows]
 
@@ -2017,6 +2165,7 @@ class OntologyRuntime:
             "confidence": row["confidence"],
             "evidence_chunk_id": row["evidence_chunk_id"],
             "source_id": row["source_id"],
+            "privacy_scope": row["privacy_scope"],
             "source_lineage": json_loads(row["source_lineage_json"], {}),
             "valid_from": row["valid_from"],
             "valid_to": row["valid_to"],

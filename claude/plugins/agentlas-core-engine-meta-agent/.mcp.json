@@ -1,6 +1,6 @@
 {
-  "agentlas": {
-    "type": "http",
-    "url": "https://agentlas.cloud/api/mcp/v1"
+  "hephaestus-network": {
+    "command": "${CLAUDE_PLUGIN_ROOT}/bin/hephaestus",
+    "args": ["mcp", "serve"]
   }
 }

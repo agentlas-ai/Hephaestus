@@ -1,5 +1,43 @@
 # Changelog
 
+## v1.1.46 - 2026-07-16
+
+- **Agent Workforce routing is now a host-owned staffing protocol rather than
+  a keyword classifier.** The host LLM submits a schema-validated, redacted
+  WorkOrder, receives content-only CandidateSets, chooses the exact team, and
+  binds that complete Selection to immutable validation and preparation
+  receipts. Model2Vec plus lexical/RRF retrieval is used only as the local
+  no-LLM recall path; deterministic rules remain limited to governance,
+  privacy, schema, identity, and execution integrity.
+- **Network now federates registered Local, owner Cloud, and public Hub sources
+  without silently changing scope.** Exact identity conflicts resolve
+  `Local > Cloud > Hub`; lower-priority claims cannot suppress a trusted local
+  worker. A source-fair bounded window prevents one source from crowding the
+  model context, while the host-visible menu remains canonically ordered and
+  history-free. `local`, `cloud`, and `hub` are exact source scopes; `network`
+  is their sealed union.
+- **Selected workers are fetched and executed by immutable source pins.** The
+  source session, CandidateSet digest, definition, release, version, package
+  hash, content digest, entity kind, complete WorkOrder, and complete Selection
+  are rechecked before any remote bundle call. One immutable release can fill
+  multiple legitimate role slots with one fetch and distinct roster rows;
+  failures remain explicit instead of disappearing behind a success receipt.
+- **The original production routing regressions are fixed and pinned.** AO
+  governance applies only to mapped cards, same-stage workers are all invoked,
+  private graph entities/relations/evidence inherit scope, and a domain
+  mismatch is an additive signal rather than a hard candidate deletion. No new
+  substring or keyword-list intent rules were added.
+- **Local imports and remote responses are bounded before trust.** Explicitly
+  registered local packages are read into one secret-checked immutable
+  snapshot and all routing, MCP, team, worker, hash, and execution metadata is
+  derived from those same bytes. Hub capability and bundle responses have
+  pre-allocation size limits, federation sessions are durable with TTL/GC, and
+  unverified or unsupported source capabilities fail closed.
+- **The same Core contract is installed across Claude, Codex, Gemini,
+  Antigravity, Cursor, OpenCode, and Terminal adapters.** Local-capable hosts
+  expose one local OS MCP surface; Hub and Cloud remain OS-managed upstreams,
+  avoiding duplicate tool names and direct remote bypass.
+
 ## v1.1.45 - 2026-07-16
 
 - **Hub coverage gaps now cross every runtime through one finite contract.**

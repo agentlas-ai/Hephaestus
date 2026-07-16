@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agentlas Company Blueprint",
+  "type": "object",
+  "required": ["schemaVersion", "teamId", "name", "orchestrator", "nodes"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "teamId": { "type": "string" },
+    "name": { "type": "string" },
+    "orchestrator": { "type": "string" },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "role"],
+        "properties": {
+          "id": { "type": "string" },
+          "role": { "type": "string" },
+          "tier": { "type": "integer" }
+        }
+      }
+    },
+    "edges": { "type": "array" }
+  },
+  "additionalProperties": true
+}

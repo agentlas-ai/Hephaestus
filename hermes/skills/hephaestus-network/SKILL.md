@@ -1,27 +1,44 @@
 ---
 name: hephaestus-network
-description: "Use when the user types /hep-network, mentions @Hephaestus, or asks Agentlas to staff a task from Hub agents or teams. The active host LLM is the temporary orchestrator; Hub supplies the Agent Workforce Ontology and exact BYOM releases."
+description: "Use when the user types /hep-network, mentions @Hephaestus, or asks Agentlas to staff a task from registered Local, owner Cloud, and public Hub agents or teams. The active host LLM is the temporary orchestrator."
 ---
 
 # Hephaestus Agent Workforce Network
 
-The active host LLM staffs the task. Hub is a workforce directory and contract
-authority, not the decision-maker and not a server-side LLM executor.
+The active host LLM staffs the task. Agentlas Core federates content menus from
+registered Local, owner Cloud, and public Hub inventory. No source and no
+deterministic layer is the decision-maker or a server-side LLM executor.
+
+Source scopes are exact:
+
+- `network`: Local + Cloud + Hub;
+- `local`: registered Local packages only;
+- `cloud`: the signed-in owner's Cloud packages only;
+- `hub`: public Hub packages only.
+
+Public demos and distribution proof use explicit `hub` scope. They must not use
+private Local/Cloud inventory as evidence of public availability.
 
 ## Required MCP sequence
 
-Use the Agentlas Hub MCP tools in this exact order:
+Use the Agentlas Core Workforce contracts in this order:
 
 ```text
-workforce.search_candidates
-workforce.validate_selection
-workforce.prepare_execution
+workforce.search_candidates(sourceScope="network")
+workforce.validate_selection(workOrder=..., candidateSet=federationResult.candidateSet, selection=..., federationResult=...)
+workforce.prepare_execution(workOrder=..., candidateSet=federationResult.candidateSet, selection=..., federationResult=..., federatedSelection=...)
 ```
 
-Do not call the legacy lexical router first. Do not turn install count, ratings,
-invocation history, local inventory, or a deterministic top score into the
-staffing decision. If a workforce tool is unavailable or refuses the request,
-report that exact state; never claim a legacy route ran the selected workforce.
+The source-internal `workforce.fetch_runtime_bundle` call is performed by Core
+from the pinned original source session/digest. The host must not call it
+directly or replace it with a slug/`latest` lookup.
+
+The current CLI equivalent is `workforce search --scope network`. A host adapter
+that does not yet expose typed `sourceScope` must report that wiring gap; it
+must not silently call public Hub-only search and label it Network. Do not call
+the legacy lexical router first. Do not turn install count, ratings, invocation
+history, source precedence, or a deterministic top score into the staffing
+decision. If a source is unavailable, preserve its finite failure receipt.
 
 ## 1. Perform job analysis
 
@@ -45,15 +62,27 @@ an authoritative group execution contract exists.
 
 ## 2. Retrieve the menu, then make the LLM decision
 
-Before calling Hub, run the installed deterministic WorkOrder boundary over
-only `taskBrief` and slot `title`/`task`. A path, personal/account identifier,
-credential URL, or secret-like value returns path/class-only repair evidence
-and `hubCalls=0`; never trust the model's `redacted=true` assertion, mutate the
-object, or echo the rejected value. Call `workforce.search_candidates` with
-`{ "workOrder": ... }` only after that boundary accepts. The response is
-a broad, content-only eligible set grouped by slot. Read the exact roles,
+Before calling any remote source, run the installed deterministic WorkOrder
+boundary over every schema-declared string and structured identifier, including
+nested roles, skills, tools, authorities, artifacts, edges, runtime/language,
+and policy fields—not only prose fields. A path, personal/account identifier,
+credential URL, private concept identifier, or secret-like value returns only
+path/class repair evidence with `hubCalls=0` and a null rejected-object digest;
+never trust the model's `redacted=true` assertion, mutate the object, echo the
+rejected value, or compute/display a digest over rejected data. Ask Core for
+`sourceScope="network"` only after that boundary accepts. Each source returns a broad content-only menu;
+Core validates and unions them using canonical identity ordering. It performs
+no semantic rerank. Read the exact roles,
 skills, MCP tools, inputs/outputs, authority, eval evidence, communities,
-release version, package hash, and content digest.
+release version, package hash, content digest, source receipt, and provenance.
+
+Source precedence is not ranking. It applies only when the same
+`agentDefinitionId` has verified identical lineage issuer/digest and the exact
+same release version, package hash, content digest, and entity kind at multiple
+sources. Then and only then shadow Local > Cloud > Hub. Similar names/slugs are
+never deduplicated. Missing lineage or different releases fail closed for that
+collided identity: Core quarantines the ambiguous definition and preserves
+unrelated Local/Cloud/Hub candidates with finite aggregate conflict evidence.
 
 You, the active host LLM, choose the ideal roster. Consider complementary
 coverage and handoffs, not a scalar top-1 score. Return
@@ -70,11 +99,16 @@ fill a post with a semantically unrelated agent or repeat an exhausted request.
 
 ## 3. Validate and pin exact releases
 
-Call `workforce.validate_selection` with the work order, candidate set, and
-selection. Re-plan on rejection. The validator may reject constraints,
-cardinality, cycles, drift, or out-of-menu releases; it must never pick for you.
+Validate the selection in Core with the WorkOrder, federated CandidateSet,
+federation receipt, and selection. Re-plan on rejection. The validator may
+reject constraints, cardinality, cycles, drift, out-of-menu releases, or a
+source-pin mismatch; it must never pick for you.
 
-Call `workforce.prepare_execution` only after acceptance. Preparation must
+Do not send the merged CandidateSet to remote Hub/Cloud validation or
+preparation: it is not one of their source sessions. Core pins every assignment
+to the original source's selection session and candidate-set digest, then
+fetches the exact release/package/content claims from that source. Call Core
+federated preparation only after acceptance. Preparation must
 return `agentlas.workforce-execution-plan.v5`, status `prepared`, an exact
 `preparationReceiptId`, and an `executionRoster` whose release version,
 package hash, and content digest match the candidate set. It returns BYOM

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agentlas Memory Map",
+  "type": "object",
+  "required": ["schemaVersion", "projectId", "canonicalMemoryRoots", "writeOwners"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "projectId": { "type": "string" },
+    "surface": { "type": "string" },
+    "canonicalMemoryRoots": { "type": "object" },
+    "writeOwners": { "type": "object" },
+    "promotionPath": { "type": "array", "items": { "type": "string" } },
+    "trustLabels": { "type": "array", "items": { "type": "string" } },
+    "exclude": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

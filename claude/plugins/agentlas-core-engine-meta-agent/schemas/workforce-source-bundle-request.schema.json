@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentlas.ai/schemas/workforce-source-bundle-request.schema.json",
+  "title": "Agentlas Workforce Exact Source Bundle Request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sourceSelectionSessionId",
+    "sourceCandidateSetDigest",
+    "agentDefinitionId",
+    "agentReleaseId",
+    "releaseVersion",
+    "packageHash",
+    "contentDigest",
+    "entityKind"
+  ],
+  "properties": {
+    "sourceSelectionSessionId": { "$ref": "#/$defs/id" },
+    "sourceCandidateSetDigest": { "$ref": "#/$defs/hash" },
+    "agentDefinitionId": { "$ref": "#/$defs/id" },
+    "agentReleaseId": { "$ref": "#/$defs/id" },
+    "releaseVersion": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "packageHash": { "$ref": "#/$defs/hash" },
+    "contentDigest": { "$ref": "#/$defs/hash" },
+    "entityKind": { "enum": ["agent", "team"] },
+    "sourceScope": { "const": "cloud" }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]{1,255}$" },
+    "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

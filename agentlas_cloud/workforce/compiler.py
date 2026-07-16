@@ -3,20 +3,24 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 from typing import Any, Mapping
 
 from .contracts import (
     canonical_digest,
     concept_ids,
-    content_tokens,
     load_ontology,
     normalized_strings,
     stable_id,
 )
 
 
-COMPILER_VERSION = "awo-compiler:1.0.0"
+COMPILER_VERSION = "awo-compiler:1.1.0"
 LEVELS = {"declared", "checked", "demonstrated", "attested"}
+_NEGATION_TOKENS = {
+    "avoid", "avoids", "excluding", "exclude", "excluded", "except", "never",
+    "no", "non", "not", "without", "금지", "아님", "아닌", "아니", "없이", "제외",
+}
 
 
 def _now() -> str:
@@ -63,6 +67,38 @@ def _ontology_indexes(ontology: Mapping[str, Any]) -> tuple[dict[str, dict[str, 
     return communities, roles
 
 
+def _text_fragments(values: list[Any]) -> list[str]:
+    fragments: list[str] = []
+    for value in values:
+        if isinstance(value, Mapping):
+            fragments.extend(str(item) for item in value.values() if item is not None)
+        elif isinstance(value, (list, tuple, set, frozenset)):
+            fragments.extend(str(item) for item in value if item is not None)
+        elif value is not None:
+            fragments.append(str(value))
+    return fragments
+
+
+def _affirmed_alias(alias: Any, fragments: list[str]) -> bool:
+    """Match an ontology alias as a phrase, ignoring explicitly negated uses."""
+
+    phrase = re.sub(r"[\s_-]+", " ", str(alias or "").strip().lower())
+    if not phrase:
+        return False
+    escaped = re.escape(phrase).replace(r"\ ", r"[\s_-]+")
+    pattern = re.compile(r"(?<![a-z0-9가-힣])" + escaped + r"(?![a-z0-9가-힣])", re.IGNORECASE)
+    token_pattern = re.compile(r"[a-z0-9가-힣]+", re.IGNORECASE)
+    for fragment in fragments:
+        normalized = str(fragment).lower()
+        for match in pattern.finditer(normalized):
+            before = token_pattern.findall(normalized[: match.start()])[-5:]
+            after = token_pattern.findall(normalized[match.end() :])[:4]
+            if _NEGATION_TOKENS.intersection(before) or _NEGATION_TOKENS.intersection(after):
+                continue
+            return True
+    return False
+
+
 def _infer_roles_and_communities(
     routing_card: Mapping[str, Any],
     manifest: Mapping[str, Any],
@@ -81,20 +117,10 @@ def _infer_roles_and_communities(
         routing_card.get("summary_ko"), routing_card.get("description"), capabilities,
         manifest.get("skills"),
     ]
-    haystack = " ".join(str(value or "") for value in text_values).lower().replace("_", " ").replace("-", " ")
-    tokens = content_tokens(*text_values)
+    fragments = _text_fragments(text_values)
     for community_id, community in communities.items():
         labels = [community.get("label"), *(community.get("aliases") or [])]
-        if any(
-            (
-                bool(str(label or "").strip())
-                and (
-                    str(label).lower() in haystack
-                    or bool(content_tokens(label)) and content_tokens(label) <= tokens
-                )
-            )
-            for label in labels
-        ):
+        if any(_affirmed_alias(label, fragments) for label in labels):
             community_ids.add(community_id)
 
     for role_id in list(role_ids):
@@ -361,6 +387,20 @@ def compile_workforce_profile(
 
     qualification = _qualification(routing_card, entity_kind, team_graph, evals)
     routing_eligible = bool(operational_input.get("routingEligible", qualification["structuralStatus"] != "invalid"))
+    team_graph_ready = bool(
+        entity_kind != "team"
+        or (
+            team_graph
+            and team_graph.get("authoritative")
+            and team_graph.get("manager")
+            and normalized_strings(team_graph.get("workers"))
+        )
+    )
+    unavailable_reasons = normalized_strings(operational_input.get("unavailableReasons"))
+    if not team_graph_ready:
+        unavailable_reasons = normalized_strings(
+            [*unavailable_reasons, "authoritative team execution graph unavailable"]
+        )
     semantic = {
         "names": normalized_strings([routing_card.get("name"), routing_card.get("name_ko"), *(routing_card.get("aliases") or [])]),
         "summaries": normalized_strings([routing_card.get("summary"), routing_card.get("summary_ko"), routing_card.get("description")]),
@@ -393,10 +433,10 @@ def compile_workforce_profile(
         "semantic": semantic,
         "qualification": qualification,
         "operational": {
-            "callable": bool(operational_input.get("callable")),
+            "callable": bool(operational_input.get("callable")) and team_graph_ready,
             "installable": bool(operational_input.get("installable")),
             "routingEligible": routing_eligible,
-            "unavailableReasons": normalized_strings(operational_input.get("unavailableReasons")),
+            "unavailableReasons": unavailable_reasons,
         },
         "provenance": {
             "compilerVersion": COMPILER_VERSION,

@@ -1,22 +1,18 @@
+---
+description: Staff a task only from the signed-in owner's Agent Cloud agents.
+---
 Update fallback: 자동 업데이트가 안 되면 `hephaestus update`를 한 번 실행하세요. 업데이트하지 않아도 현재 버전 명령은 그대로 동작합니다.
 
-# Hephaestus Cloud routing (my own cloud / 보관함)
-
-
-Search ONLY the signed-in user's own Agentlas cloud packages (보관함) and route
-the request to one of them. Follow the `hephaestus-cloud` skill exactly: resolve
-the runner by first running its app-host auto-update preflight inside Cursor
-(no separate terminal prompt to the user), then use
-`~/.agentlas/runtime/current/bin/hephaestus`, `./bin/hephaestus`,
-then the newest Claude/Codex plugin cache copy), run
-`"$RUNNER" auth ensure --timeout 180` first (the owner cloud requires sign-in;
-the browser opens only on first use and saved sign-ins are reused silently),
-then run `"$RUNNER" cloud "<request>" --project .` in the terminal
-(`cloud` is shorthand for `route "<request>" --scope cloud`; owner-scoped Hub
-query, implies `--hub-only`), then act on the JSON decision (`scope: "cloud"`):
-hub_candidates (my OWN cloud packages — report and, on the user's pick, invoke
-at 1 credit/call) / clarify / propose_new (offer /hep-network for the
-public marketplace, or /hep-build to build new) / refuse. This never searches
-the public marketplace or local cards. The router only chooses a package or
-fetches a BYOM bundle; actual tool execution follows Cursor's runtime safety and
-permission model. Report the routing `receipt_id`.
+Use local MCP server `hephaestus-network` with exact `sourceScope: "cloud"`.
+Author a redacted WorkOrder; call `workforce.search_candidates` with
+`{workOrder, sourceScope: "cloud"}` and keep `federationResult`; author the
+host-LLM Selection; call `workforce.validate_selection` with
+`{workOrder, candidateSet: federationResult.candidateSet, selection,
+federationResult}`; keep `federatedSelection`; call
+`workforce.prepare_execution` with
+`{workOrder, candidateSet: federationResult.candidateSet, selection,
+federationResult, federatedSelection}`; and execute distinct planner/manager, workers,
+synthesis, and verifier while retaining source `cloud` and all immutable pins.
+If owner auth or Cloud is unavailable, report the Core source receipt. Never
+search Local or public Hub, use legacy routing, accept deterministic staffing,
+or claim execution from a prepared roster.

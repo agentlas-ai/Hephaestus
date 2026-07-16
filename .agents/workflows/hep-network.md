@@ -1,30 +1,33 @@
 ---
-description: Staff and run a task from the Agentlas Hub Workforce Ontology.
+description: Staff a task from registered Local, owner Cloud, and public Hub agents.
 ---
-
 Update fallback: 자동 업데이트가 안 되면 `hephaestus update`를 한 번 실행하세요. 업데이트하지 않아도 현재 버전 명령은 그대로 동작합니다.
 
 # /hep-network
 
-Use the exact user request after `/hep-network`. The active host LLM is the
-temporary orchestrator; Hub supplies the workforce menu.
+Use the exact request after `/hep-network`. Act as the temporary top-level
+workforce orchestrator and use local MCP server `hephaestus-network`, the only
+host-visible Workforce MCP. Core owns its Cloud/Hub upstream calls. Network means
+registered Local + signed-in owner Cloud + public Hub.
 
-1. Create a redacted `agentlas.workforce-work-order.v1` with substantive role
-   slots and explicit skills, MCP tools, artifacts, runtime/language/authority,
-   cardinality, and handoff/review edges. Keep private project context local.
-2. Call `workforce.search_candidates`. Do not use the legacy lexical router or
-   popularity/history signals.
-3. Read content/eval evidence and, as the active host LLM, create
-   `agentlas.workforce-selection.v1` with exact release assignments, reasons,
-   alternatives, and collaboration graph.
-4. Call `workforce.validate_selection`; revise on rejection and never silently
-   substitute.
-5. Call `workforce.prepare_execution`; require exact release/package/content
-   hashes and directive bundles for all selected workers.
-6. Execute distinct manager/planner, worker, synthesis, and verifier model
-   invocations with explicit artifact handoffs and preserve nested Team graphs.
+1. Author a redacted `agentlas.workforce-work-order.v1`; keep private project
+   grounding on-host.
+2. Call `workforce.search_candidates` with
+   `{workOrder, sourceScope: "network"}` and keep the response as
+   `federationResult`, retaining all source receipts and provenance.
+3. Author `agentlas.workforce-selection.v1` yourself from content and
+   qualification evidence; call `workforce.validate_selection` with
+   `{workOrder, candidateSet: federationResult.candidateSet, selection,
+   federationResult}` and keep `federatedSelection`. Revise on rejection.
+4. Call `workforce.prepare_execution` with
+   `{workOrder, candidateSet: federationResult.candidateSet, selection,
+   federationResult, federatedSelection}` and require exact source, release,
+   package/content, runtime, permission, and context pins.
+5. Execute distinct planner/manager, worker, synthesis, and verifier
+   invocations with explicit artifact handoffs and preserved Team graphs.
 
-Do not report execution from a route, bundle, or process exit. A passing
-receipt needs planner parse success with no fallback, every child invocation,
-synthesis, and verifier verdict. Otherwise state the last truthful lifecycle
-state.
+Report `executed` only from a receipt proving every child invocation and a
+passing verifier. Otherwise report the last truthful state and source outages.
+Do not call legacy `hephaestus_route`, bypass Core with direct remote search,
+accept a deterministic picker, or use popularity/history/price/availability as
+semantic fit.

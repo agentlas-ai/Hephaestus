@@ -1,26 +1,26 @@
 ---
 name: hephaestus-cloud
-description: "Use when the user types /hep-cloud or asks to find/route to one of THEIR OWN Agentlas cloud packages (보관함, 내 클라우드, 내 보관함, my cloud, my own agents). This is the owner-scoped leg of the three-scope model — it searches ONLY the signed-in user's own cloud packages, not the public marketplace (use hep-network for that) and not local cards. The user's own cloud packages are restorable/owned by them and call-priced at a flat 1 credit."
+description: "Use when the user types /hep-cloud or asks to staff from THEIR OWN Agentlas cloud packages only. Cloud is one exact source scope; Network means Local + owner Cloud + public Hub."
 ---
 
 # Hephaestus Cloud Routing (my own cloud / 보관함)
 
 Route the request through the signed-in user's OWN Agentlas cloud packages only.
-Never guess an agent yourself when this skill is active — the router/Hub decides.
+The active host LLM remains the staffing decision-maker; Cloud supplies a
+content menu and exact BYOM releases.
 
 ## 0. Scope rule
 
 `/hep-cloud` is owner-scoped: it queries ONLY the authenticated owner's
-own cloud packages (보관함) via the Hub owner filter (`cargo.*`). It does **not**
+own cloud packages (보관함) through Core's typed `sourceScope: "cloud"`. It does **not**
 search the public marketplace and does **not** search local private/plugin
 cards.
 
 - The user's own cloud packages are restorable/owned by them, call-priced at a
   flat **1 credit** per call.
-- For the public marketplace (others' published, per-call-priced agents), use
-  the `hephaestus-network` skill or `/hep-network` / `--hub-only` instead.
-- For the combined search (local + own cloud + Hub, each priced by origin), use
-  plain-language routing (`hephaestus route`).
+- For the public marketplace only, use `/hep-hub` (`sourceScope: "hub"`).
+- For the combined Local + own Cloud + public Hub menu, use `/hep-network`
+  (`sourceScope: "network"`).
 
 ## 1. Resolve the runner
 
@@ -45,9 +45,10 @@ fi
 If no runner exists, tell the user to run the one-touch installer:
 `curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Agentlas-OS/main/scripts/install-all-runtimes.sh | bash`
 
-If shell execution is unavailable in this harness but MCP is, call the
-`agentlas_authenticate` tool first, then call the `hephaestus_cloud_search` tool
-from the `hephaestus-network` MCP server instead.
+If shell execution is unavailable but the local `hephaestus-network` MCP is
+available, use the typed Workforce sequence in section 3. If that server cannot
+advertise owner-Cloud search plus exact bundle fetch, report
+`source_not_supported`; never fall back to the legacy cargo search path.
 
 ## 1.5 Core project first-contact contract
 
@@ -71,33 +72,33 @@ This opens the user's default browser only when there is no valid local sign-in
 yet, and reuses a saved sign-in silently. For CI/headless checks only, set
 `HEPHAESTUS_AUTH_AUTOPOPUP=0` and skip this step.
 
-## 3. Route (owner cloud only)
+## 3. Staff from owner Cloud only
 
-```bash
-"$RUNNER" cloud "<the user's request>" --project .
+In an MCP-capable host, author the complete redacted WorkOrder, then call the
+actual local Core tools in this order:
+
+```text
+workforce.search_candidates(sourceScope="cloud")
+workforce.validate_selection(workOrder=..., candidateSet=federationResult.candidateSet, selection=..., federationResult=...)
+workforce.prepare_execution(workOrder=..., candidateSet=federationResult.candidateSet, selection=..., federationResult=..., federatedSelection=...)
 ```
 
-`hephaestus cloud` is shorthand for `hephaestus route "<request>" --scope cloud`
-(owner-scoped Hub query; implies `--hub-only`). Via MCP, call
-`hephaestus_cloud_search` instead.
+The host LLM authors the final Selection. If the deployed owner-Cloud Workforce
+source contract is absent, report `source_not_supported`; do not silently query
+public Hub or legacy cargo search. A shell without an active host LLM can only
+report that orchestration is required.
 
-## 4. Act on the JSON decision (`scope: "cloud"`)
+## 4. Act on the typed result (`scope: "cloud"`)
 
-- `action: "hub_candidates"` — these are the user's OWN cloud packages
-  (`hub.results[].slug`, `name`). Report them, and on the user's pick invoke that
-  package with the original request (call-priced at 1 credit).
-- `action: "clarify"` — ask `clarify_question` with the candidate list and
-  re-route with the answer (still cloud-scoped).
-- `action: "propose_new"` — no matching package in the user's cloud. Offer to
-  search the public marketplace (`/hep-network` / `--hub-only`) or to build
-  a new agent via `/hep-build`.
-- `action: "refuse"` — explain `reasons` (for example, loop guard). Do not retry.
+Preserve the Cloud source receipt, source selection session, candidate-set
+digest, release id, package hash, and content digest. Validate and prepare in
+local Core; never send the federated wrapper back to remote validation.
 
 ## 5. Hard rules
 
 - Never report public marketplace agents or local private/plugin cards as if
   they were the user's own cloud packages.
-- The router only chooses a package or fetches a BYOM bundle; it does not
-  execute payments, deletes, publishes, file writes, or external submissions.
+- Deterministic Core validates governance and immutable pins but never chooses
+  the roster. The active host LLM chooses from content evidence.
 - For actual tool execution, follow the host runtime's safety and permission
   model. Report the routing `receipt_id` in your final message.

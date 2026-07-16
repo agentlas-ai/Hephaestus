@@ -170,7 +170,6 @@ def prepare_hub_task_force_decision(
     project = Path(project_dir).expanduser().resolve()
     task_force = current.get("task_force") if isinstance(current.get("task_force"), Mapping) else {}
     task_stages = [item for item in (task_force.get("stages") or []) if isinstance(item, Mapping)]
-    stage_metadata = {str(item.get("stage") or ""): item for item in task_stages}
     hub = current.get("hub") if isinstance(current.get("hub"), Mapping) else {}
     hub_results = [item for item in (hub.get("results") or []) if isinstance(item, Mapping)]
     entity_kind_by_slug = {
@@ -184,20 +183,74 @@ def prepare_hub_task_force_decision(
     stages: list[dict[str, Any]] = []
     previous_artifact: str | None = None
 
-    recommendation_by_stage = {
-        str(item.get("stage") or ""): item
-        for item in recommended
-        if isinstance(item, Mapping)
-    }
-    planned_stages = task_stages or [
-        {"order": index, "stage": item.get("stage"), "artifact": _default_stage_artifact(str(item.get("stage") or "stage"))}
-        for index, item in enumerate(recommended, start=1)
-        if isinstance(item, Mapping)
-    ]
+    # A stage can own more than one explicitly selected specialist (for example,
+    # three named agents all assigned to the single ``direct`` stage).  A
+    # stage-keyed dict silently kept only the final recommendation.  Expand the
+    # stage metadata into one assignment per recommendation instead, while still
+    # retaining core-stage fallbacks that have no matching Hub specialist.
+    recommendations = [item for item in recommended if isinstance(item, Mapping)]
+    recommendation_indexes_by_stage: dict[str, list[int]] = {}
+    for index, item in enumerate(recommendations):
+        recommendation_indexes_by_stage.setdefault(str(item.get("stage") or ""), []).append(index)
 
-    for order, meta in enumerate(planned_stages, start=1):
+    task_metadata_by_stage: dict[str, list[Mapping[str, Any]]] = {}
+    for meta in task_stages:
+        task_metadata_by_stage.setdefault(str(meta.get("stage") or ""), []).append(meta)
+
+    planned_assignments: list[tuple[Mapping[str, Any], Mapping[str, Any] | None]] = []
+    assigned_recommendations: set[int] = set()
+    assigned_task_stages: set[str] = set()
+    if task_stages:
+        for meta in task_stages:
+            stage_name = str(meta.get("stage") or "")
+            if stage_name in assigned_task_stages:
+                continue
+            assigned_task_stages.add(stage_name)
+            stage_metadata = task_metadata_by_stage[stage_name]
+            matching_indexes = recommendation_indexes_by_stage.get(stage_name, [])
+            if not matching_indexes:
+                planned_assignments.extend((stage_meta, None) for stage_meta in stage_metadata)
+                continue
+
+            # Recommendations define the executable cardinality for a covered
+            # stage. Pair N metadata entries with N recommendations when both
+            # are expanded, or clone the sole metadata entry when one stage
+            # descriptor owns M specialists. Extra duplicate metadata must not
+            # turn into phantom core fallback packets.
+            for position, index in enumerate(matching_indexes):
+                assigned_recommendations.add(index)
+                metadata_index = min(position, len(stage_metadata) - 1)
+                planned_assignments.append((stage_metadata[metadata_index], recommendations[index]))
+        # Do not drop a recommendation merely because an older/stale task-force
+        # descriptor omitted its stage.  It was explicitly selected and must
+        # either produce a packet or a failure record.
+        for index, recommendation in enumerate(recommendations):
+            if index in assigned_recommendations:
+                continue
+            stage_name = str(recommendation.get("stage") or "stage")
+            planned_assignments.append(
+                (
+                    {
+                        "stage": stage_name,
+                        "artifact": _default_stage_artifact(stage_name),
+                    },
+                    recommendation,
+                )
+            )
+    else:
+        planned_assignments = [
+            (
+                {
+                    "stage": item.get("stage"),
+                    "artifact": _default_stage_artifact(str(item.get("stage") or "stage")),
+                },
+                item,
+            )
+            for item in recommendations
+        ]
+
+    for order, (meta, recommendation) in enumerate(planned_assignments, start=1):
         stage_name = str(meta.get("stage") or f"stage-{order}")
-        recommendation = recommendation_by_stage.get(stage_name)
         artifact = str(meta.get("artifact") or _default_stage_artifact(stage_name))
         if recommendation is None:
             stages.append(
@@ -220,27 +273,35 @@ def prepare_hub_task_force_decision(
 
         slug = str(recommendation.get("agent") or "").strip()
         if not slug:
-            failures.append({"stage": stage_name, "status": "missing_agent_slug"})
+            failures.append({"order": order, "stage": stage_name, "status": "missing_agent_slug"})
             continue
         invocation = invocation_cache.get(slug)
         if invocation is None:
-            invocation = invoke_hub_agent(
-                str(current.get("_stormbreaker_user_query") or current.get("query") or ""),
-                slug=slug,
-                hub_decision=current,
-                project_dir=project,
-                home=base,
-                expected_entity_kind=(
-                    str(recommendation.get("entityKind") or recommendation.get("entity_kind") or "").strip().lower()
-                    or entity_kind_by_slug.get(slug)
-                    or None
-                ),
-            )
+            try:
+                invocation = invoke_hub_agent(
+                    str(current.get("_stormbreaker_user_query") or current.get("query") or ""),
+                    slug=slug,
+                    hub_decision=current,
+                    project_dir=project,
+                    home=base,
+                    expected_entity_kind=(
+                        str(recommendation.get("entityKind") or recommendation.get("entity_kind") or "").strip().lower()
+                        or entity_kind_by_slug.get(slug)
+                        or None
+                    ),
+                )
+            except Exception as exc:
+                invocation = {
+                    "status": "error",
+                    "slug": slug,
+                    "detail": f"{type(exc).__name__}: {exc}",
+                }
             invocation_cache[slug] = invocation
             invocations.append(invocation)
         if invocation.get("status") != "prepared":
             failures.append(
                 {
+                    "order": order,
                     "stage": stage_name,
                     "agent": slug,
                     "status": invocation.get("status"),
@@ -269,7 +330,7 @@ def prepare_hub_task_force_decision(
         stages.append(stage)
         previous_artifact = artifact
 
-    if failures or len(stages) != len(planned_stages):
+    if failures or len(stages) != len(planned_assignments):
         return {
             "status": "blocked",
             "decision": current,

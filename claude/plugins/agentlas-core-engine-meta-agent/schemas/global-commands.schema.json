@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "1.0",
+  "title": "Agentlas Global Commands",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "packageId",
+    "canonicalCommand",
+    "commands",
+    "postCreationUserMessage"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string"
+    },
+    "packageId": {
+      "type": "string"
+    },
+    "canonicalCommand": {
+      "type": "string",
+      "pattern": "^/[a-z0-9][a-z0-9-]*(?::[a-z0-9][a-z0-9-]*)?$"
+    },
+    "commands": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": [
+          "runtime",
+          "command",
+          "adapterPath",
+          "scope",
+          "status"
+        ],
+        "properties": {
+          "runtime": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "adapterPath": {
+            "type": "string"
+          },
+          "globalInstallPath": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "global",
+              "project",
+              "plugin",
+              "terminal"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "postCreationUserMessage": {
+      "type": "object",
+      "required": [
+        "required",
+        "template"
+      ],
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "template": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

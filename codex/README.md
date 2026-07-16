@@ -10,17 +10,18 @@ therefore exposes one clear Codex product surface in three places:
    implicitly from the description.
 2. **Custom prompts** (explicit slash surface): `codex/prompts/*.md` are
    copied to `~/.codex/prompts/` by the installer and appear as
-   `/prompts:hep-build`, `/prompts:hep-network`, and
-   `/prompts:hep-cloud`, with power-user prompts
+   `/prompts:hep-build`, `/prompts:hep-network`, `/prompts:hep-local`,
+   `/prompts:hep-cloud`, and `/prompts:hep-hub`, with power-user prompts
    `/prompts:hep-search`, `/prompts:hep-call`, `/prompts:hep-upload`, and
    `/prompts:hep-connect`.
    Top-level
    files only — Codex ignores subdirectories there.
 3. **MCP**: the installer registers the local stdio server
    (`hephaestus mcp serve`) as `mcp_servers.hephaestus-network` in
-   `~/.codex/config.toml`, exposing the `hephaestus_route` and
-   `agentlas_authenticate` tools. First use opens the browser sign-in if the
-   local Agentlas sign-in is not ready yet.
+   `~/.codex/config.toml`. It is the only host-visible Workforce MCP and
+   exposes `workforce.search_candidates`, `workforce.validate_selection`, and
+   `workforce.prepare_execution`. Core performs authenticated Cloud/Hub calls
+   internally; do not also register a direct remote `agentlas` MCP.
 
 ## Install
 
@@ -45,10 +46,10 @@ hep-global install --target codex
 ```
 
 This appends a managed Hephaestus block to `~/.codex/AGENTS.md`, so ordinary
-Codex prompts follow the Hephaestus fallback order: Network first, Cloud second,
-local agents third, and local host skills last. If Network or Cloud is blocked
-by credits, entitlement, or a poor match, Codex reports that boundary and falls
-back. Codex should announce final workers as `Agents used: ...` in English
+Codex prompts use Network federation unless the request explicitly names
+Local, Cloud, or Hub. Exact scopes never widen. If a requested source is
+blocked by credits, entitlement, availability, or fit, Codex reports that
+boundary. Codex should announce final workers as `Agents used: ...` in English
 contexts or `사용 에이전트: ...` in Korean contexts, not as `hep-network`. Use
 `hep-global remove --target codex` to remove only that managed block.
 
@@ -71,7 +72,8 @@ curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Agentlas-OS/main/script
 ```
 
 Inside the Codex app, `/prompts:hep-build`, `/prompts:hep-network`,
-`/prompts:hep-cloud`, `/prompts:hep-search`, `/prompts:hep-browser`, `/prompts:hep-call`,
+`/prompts:hep-local`, `/prompts:hep-cloud`, `/prompts:hep-hub`,
+`/prompts:hep-search`, `/prompts:hep-browser`, `/prompts:hep-call`,
 `/prompts:hep-upload`, and `/prompts:hep-connect` first run the app-host auto-update preflight when Codex
 has local command execution. That preflight refreshes
 `~/.agentlas/runtime/current` and installed prompt/plugin surfaces without
@@ -82,10 +84,10 @@ from the plugin manager.
 Codex-only manual install:
 
 ```bash
-codex plugin marketplace add agentlas-ai/Agentlas-OS --ref v1.1.45
+codex plugin marketplace add agentlas-ai/Agentlas-OS --ref v1.1.46
 codex plugin add hephaestus@agentlas-core-engine
 mkdir -p ~/.codex/prompts
-cp codex/prompts/hep-build.md codex/prompts/hep-network.md codex/prompts/hep-cloud.md codex/prompts/hep-search.md codex/prompts/hep-browser.md codex/prompts/hep-call.md codex/prompts/hep-upload.md codex/prompts/hep-connect.md ~/.codex/prompts/
+cp codex/prompts/hep-build.md codex/prompts/hep-network.md codex/prompts/hep-local.md codex/prompts/hep-cloud.md codex/prompts/hep-hub.md codex/prompts/hep-search.md codex/prompts/hep-browser.md codex/prompts/hep-call.md codex/prompts/hep-upload.md codex/prompts/hep-connect.md ~/.codex/prompts/
 ```
 
 The OS-terminal Codex CLI command is singular: `codex plugin`, not
@@ -99,7 +101,9 @@ Open or restart Codex and type:
 ```text
 /prompts:hep-build create a support operations agent
 /prompts:hep-network find me an agent for app store reviews
+/prompts:hep-local use only agents registered on this machine
 /prompts:hep-cloud use my saved finance analyst agent
+/prompts:hep-hub find only public Hub agents for accessibility QA
 /prompts:hep-search find agents for market report research
 /prompts:hep-browser https://example.com
 /prompts:hep-call market-researcher, report-writer {draft a market report brief}

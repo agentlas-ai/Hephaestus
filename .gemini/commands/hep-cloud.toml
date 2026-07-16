@@ -1,35 +1,23 @@
-description = "Search ONLY the signed-in user's own Agentlas cloud packages (보관함) and route to one."
+description = "Staff a task only from the signed-in owner's Agent Cloud agents."
 prompt = """
 Update fallback: 자동 업데이트가 안 되면 `hephaestus update`를 한 번 실행하세요. 업데이트하지 않아도 현재 버전 명령은 그대로 동작합니다.
-
 # /hep-cloud
 
+Request: {{args}}
 
-Raw arguments:
-{{args}}
+Use local MCP server `hephaestus-network` with exact
+`sourceScope: "cloud"`. Author a redacted WorkOrder, call
+`workforce.search_candidates` with `{workOrder, sourceScope: "cloud"}` and keep
+`federationResult`; author the host-LLM Selection; call
+`workforce.validate_selection` with
+`{workOrder, candidateSet: federationResult.candidateSet, selection,
+federationResult}` and keep `federatedSelection`; then call
+`workforce.prepare_execution` with
+`{workOrder, candidateSet: federationResult.candidateSet, selection,
+federationResult, federatedSelection}`. Retain source `cloud` and every exact immutable
+pin. Execute planner/manager, workers, synthesis, and verifier distinctly.
 
-Owner-scoped leg of the three-scope model: search ONLY my own Agentlas cloud
-packages (보관함). These are restorable/owned by me and call-priced at a flat 1
-credit. `/hep-network` searches the public marketplace; plain language
-searches local + my cloud + Hub together.
-
-1. Find the Hephaestus runner — first executable wins:
-   `~/.agentlas/runtime/current/bin/hephaestus`, `./bin/hephaestus`, or the
-   newest `~/.claude/plugins/cache/agentlas-core-engine/hephaestus/*/bin/hephaestus`
-   (sort -V). The owner cloud requires sign-in, so first run (opens the browser
-   only on first use): `hephaestus auth ensure --timeout 180`
-   Then run: `hephaestus cloud "{{args}}" --project .`
-   (`hephaestus cloud` is shorthand for `hephaestus route "<request>" --scope cloud`.)
-
-2. Act on the JSON decision (`scope: "cloud"`):
-   - action "hub_candidates": my OWN cloud packages — report them and, on the
-     user's pick, invoke that package with the original request (1 credit/call).
-   - action "clarify": ask the `clarify_question` with the candidates.
-   - action "propose_new": no matching package in my cloud; offer
-     /hep-network (public marketplace) or /hep-build (build a new agent).
-   - action "refuse": explain the reasons (for example, loop guard).
-
-3. Hard rules: never searches the public marketplace or local cards — only the
-   authenticated owner's own cloud packages. Actual tool execution follows the
-   host runtime's safety and permission model. Include the routing `receipt_id`.
+If owner auth or Cloud is unavailable, report `source_unavailable` with the
+Core receipt. Never search Local or public Hub, call legacy routing, accept a
+deterministic picker, or claim execution from preparation alone.
 """

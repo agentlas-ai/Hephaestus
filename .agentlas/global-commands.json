@@ -25,7 +25,7 @@
       "runtime": "gemini-cli",
       "command": "/hep-build",
       "adapterPath": "gemini/extension/commands/hep-build.toml",
-      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v1.1.45",
+      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v1.1.46",
       "scope": "global",
       "status": "extension-custom-command",
       "notes": "Fallback user command is also installable at ~/.gemini/commands/hep-build.toml."
@@ -95,7 +95,7 @@
       "runtime": "gemini-cli",
       "command": "/hep-network",
       "adapterPath": "gemini/extension/commands/hep-network.toml",
-      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v1.1.45",
+      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v1.1.46",
       "scope": "global",
       "status": "extension-custom-command",
       "notes": "Fallback user command is also installable at ~/.gemini/commands/hep-network.toml."
@@ -165,6 +165,69 @@
     },
     {
       "runtime": "claude-code",
+      "command": "/hep-local",
+      "adapterPath": ".claude/commands/hep-local.md",
+      "globalInstallPath": "~/.claude/commands/hep-local.md",
+      "scope": "global",
+      "status": "native-slash-command",
+      "notes": "Workforce sourceScope=local: reconciled registered Local agents only."
+    },
+    {
+      "runtime": "codex",
+      "command": "/prompts:hep-local",
+      "adapterPath": "codex/prompts/hep-local.md",
+      "globalInstallPath": "~/.codex/prompts/hep-local.md",
+      "scope": "global",
+      "status": "custom-prompt-slash-command",
+      "notes": "Local-only Workforce scope through mcp_servers.hephaestus-network."
+    },
+    {
+      "runtime": "gemini-cli",
+      "command": "/hep-local",
+      "adapterPath": "gemini/extension/commands/hep-local.toml",
+      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v1.1.46",
+      "scope": "global",
+      "status": "extension-custom-command",
+      "notes": "Fallback user command is also installed at ~/.gemini/commands/hep-local.toml."
+    },
+    {
+      "runtime": "antigravity",
+      "command": "/hep-local",
+      "adapterPath": "antigravity/workflows/hep-local.md",
+      "globalInstallPath": "~/.gemini/antigravity/global_workflows/hep-local.md",
+      "scope": "global",
+      "status": "workflow-slash-command",
+      "notes": "Project fallback: .agents/workflows/hep-local.md."
+    },
+    {
+      "runtime": "cursor",
+      "command": "/hep-local",
+      "adapterPath": "cursor/plugin/commands/hep-local.md",
+      "globalInstallPath": "~/.cursor/commands/hep-local.md",
+      "scope": "global",
+      "status": "native-slash-command",
+      "notes": "Local-only Workforce scope through the installed local Core MCP."
+    },
+    {
+      "runtime": "opencode",
+      "command": "/hep-local",
+      "adapterPath": "opencode/commands/hep-local.md",
+      "globalInstallPath": "~/.config/opencode/commands/hep-local.md",
+      "scope": "global",
+      "status": "native-slash-command",
+      "notes": "Local-only Workforce scope through the installed local Core MCP."
+    },
+    {
+      "runtime": "agentlas-terminal",
+      "command": "hep-local",
+      "adapterPath": "bin/hep-local",
+      "globalInstallPath": "hep-local \"<request>\"",
+      "scope": "terminal",
+      "status": "shell-command-alias",
+      "notes": "Host-LLM Workforce entry with sourceScope=local; no Cloud or Hub fallback."
+    },
+    {
+      "runtime": "claude-code",
       "command": "/hep-storm",
       "adapterPath": ".claude/commands/hep-storm.md",
       "globalInstallPath": "~/.claude/commands/hep-storm.md",
@@ -185,7 +248,7 @@
       "runtime": "gemini-cli",
       "command": "/hep-storm",
       "adapterPath": "gemini/extension/commands/hep-storm.toml",
-      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v1.1.45",
+      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v1.1.46",
       "scope": "global",
       "status": "extension-custom-command",
       "notes": "Fallback user command is also installable at ~/.gemini/commands/hep-storm.toml."
@@ -251,7 +314,7 @@
       "globalInstallPath": "~/.claude/commands/hep-cloud.md",
       "scope": "global",
       "status": "native-slash-command",
-      "notes": "Owner-scoped leg of the three-scope model: searches ONLY the signed-in user's own cloud packages (보관함), call-priced at a flat 1 credit. Maps to `hephaestus route --scope cloud` (implies --hub-only, cargo.* owner query)."
+      "notes": "Workforce sourceScope=cloud: signed-in owner's Cloud packages only, through local Core validation."
     },
     {
       "runtime": "codex",
@@ -260,13 +323,13 @@
       "globalInstallPath": "~/.codex/prompts/hep-cloud.md",
       "scope": "global",
       "status": "custom-prompt-slash-command",
-      "notes": "Implicit/skill surface: codex/plugins/agentlas-core-engine-meta-agent/skills/hephaestus-cloud/SKILL.md ($hephaestus-cloud). Tool surface: hephaestus_cloud_search in mcp_servers.hephaestus-network."
+      "notes": "Owner-Cloud-only Workforce scope through mcp_servers.hephaestus-network."
     },
     {
       "runtime": "gemini-cli",
       "command": "/hep-cloud",
       "adapterPath": "gemini/extension/commands/hep-cloud.toml",
-      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v1.1.45",
+      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v1.1.46",
       "scope": "global",
       "status": "extension-custom-command",
       "notes": "Fallback user command is also installable at ~/.gemini/commands/hep-cloud.toml."
@@ -287,7 +350,7 @@
       "globalInstallPath": "~/.cursor/commands/hep-cloud.md",
       "scope": "global",
       "status": "native-slash-command",
-      "notes": "Owner cloud (보관함) only. cursor/plugin/ is the marketplace-ready bundle."
+      "notes": "Owner-Cloud-only Workforce scope through the installed local Core MCP."
     },
     {
       "runtime": "opencode",
@@ -296,7 +359,7 @@
       "globalInstallPath": "~/.config/opencode/commands/hep-cloud.md",
       "scope": "global",
       "status": "native-slash-command",
-      "notes": "OpenCode also reads the universal skill at ~/.agents/skills/hephaestus-cloud and supports MCP (hephaestus_cloud_search)."
+      "notes": "Owner-Cloud-only Workforce scope through the installed local Core MCP."
     },
     {
       "runtime": "openclaw",
@@ -332,7 +395,70 @@
       "globalInstallPath": "hep-cloud \"<request>\"",
       "scope": "terminal",
       "status": "shell-command",
-      "notes": "hep-cloud \"<request>\" is shorthand for hephaestus route \"<request>\" --scope cloud (owner cloud / 보관함 only)."
+      "notes": "Host-LLM Workforce entry with sourceScope=cloud; no Local or public Hub fallback."
+    },
+    {
+      "runtime": "claude-code",
+      "command": "/hep-hub",
+      "adapterPath": ".claude/commands/hep-hub.md",
+      "globalInstallPath": "~/.claude/commands/hep-hub.md",
+      "scope": "global",
+      "status": "native-slash-command",
+      "notes": "Workforce sourceScope=hub: public Hub only."
+    },
+    {
+      "runtime": "codex",
+      "command": "/prompts:hep-hub",
+      "adapterPath": "codex/prompts/hep-hub.md",
+      "globalInstallPath": "~/.codex/prompts/hep-hub.md",
+      "scope": "global",
+      "status": "custom-prompt-slash-command",
+      "notes": "Public-Hub-only Workforce scope through mcp_servers.hephaestus-network."
+    },
+    {
+      "runtime": "gemini-cli",
+      "command": "/hep-hub",
+      "adapterPath": "gemini/extension/commands/hep-hub.toml",
+      "globalInstallPath": "gemini extensions install https://github.com/agentlas-ai/Hephaestus --ref v1.1.46",
+      "scope": "global",
+      "status": "extension-custom-command",
+      "notes": "Fallback user command is also installed at ~/.gemini/commands/hep-hub.toml."
+    },
+    {
+      "runtime": "antigravity",
+      "command": "/hep-hub",
+      "adapterPath": "antigravity/workflows/hep-hub.md",
+      "globalInstallPath": "~/.gemini/antigravity/global_workflows/hep-hub.md",
+      "scope": "global",
+      "status": "workflow-slash-command",
+      "notes": "Project fallback: .agents/workflows/hep-hub.md."
+    },
+    {
+      "runtime": "cursor",
+      "command": "/hep-hub",
+      "adapterPath": "cursor/plugin/commands/hep-hub.md",
+      "globalInstallPath": "~/.cursor/commands/hep-hub.md",
+      "scope": "global",
+      "status": "native-slash-command",
+      "notes": "Public-Hub-only Workforce scope through the installed local Core MCP."
+    },
+    {
+      "runtime": "opencode",
+      "command": "/hep-hub",
+      "adapterPath": "opencode/commands/hep-hub.md",
+      "globalInstallPath": "~/.config/opencode/commands/hep-hub.md",
+      "scope": "global",
+      "status": "native-slash-command",
+      "notes": "Public-Hub-only Workforce scope through the installed local Core MCP."
+    },
+    {
+      "runtime": "agentlas-terminal",
+      "command": "hep-hub",
+      "adapterPath": "bin/hep-hub",
+      "globalInstallPath": "hep-hub \"<request>\"",
+      "scope": "terminal",
+      "status": "shell-command-alias",
+      "notes": "Host-LLM Workforce entry with sourceScope=hub; no Local or owner Cloud fallback."
     },
     {
       "runtime": "mcp",
@@ -647,6 +773,6 @@
   ],
   "postCreationUserMessage": {
     "required": true,
-    "template": "global_commands: Agentlas terminal/app plain language through native Agentlas/Hephaestus tools; Claude Code /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-connect; Codex /prompts:hep-build, /prompts:hep-network, /prompts:hep-cloud, /prompts:hep-search, /prompts:hep-browser, /prompts:hep-call, /prompts:hep-upload, /prompts:hep-connect; Gemini CLI /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload; Antigravity /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload; Cursor /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload; OpenCode /hep-build, /hep-network, /hep-cloud, /hep-search, /hep-browser, /hep-call, /hep-upload. Meaning: build/create = /hep-build; borrow public Hub agents = /hep-network; share/use my Agentlas Cloud packages = /hep-cloud; search candidates = /hep-search; browser-required work = /hep-browser; explicit named agent call = /hep-call; upload gate = /hep-upload; Telegram gateway setup = /hep-connect or /prompts:hep-connect; force-robust verified loop to completion = /hep-storm (Codex /prompts:hep-storm). Research loadouts and lower-level options are selected automatically by context; /hep-browser is the short Agentlas browser hardpoint surface; /hep-storm is the explicit, force-robust Stormbreaker loop surface (verifier-first, no fake pass)."
+    "template": "global_commands: Agentlas terminal/app plain language through native Agentlas/Hephaestus tools; Claude Code /hep-build, /hep-network, /hep-local, /hep-cloud, /hep-hub, /hep-search, /hep-browser, /hep-call, /hep-upload, /hep-connect; Codex /prompts:hep-build, /prompts:hep-network, /prompts:hep-local, /prompts:hep-cloud, /prompts:hep-hub, /prompts:hep-search, /prompts:hep-browser, /prompts:hep-call, /prompts:hep-upload, /prompts:hep-connect; Gemini CLI, Antigravity, Cursor, and OpenCode expose /hep-build, /hep-network, /hep-local, /hep-cloud, /hep-hub, /hep-search, /hep-browser, /hep-call, /hep-upload. Workforce scopes: network = registered Local + owner Cloud + public Hub; local = registered Local only; cloud = signed-in owner Cloud only; hub = public Hub only. All four use local MCP server hephaestus-network and the exact workforce.search_candidates -> workforce.validate_selection -> workforce.prepare_execution contract. On local-OS hosts it is the only Workforce MCP; Core performs Cloud/Hub upstream calls internally and direct agentlas MCP registration is removed to prevent duplicate tools from bypassing federation and privacy governance. Other meanings: build/create = /hep-build; search-only = /hep-search; browser-required = /hep-browser; explicit named call = /hep-call; upload gate = /hep-upload; Telegram setup = /hep-connect or /prompts:hep-connect; force-robust completion = /hep-storm (Codex /prompts:hep-storm)."
   }
 }

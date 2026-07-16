@@ -159,7 +159,7 @@ claude plugin install hephaestus@agentlas-core-engine
 
 在操作系统终端中运行：
 ```bash
-codex plugin marketplace add agentlas-ai/Agentlas-OS --ref v1.1.45
+codex plugin marketplace add agentlas-ai/Agentlas-OS --ref v1.1.46
 codex plugin add hephaestus@agentlas-core-engine
 ```
 *注：Codex 应用内不支持 `/plugin marketplace add`，请在操作系统终端中运行上面两条命令。操作系统终端的 CLI 命令为单数形式（`codex plugin`）；在 Codex 应用内，插件浏览器的斜杠命令为复数形式（`/plugins`）。安装完成后，`/prompts:hep-build` 即为应用内入口。*
@@ -184,8 +184,10 @@ codex plugin add hephaestus@agentlas-core-engine
 | 系统子系统 | Shell 命令 | 示例 |
 | :--- | :--- | :--- |
 | **进程构建器** | `/hep-build` | `/hep-build create a customer support agent for Shopify refunds` |
-| **A2A 调度器** | `/hep-network` | `/hep-network split this launch plan into research, copy, QA, and release agents` |
-| **云状态同步** | `/hep-cloud` | `/hep-cloud use my saved finance analyst agent to review this report` |
+| **Workforce 联合（Local + Cloud + Hub）** | `/hep-network` | `/hep-network split this launch plan into research, copy, QA, and release agents` |
+| **仅已注册的 Local 智能体** | `/hep-local` | `/hep-local use only agents registered on this machine` |
+| **仅本人 Cloud 智能体** | `/hep-cloud` | `/hep-cloud use my saved finance analyst agent to review this report` |
+| **仅公开 Hub 智能体** | `/hep-hub` | `/hep-hub find public specialists for accessibility QA` |
 | **目录搜索** | `/hep-search` | `/hep-search find agents for a market report workflow` |
 | **进程间调用（IPC）** | `/hep-call` | `/hep-call market-researcher, report-writer {draft a market report}` |
 | **包导出器** | `/hep-upload` | `/hep-upload ./agents/customer-support-hq` |
@@ -216,11 +218,11 @@ codex plugin add hephaestus@agentlas-core-engine
 
 <sub>图 2. A2A 调度：LLM 运行时、本地优先编排器、路由卡、本地记忆，以及 Agentlas Hub 的 A2A/MCP 兜底。</sub>
 
-*   **Routing Card（路由卡）：** 每个智能体、团队和插件都随附一张标准化卡片，包含触发器、反触发器、能力、风险画像与记忆参数。未通过验证的卡片会被排除在路由之外。
-*   **本地优先分发：** 分发首先在本地解析（项目覆盖 $\rightarrow$ 本地卡片）。经由 Agentlas Hub 的外部查询会被脱敏为关键词；你的原始提示永远不会离开本地环境。
-*   **临时特遣队：** 复合请求会分解为 Hub/本地特遣队计划，打包 Stormbreaker 信封、会话提示与本体路径。被点名的专家会被动态调度，并由一个临时编排器管理任务交接。
-*   **回执驱动的执行：** 每个路由决策都会写下回执。路由器只决定调用哪个智能体或包；工具执行权限始终被严格沙箱化，由活动运行时管理。
-*   **双语基准测试：** 自动路由由一套双语（韩语 + 英语）基准门控，要求 top-3 召回率 $\ge 90\%$ 且零隐私泄漏。低置信度路径会升级到 runtime 级 Router Agent 重排序。
+*   **类型化岗位分析：** 当前宿主 LLM 将请求整理为脱敏的 `WorkOrder`，明确角色、技能、工具、产物、权限、人数与交接关系。Core 不通过子字符串列表猜测人员需求。
+*   **精确来源联合：** `local`、`cloud`、`hub` 都是精确的单一范围，`network` 是三者封存后的并集。每个来源只返回有上限的 content-only 菜单；来源失败时 Core 不会悄悄扩展到其他范围。
+*   **由宿主组建特遣队：** 宿主 LLM 阅读资格证据并编写精确的 `Selection`。Core 不选择确定性赢家，也不进行隐藏的 Router Agent 重排序；它只验证治理、隐私、身份、人数与图结构完整性。
+*   **固定身份执行：** 验证后，Core 仅从原始来源会话获取已选的不可变发布，核对发布、包与内容摘要，再分别调用规划、执行、综合和验证角色。
+*   **基于证据的评估：** 检索覆盖、宿主选择、不可变准备、真实子调用与最终验证分别计分。基准结果或使用历史不会取代宿主的人力配置判断。
 
 详情：[docs/hephaestus-network-2.0.md](docs/hephaestus-network-2.0.md) · 运行时支持矩阵：[docs/runtime-fallback-adapters.md](docs/runtime-fallback-adapters.md)
 

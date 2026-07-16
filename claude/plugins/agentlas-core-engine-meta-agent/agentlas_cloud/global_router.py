@@ -9,7 +9,7 @@ from typing import Any
 
 BEGIN = "<!-- HEPHAESTUS:GLOBAL-ROUTER:BEGIN -->"
 END = "<!-- HEPHAESTUS:GLOBAL-ROUTER:END -->"
-VERSION = "global-router.v3"
+VERSION = "global-router.v4"
 
 
 @dataclass(frozen=True)
@@ -118,18 +118,24 @@ def _router_block(target_id: str) -> str:
         host = "Codex"
         command = "/prompts:hep-network"
         cloud_command = "/prompts:hep-cloud"
+        local_command = "/prompts:hep-local"
+        hub_command = "/prompts:hep-hub"
         browser_command = "/prompts:hep-browser"
         call_command = "/prompts:hep-call"
     elif target_id == "claude":
         host = "Claude Code"
         command = "/hep-network"
         cloud_command = "/hep-cloud"
+        local_command = "/hep-local"
+        hub_command = "/hep-hub"
         browser_command = "/hep-browser"
         call_command = "/hep-call"
     else:
         host = "Antigravity/Gemini"
         command = "/hep-network"
         cloud_command = "/hep-cloud"
+        local_command = "/hep-local"
+        hub_command = "/hep-hub"
         browser_command = "/hep-browser"
         call_command = "/hep-call"
     return f"""{BEGIN}
@@ -145,22 +151,36 @@ These instructions were installed by `hephaestus global install` for {host}.
      <url-or-query>` when the task needs rendered pages, JS-heavy sites,
      click/form flows, login-visible state, or browser evidence.
   2. Hephaestus Network next. Use `{command} <request>` to let the active host
-     LLM staff a temporary task force from the Hub Agent Workforce Ontology.
-  3. Hephaestus Cloud next. Use `{cloud_command} <request>` when Network has
-     no suitable match, the user asks for their saved/private packages, or Hub
-     entitlement/credits are unavailable.
-  4. Local project or global agents next.
-  5. Local host skills last.
+     LLM staff a temporary task force from the federated Local + owner Cloud +
+     public Hub Workforce menu.
+  3. Use `{local_command}`, `{cloud_command}`, or `{hub_command}` only when the
+     user explicitly restricts staffing to registered Local, owner Cloud, or
+     public Hub inventory. These are source scopes, not fallback tiers.
+  4. Local host skills are an adapter fallback only when Workforce is
+     unavailable; do not misreport them as registered Local workers.
 - Use `{call_command} <agent-slugs> <context>` when the user names exact Hub or
   Cloud agents.
-- Local routing cards and local source folders are for explicit local/operator
-  requests. Public demos, distribution docs, and end-user workflows must use
-  Hub-only routing so private local inventory is not treated as public proof.
-- For Network staffing, the active host LLM creates a redacted structured work
-  order, calls `workforce.search_candidates`, makes the final exact-release
-  selection, calls `workforce.validate_selection`, then calls
-  `workforce.prepare_execution`. Deterministic code enforces hard constraints;
-  it does not choose the final team. Do not run the legacy lexical router first.
+- Source scopes are exact: `network = local + cloud + hub`, `local = registered
+  local`, `cloud = owner cloud`, and `hub = public Hub`. Public demos and
+  distribution proof must explicitly use Hub scope so private inventory is not
+  presented as public availability.
+- For Network staffing, the active host LLM creates one redacted structured
+  WorkOrder and calls local Core `workforce.search_candidates` with
+  `sourceScope=network` to federate the three source CandidateSets. It authors
+  the Selection, calls `workforce.validate_selection` with the exact
+  `federationResult`, then calls `workforce.prepare_execution` with that result
+  and the accepted `federatedSelection`.
+  Federation performs no scoring, reranking, or staffing decision. It may
+  shadow the same `agentDefinitionId` by Local > Cloud > Hub only when every
+  source proves the same lineage and exact immutable release; ambiguous or
+  different-release collisions quarantine only that identity while unrelated
+  candidates remain available. The host LLM makes the final exact-release
+  selection from the merged content menu.
+- A federated CandidateSet is a Core-owned session, not a Hub session. Validate
+  it locally with its federation receipt. Preparation must use each selected
+  row's pinned original source session/digest and exact release/package/content
+  hashes; never send the merged CandidateSet to remote Hub validate/prepare.
+  Do not run the legacy lexical router first.
 - Agentlas Hub agents are BYOM bundles. Execute each prepared exact release in
   this host runtime while grounded in the current project. The Hub does not run
   a server-side LLM completion for you. A selection or prepared bundle is not

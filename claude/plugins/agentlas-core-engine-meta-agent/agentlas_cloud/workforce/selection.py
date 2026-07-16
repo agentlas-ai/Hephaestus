@@ -77,6 +77,14 @@ def validate_host_selection(
 
     issues: list[str] = []
     try:
+        # This digest binds the complete, unprojected host decision. In
+        # particular, requestExpansionForSlots cannot be changed after a
+        # receipt is issued while leaving the projected team unchanged.
+        selection_digest: str | None = canonical_digest(selection)
+    except (TypeError, ValueError):
+        selection_digest = None
+        issues.append("selection_canonicalization_invalid")
+    try:
         validate_candidate_set_coverage_gaps(candidate_set)
     except ValueError:
         issues.append("candidate_set_coverage_gaps_invalid")
@@ -137,6 +145,8 @@ def validate_host_selection(
             "contentDigest": candidate.get("contentDigest"),
             "entityKind": candidate.get("entityKind"),
             "reasonCodes": normalized_strings(assignment.get("reasonCodes")),
+            "candidateFitEvidence": normalized_strings(candidate.get("fitEvidence")),
+            "candidateMissingMandatory": normalized_strings(candidate.get("missingMandatory")),
         }
         ideal_team.append(row)
         operational = candidate.get("operational") if isinstance(candidate.get("operational"), Mapping) else {}
@@ -173,6 +183,16 @@ def validate_host_selection(
         if release_id not in all_candidates:
             issues.append(f"alternative_outside_candidate_set:{release_id}")
 
+    raw_expansion = selection.get("requestExpansionForSlots")
+    expansion = normalized_strings(raw_expansion)
+    if raw_expansion is not None and not isinstance(raw_expansion, list):
+        issues.append("selection_expansion_invalid")
+    # Expansion is a request for a new immutable CandidateSet, not an
+    # executable choice. Only a completed selection can receive an accepted
+    # validation receipt and be pinned for bundle fetching.
+    if expansion:
+        issues.append("selection_expansion_pending")
+
     receipt_payload = {
         "selectionSessionId": candidate_set.get("selectionSessionId"),
         "candidateSetDigest": candidate_set.get("candidateSetDigest"),
@@ -186,6 +206,8 @@ def validate_host_selection(
         "assignments": ideal_team,
         "edges": edges,
         "alternativesConsidered": alternatives,
+        "requestExpansionForSlots": expansion,
+        "selectionDigest": selection_digest,
     }
     return {
         "schemaVersion": "agentlas.workforce-selection-validation.v1",

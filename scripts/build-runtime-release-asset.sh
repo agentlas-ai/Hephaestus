@@ -23,14 +23,95 @@ asset="hephaestus-runtime-${tag}.tar.gz"
 archive="$out_dir/$asset"
 checksum="$archive.sha256"
 tmp="$archive.tmp.$$"
-trap 'rm -f "$tmp"' EXIT
+manifest_tmp="$archive.manifest.tmp.$$"
+trap 'rm -f "$tmp" "$manifest_tmp"' EXIT
+
+# Public releases are install/runtime artifacts, not repository snapshots.
+# Keep this as an explicit allowlist: tests, benchmarks, internal docs, local
+# state, credentials, signing material, and maintainer-only verification
+# scripts must never enter the downloadable archive.
+runtime_paths=(
+  "AGENTS.md"
+  "CLAUDE.md"
+  "GEMINI.md"
+  "CHANGELOG.md"
+  "LICENSE"
+  "README.md"
+  "README.hi.md"
+  "README.ja.md"
+  "README.ko.md"
+  "README.zh-CN.md"
+  "SECURITY.md"
+  "agent.md"
+  "manifest.json"
+  ".agents"
+  ".claude"
+  ".claude-plugin"
+  ".gemini"
+  "agentlas_cloud"
+  "agents"
+  "antigravity"
+  "assets/model2vec/potion-base-8M-int8"
+  "bin"
+  "career_graph"
+  "claude"
+  "codex"
+  "cursor"
+  "gemini"
+  "grok"
+  "hermes"
+  "hooks"
+  "modes"
+  "ontology"
+  "openclaw"
+  "opencode"
+  "schemas"
+  "skills"
+  "templates"
+  "scripts/install-all-runtimes.sh"
+  "scripts/install-memory-hooks.py"
+)
+
+runtime_excludes=(
+  ":(exclude)claude/plugins/agentlas-core-engine-meta-agent/benchmarks/**"
+  ":(exclude)codex/plugins/agentlas-core-engine-meta-agent/benchmarks/**"
+  ":(exclude)gemini/extension/benchmarks/**"
+)
 
 git archive \
   --format=tar.gz \
   --prefix="Agentlas-OS-${tag#v}/" \
   --output="$tmp" \
-  "$tag"
+  "$tag" \
+  "${runtime_paths[@]}" \
+  "${runtime_excludes[@]}"
 mv "$tmp" "$archive"
+
+tar -tzf "$archive" > "$manifest_tmp"
+prefix="Agentlas-OS-${tag#v}/"
+
+if grep -E '(^|/)(tests?|benchmarks?|docs|credentials|signing)(/|$)|(^|/)\.env($|\.)|(^|/)([^/]+\.(pem|key|p12|pfx|crt|cer)|id_(rsa|dsa|ecdsa|ed25519))$|(^|/)(test_[^/]*\.py|[^/]*_test\.py)$' "$manifest_tmp" >/dev/null; then
+  echo "release archive contains a forbidden internal/test/secret path" >&2
+  grep -E '(^|/)(tests?|benchmarks?|docs|credentials|signing)(/|$)|(^|/)\.env($|\.)|(^|/)([^/]+\.(pem|key|p12|pfx|crt|cer)|id_(rsa|dsa|ecdsa|ed25519))$|(^|/)(test_[^/]*\.py|[^/]*_test\.py)$' "$manifest_tmp" >&2
+  exit 2
+fi
+
+required_runtime_paths=(
+  "manifest.json"
+  "bin/hephaestus"
+  "agentlas_cloud/mcp_stdio.py"
+  "agentlas_cloud/workforce/contracts.py"
+  "schemas/workforce-work-order.schema.json"
+  "schemas/workforce-selection.schema.json"
+  "assets/model2vec/potion-base-8M-int8/manifest.json"
+  "scripts/install-all-runtimes.sh"
+)
+for required in "${required_runtime_paths[@]}"; do
+  if ! grep -Fx "${prefix}${required}" "$manifest_tmp" >/dev/null; then
+    echo "release archive is missing required runtime path: $required" >&2
+    exit 2
+  fi
+done
 
 if command -v shasum >/dev/null 2>&1; then
   digest="$(shasum -a 256 "$archive" | awk '{print $1}')"

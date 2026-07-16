@@ -6,12 +6,14 @@ import json
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from ..auth import ensure_access_token
 from .bootstrap import networking_home, read_json
 
 _HUB_TIMEOUT_SECONDS = 15
+_HUB_CAPABILITY_MAX_RESPONSE_BYTES = 4 * 1024 * 1024
+_HUB_TOOL_MAX_RESPONSE_BYTES = 64 * 1024 * 1024
 
 
 class HubToolError(RuntimeError):
@@ -51,6 +53,54 @@ def call_hub_tool(
         return _call_hub_tool_once(name, arguments or {}, base_url=base_url, timeout=timeout, token=token)
 
 
+def list_hub_tools(
+    *,
+    home: Path | str | None = None,
+    timeout: int = _HUB_TIMEOUT_SECONDS,
+) -> list[dict[str, Any]]:
+    """Probe standard MCP capabilities without opening an interactive login."""
+
+    base_url = hub_url(home)
+    token = ensure_access_token(base_url, interactive=False)
+    url = base_url + "/api/mcp/v1"
+    body = json.dumps(
+        {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "hephaestus-network-capability-probe",
+            **({"Authorization": f"Bearer {token}"} if token else {}),
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(
+                _read_bounded_response(
+                    response,
+                    maximum=_HUB_CAPABILITY_MAX_RESPONSE_BYTES,
+                    label="hub capability probe",
+                ).decode("utf-8")
+            )
+    except urllib.error.HTTPError as exc:
+        if exc.code == 401:
+            raise HubAuthRequiredError("hub capability probe requires Agentlas sign-in") from exc
+        raise HubToolError(f"hub capability probe failed: HTTP {exc.code}") from exc
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
+        raise HubToolError(f"hub capability probe failed: {exc}") from exc
+    if not isinstance(payload, Mapping) or payload.get("error"):
+        raise HubToolError("hub capability probe returned a protocol error")
+    result = payload.get("result")
+    tools = result.get("tools") if isinstance(result, Mapping) else None
+    if not isinstance(tools, list) or any(not isinstance(item, Mapping) for item in tools):
+        raise HubToolError("hub capability probe returned no tool list")
+    return [dict(item) for item in tools]
+
+
 def _call_hub_tool_once(
     name: str,
     arguments: dict[str, Any],
@@ -81,7 +131,13 @@ def _call_hub_tool_once(
     )
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+            payload = json.loads(
+                _read_bounded_response(
+                    response,
+                    maximum=_HUB_TOOL_MAX_RESPONSE_BYTES,
+                    label=f"hub tool {name}",
+                ).decode("utf-8")
+            )
     except urllib.error.HTTPError as exc:
         if exc.code == 401:
             raise HubAuthRequiredError(f"hub tool {name} requires Agentlas sign-in") from exc
@@ -115,6 +171,24 @@ def _call_hub_tool_once(
             return parsed
         return {"value": parsed}
     return result
+
+
+def _read_bounded_response(response: Any, *, maximum: int, label: str) -> bytes:
+    """Reject oversized Hub responses before or during allocation."""
+
+    headers = getattr(response, "headers", None)
+    raw_length = headers.get("Content-Length") if headers is not None else None
+    if raw_length is not None:
+        try:
+            content_length = int(raw_length)
+        except (TypeError, ValueError) as exc:
+            raise HubToolError(f"{label} returned an invalid Content-Length") from exc
+        if content_length < 0 or content_length > maximum:
+            raise HubToolError(f"{label} response_too_large")
+    payload = response.read(maximum + 1)
+    if len(payload) > maximum:
+        raise HubToolError(f"{label} response_too_large")
+    return payload
 
 
 def _is_auth_required(value: Any) -> bool:

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentlas.dev/schemas/sitemap.schema.json",
+  "title": "Agentlas Sitemap",
+  "type": "object",
+  "required": ["schemaVersion", "projectId", "nodes", "edges", "taskBiases", "conceptCoverage"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "projectId": { "type": "string" },
+    "purpose": { "type": "string" },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "owner"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string" },
+          "owner": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "reason"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "reason": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "taskBiases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "rule", "appliesTo"],
+        "properties": {
+          "id": { "type": "string" },
+          "rule": { "type": "string" },
+          "appliesTo": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "conceptCoverage": {
+      "type": "object",
+      "required": ["sitemap", "pmSoul", "memoryArchitecture", "allLlmRuntimeArchitecture"],
+      "properties": {
+        "sitemap": { "type": "boolean" },
+        "pmSoul": { "type": "boolean" },
+        "memoryArchitecture": { "type": "boolean" },
+        "allLlmRuntimeArchitecture": { "type": "boolean" },
+        "publicPluginPackaging": { "type": "boolean" },
+        "terminalInstaller": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

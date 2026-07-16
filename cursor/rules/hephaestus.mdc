@@ -1,37 +1,29 @@
 ---
-description: Hephaestus Network routing — apply when the user types /hep-network or mentions @Hephaestus in a routing request. Routes natural-language requests to local Agentlas agents/teams/plugins via the local-first router, with Hub fallback.
+description: Hephaestus Workforce routing for /hep-network or @Hephaestus requests through local Agentlas OS Core.
 alwaysApply: false
 ---
 
-# Hephaestus Network (Cursor adapter)
+# Hephaestus Network (Cursor fallback)
 
-Cursor ships `/hep-build`, `/hep-network`, and
-`/hep-cloud` as commands (see `cursor/plugin/`); this rule is the
-fallback adapter so plain-text routing triggers work too: when the user writes
-`/hep-network <request>` or `@Hephaestus <request>`, do the following.
+Cursor ships explicit `/hep-network`, `/hep-local`, `/hep-cloud`, and
+`/hep-hub` commands. For `/hep-network <request>` or `@Hephaestus <request>`,
+use MCP server `hephaestus-network`, the only host-visible Workforce MCP. Core
+owns its Cloud/Hub upstream calls.
 
-1. Resolve the runner — first executable wins:
-   `~/.agentlas/runtime/current/bin/hephaestus`, `./bin/hephaestus` in the
-   workspace, or the newest
-   `~/.claude/plugins/cache/agentlas-core-engine/hephaestus/*/bin/hephaestus`
-   (sort -V). If none exists, tell the user to run the one-touch installer:
-   `curl -fsSL https://raw.githubusercontent.com/agentlas-ai/Agentlas-OS/main/scripts/install-all-runtimes.sh | bash`
+1. Author a redacted `agentlas.workforce-work-order.v1`; keep private files,
+   memory, secrets, and raw project grounding local.
+2. Call `workforce.search_candidates` with
+   `{workOrder, sourceScope: "network"}` and keep `federationResult`.
+3. Author the host-LLM Selection from content/qualification evidence. Call
+   `workforce.validate_selection` with
+   `{workOrder, candidateSet: federationResult.candidateSet, selection,
+   federationResult}` and keep `federatedSelection`.
+4. Call `workforce.prepare_execution` with
+   `{workOrder, candidateSet: federationResult.candidateSet, selection,
+   federationResult, federatedSelection}`.
+5. Run planner/manager, workers, synthesis, and verifier as distinct calls with
+   explicit handoffs. Claim execution only from complete receipts.
 
-2. Run `"$RUNNER" auth ensure --timeout 180` first. It opens the default
-   browser only on first use and silently reuses an existing Agentlas saved
-   sign-in.
-
-3. Run `"$RUNNER" route "<request>" --runtime cursor` in the terminal and act
-   on the JSON decision:
-   - `route`: report the selected card, then invoke the agent with the
-     original request.
-   - `clarify`: ask the `clarify_question` with the candidates.
-   - `pipeline`: execute `stages` in order, saving artifacts under
-     `handoff_dir`; stop and report on any stage failure.
-   - `hub_fallback`/`hub_candidates`: Hub lookup used redacted keywords only;
-     the raw prompt and local memory were not sent.
-   - `propose_new`: offer to build a new agent via the Hephaestus meta-agent.
-   - `refuse`: explain the reasons; do not work around loop guards.
-
-4. Hard rules: the router only chooses an agent or fetches a BYOM Hub bundle.
-   Actual tool execution follows Cursor's safety and permission model.
+Network is registered Local + signed-in owner Cloud + public Hub. Missing
+sources stay explicit. Do not call `hephaestus_route`, bypass Core with direct
+remote search, accept deterministic staffing, or silently substitute workers.

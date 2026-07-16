@@ -160,7 +160,7 @@ claude plugin install hephaestus@agentlas-core-engine
 
 OS のターミナルから:
 ```bash
-codex plugin marketplace add agentlas-ai/Agentlas-OS --ref v1.1.45
+codex plugin marketplace add agentlas-ai/Agentlas-OS --ref v1.1.46
 codex plugin add hephaestus@agentlas-core-engine
 ```
 *注: Codex アプリ内では `/plugin marketplace add` は利用できません。上記の 2 つのコマンドを OS のターミナルで実行してください。OS ターミナルの CLI コマンドは単数形（`codex plugin`）ですが、Codex アプリ内のプラグインブラウザーのスラッシュコマンドは複数形（`/plugins`）です。インストール後は、`/prompts:hep-build` がアプリ内のエントリーポイントになります。*
@@ -185,8 +185,10 @@ codex plugin add hephaestus@agentlas-core-engine
 | システムサブシステム | シェルコマンド | 例 |
 | :--- | :--- | :--- |
 | **プロセスビルダー** | `/hep-build` | `/hep-build create a customer support agent for Shopify refunds` |
-| **A2A スケジューラー** | `/hep-network` | `/hep-network split this launch plan into research, copy, QA, and release agents` |
-| **クラウド状態同期** | `/hep-cloud` | `/hep-cloud use my saved finance analyst agent to review this report` |
+| **Workforce 連合（Local + Cloud + Hub）** | `/hep-network` | `/hep-network split this launch plan into research, copy, QA, and release agents` |
+| **登録済み Local エージェントのみ** | `/hep-local` | `/hep-local use only agents registered on this machine` |
+| **所有する Cloud エージェントのみ** | `/hep-cloud` | `/hep-cloud use my saved finance analyst agent to review this report` |
+| **公開 Hub エージェントのみ** | `/hep-hub` | `/hep-hub find public specialists for accessibility QA` |
 | **ディレクトリ検索** | `/hep-search` | `/hep-search find agents for a market report workflow` |
 | **プロセス間呼び出し（IPC）** | `/hep-call` | `/hep-call market-researcher, report-writer {draft a market report}` |
 | **パッケージエクスポーター** | `/hep-upload` | `/hep-upload ./agents/customer-support-hq` |
@@ -217,11 +219,11 @@ codex plugin add hephaestus@agentlas-core-engine
 
 <sub>図 2. A2A スケジューリング: LLM ランタイム、ローカルファーストのオーケストレーター、ルーティングカード、ローカルメモリ、そして Agentlas Hub の A2A/MCP フォールバック。</sub>
 
-*   **Routing Cards:** すべてのエージェント、チーム、プラグインは、トリガー、アンチトリガー、能力、リスクプロファイル、メモリパラメーターを含む標準化されたカードを同梱します。検証に失敗したカードはルーティングから除外されます。
-*   **ローカルファーストディスパッチ:** ディスパッチはまずローカルで解決されます（プロジェクトオーバーライド $\rightarrow$ ローカルカード）。Agentlas Hub への外部ルックアップはキーワードにまでレダクションされ、生のプロンプトがローカル環境の外へ出ることはありません。
-*   **一時的なタスクフォース:** 複合的なリクエストは Hub/ローカルのタスクフォース計画へ分解され、Stormbreaker エンベロープ、セッションヒント、オントロジーパスウェイをパッキングします。名前付きスペシャリストが動的にスケジュールされ、一時的なオーケストレーターがタスクのハンドオフを管理します。
-*   **レシート駆動の実行:** すべてのルーティング決定はレシートを書き出します。ルーターが決定するのはどのエージェントまたはパッケージを呼び出すかのみであり、ツール実行権限は厳密にサンドボックス化されたまま、アクティブなランタイムが管理します。
-*   **バイリンガルベンチマーク:** 自動ルーティングは、トップ 3 リコール $\ge 90\%$ かつプライバシーリークゼロを要求するバイリンガル（韓国語 + 英語）ベンチマークによってゲートされます。低信頼度のパスは、ランタイムレベルの Router Agent 再ランキングへエスカレーションされます。
+*   **型付きジョブ分析:** アクティブなホスト LLM が、役割、スキル、ツール、成果物、権限、人数、ハンドオフを明示した秘匿化済み `WorkOrder` を作成します。Core は部分文字列リストから人員需要を推測しません。
+*   **厳密なソース連合:** `local`、`cloud`、`hub` は厳密な単一スコープで、`network` はその封印された和集合です。各ソースは上限付きの content-only メニューを返し、Core は失敗したソースを別スコープで密かに代替しません。
+*   **ホスト所有のタスクフォース:** ホスト LLM が適格性の根拠を読み、正確な `Selection` を作成します。Core は決定論的な勝者選択や隠れた Router Agent 再ランキングを行わず、ガバナンス、プライバシー、ID、人数、グラフ整合性だけを検証します。
+*   **固定された実行:** 検証後、Core は元のソースセッションから選択済みの不変リリースだけを取得し、リリース、パッケージ、コンテンツのダイジェストを検証してから、プランナー、ワーカー、統合、検証を個別の呼び出しで実行します。
+*   **証拠ベースの評価:** 検索カバレッジ、ホスト選択、不変な準備、実際の子呼び出し、最終検証を別々の主張として評価します。ベンチマークや利用履歴がホストの人員配置判断に置き換わることはありません。
 
 詳細: [docs/hephaestus-network-2.0.md](docs/hephaestus-network-2.0.md) · ランタイムサポートマトリクス: [docs/runtime-fallback-adapters.md](docs/runtime-fallback-adapters.md)
 

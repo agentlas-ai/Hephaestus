@@ -426,18 +426,30 @@ def _filter_candidates_by_ao(
     if not mapped:
         return cards, {"status": "available_but_unmapped", "available": ao["agent_count"]}
 
-    candidates = [card for card in cards if str(card.get("id") or "") in mapped]
+    # A project AO is authoritative only for cards that it actually maps.  It
+    # must not turn into an accidental allow-list merely because one installed
+    # card happens to be present in the graph.  Unmapped global/local cards stay
+    # eligible and bypass this project-scoped gate; mapped cards are still
+    # checked against the deterministic deny grammar below.
+    candidates = list(cards)
     blocked_targets: list[str] = []
     blocked_by_axiom: list[str] = []
     blocked_edge_samples: list[dict[str, Any]] = []
     if caller_id:
         filtered: list[dict[str, Any]] = []
+        checked_targets: list[str] = []
+        allowed_targets: list[str] = []
         blocked = 0
         for card in candidates:
-            edge = {"from": str(caller_id), "to": str(card.get("id") or ""), "relation": relation, "kind": relation}
+            card_id = str(card.get("id") or "")
+            if card_id not in mapped:
+                filtered.append(card)
+                continue
+            checked_targets.append(card_id)
+            edge = {"from": str(caller_id), "to": card_id, "relation": relation, "kind": relation}
             if edge_is_blocked(edge=edge, node_index=node_index, grammar=ao.get("grammar", None)):
                 blocked += 1
-                blocked_targets.append(str(card.get("id") or ""))
+                blocked_targets.append(card_id)
                 gate = explain_edge_gate(edge=edge, node_index=node_index, grammar=ao.get("grammar", None))
                 blocked_by_axiom.extend(gate.get("blocked_by") or [])
                 blocked_by_axiom.extend(
@@ -449,21 +461,29 @@ def _filter_candidates_by_ao(
                 )
                 blocked_edge_samples.append({"from": str(edge.get("from")), "to": str(edge.get("to")), "relation": str(edge.get("relation"))})
                 continue
+            allowed_targets.append(card_id)
             filtered.append(card)
         candidates = filtered
         return candidates, {
             "status": "caller_filtered",
-            "mapped": len(candidates),
+            "mapped": len(mapped),
+            "mapped_ids": sorted(mapped),
+            "unmapped": len(cards) - len(mapped),
+            "eligible": len(candidates),
             "blocked": blocked,
             "caller_id": str(caller_id),
+            "checked_targets": checked_targets,
+            "allowed_targets": allowed_targets,
             "blocked_targets": blocked_targets,
             "blocked_by_axiom": blocked_by_axiom,
             "blocked_edges": blocked_edge_samples,
         }
 
     return candidates, {
-        "status": "mapped_only",
-        "mapped": len(candidates),
+        "status": "mapped_scoped",
+        "mapped": len(mapped),
+        "mapped_ids": sorted(mapped),
+        "unmapped": len(cards) - len(mapped),
         "available": ao["agent_count"],
     }
 
@@ -489,37 +509,81 @@ _STAGE_ROLE_TOKENS: dict[str, set[str]] = {
     "build": {"build", "builder", "code", "coding", "developer", "development", "engineer", "implementation", "runtime", "cli", "adapter", "product"},
     "verify": {"verify", "verifier", "qa", "test", "tester", "testing", "regression", "audit", "auditor", "review", "reviewer", "reliability", "security"},
 }
-_OFF_DOMAIN_ROLE_TOKENS = {
-    "travel", "concierge", "game", "film", "wedding", "marketing", "instagram",
-    "legal", "patent", "finance", "investment", "photo", "commerce", "sales",
-    "civil", "litigation", "lawsuit", "court", "selfrep", "민사", "소송", "법원",
-}
 
 
-def _hub_stage_candidate_fit(query: str, stage: str, item: dict[str, Any]) -> bool:
-    """Reject callable-but-off-domain Hub slugs from automatic TF execution."""
+def _hub_stage_candidate_score(
+    query: str, stage: str, item: dict[str, Any]
+) -> tuple[float, list[str]]:
+    """Return additive stage-fit evidence without semantically deleting a candidate.
+
+    Hub discovery results stay visible regardless of this score.  A domain
+    mismatch is only a bounded penalty: explicit stage-role or query overlap
+    remains positive and therefore eligible for the host's execution plan.
+    Deterministic hard blocking belongs to the AO/privacy governance layer, not
+    this semantic ranking helper.
+    """
 
     candidate_text = " ".join(
         [
             str(item.get("slug") or ""),
             str(item.get("name") or ""),
             str(item.get("nameEn") or ""),
+            str(item.get("tagline") or ""),
+            str(item.get("taglineEn") or ""),
+            str(item.get("summary") or ""),
+            str(item.get("summaryKo") or ""),
+            str(item.get("description") or ""),
+            str(item.get("descriptionKo") or ""),
         ]
     )
     query_words = word_token_set(query or "") | snake_tokens(query or "")
     candidate_words = word_token_set(candidate_text) | snake_tokens(str(item.get("slug") or ""))
     query_domains = set(classify_domains(query or ""))
     candidate_domains = set(classify_domains(candidate_text))
-    if query_domains and candidate_domains and query_domains.isdisjoint(candidate_domains):
-        return False
-    unrelated = (candidate_words & _OFF_DOMAIN_ROLE_TOKENS) - query_words
-    if unrelated:
-        return False
+    reasons: list[str] = []
+    score = 0.0
+
     role_tokens = _STAGE_ROLE_TOKENS.get(stage, set())
-    if candidate_words & role_tokens:
-        return True
+    role_overlap = candidate_words & role_tokens
+    if role_overlap:
+        score += min(3.0 * len(role_overlap), 6.0)
+        reasons.append("stage-role match: " + ",".join(sorted(role_overlap)))
+
     distinctive_query = query_words - _GENERIC_ROLE_TOKENS - {"local", "offline", "model", "agentlas"}
-    return bool(candidate_words & distinctive_query)
+    query_overlap = candidate_words & distinctive_query
+    if query_overlap:
+        score += min(1.5 * len(query_overlap), 4.5)
+        reasons.append("query overlap: " + ",".join(sorted(query_overlap)))
+
+    if query_domains and candidate_domains:
+        if query_domains & candidate_domains:
+            score += 1.5
+            reasons.append("domain match")
+        elif query_domains.isdisjoint(candidate_domains):
+            # Match the local-card guard's additive semantics while protecting
+            # only strong stage-role evidence from a domain classifier error.
+            # A weak subject-token collision (for example ``self`` in
+            # self-signed vs self-representation) receives the ordinary
+            # penalty and may become non-positive; a real builder/planner/QA
+            # role remains eligible for the host LLM despite domain mismatch.
+            penalized = score - 1.5
+            score = penalized if penalized > 0 else (0.01 if role_overlap and score > 0 else penalized)
+            reasons.append(
+                "cross-domain penalty (query="
+                + "/".join(sorted(query_domains))
+                + " vs candidate="
+                + "/".join(sorted(candidate_domains))
+                + ")"
+            )
+
+    return round(score, 3), reasons
+
+
+def _hub_stage_candidate_fit(query: str, stage: str, item: dict[str, Any]) -> bool:
+    """Compatibility flag derived from the additive stage-fit score."""
+
+    score, _reasons = _hub_stage_candidate_score(query, stage, item)
+    return score > 0
 
 
 def _hub_query_has_fitting_borrowable(query_tokens: list[str], results: list[dict[str, Any]]) -> bool:
@@ -608,16 +672,22 @@ def _byom_execution_plan(
     alternatives: list[dict[str, Any]] = []
     if stages:
         for stage in stages:
-            stage_candidates = [
-                c
-                for c in (stage.get("hub_candidates") or [])
-                if _is_borrowable(c) and c.get("intentFit") is not False
-            ]
-            if stage_candidates:
+            stage_candidates = [c for c in (stage.get("hub_candidates") or []) if _is_borrowable(c)]
+            # The full ranked menu stays intact.  Automatic execution takes
+            # only the highest positive-evidence candidate; a non-positive top
+            # result is a semantic non-selection (not an AO/privacy block) and
+            # leaves the stage to the local core worker.
+            top_candidate = stage_candidates[0] if stage_candidates else None
+            top_score = (
+                float(top_candidate.get("intentFitScore") or 0.0)
+                if isinstance(top_candidate, dict)
+                else 0.0
+            )
+            if top_candidate is not None and top_score > 0:
                 recommended.append(
                     {
                         "stage": stage.get("stage"),
-                        "agent": str(stage_candidates[0].get("slug")),
+                        "agent": str(top_candidate.get("slug")),
                         "alternatives": [str(c.get("slug")) for c in stage_candidates[1:4]],
                     }
                 )
@@ -638,7 +708,8 @@ def _byom_execution_plan(
             recommended.append({"stage": "direct", "agent": str(borrowable[0].get("slug"))})
             alternatives = [str(c.get("slug")) for c in borrowable[1:5]]
     # A composite Hub route must still be executable when discovery found
-    # results but none are both callable and intent-fit.  Stormbreaker owns a
+    # results but none are both callable and backed by positive stage-fit
+    # evidence.  Stormbreaker owns a
     # deterministic core worker for every stage, so preserve the stage plan and
     # let those core workers form the temporary orchestrator instead of
     # returning a task_force with execution=null.
@@ -674,12 +745,14 @@ def _byom_execution_plan(
         )
     else:
         directive = (
-            "Hub routing found no callable intent-fit BYOM bundle for these stages. Preserve "
+            "Hub routing found no callable BYOM bundle with positive stage-fit evidence for "
+            "these stages. Preserve "
             "the Hub-produced task-force plan and execute every entry in `core_stages` with "
             "the local Agentlas Stormbreaker workers. The local host model is the temporary "
             "orchestrator: plan, execute, hand artifacts forward, independently verify, and "
-            "report success only after the final gate passes. Do not borrow off-domain or "
-            "install-only Hub results merely to avoid the explicit core fallback."
+            "report success only after the final gate passes. Keep low-evidence Hub results "
+            "visible as alternatives, but do not auto-assign them or install-only results "
+            "merely to avoid the explicit core fallback."
         )
     if multi and recommended:
         directive += (
@@ -814,13 +887,25 @@ def _hub_task_force_plan(
         # because install-only search hits occupied the display top three.
         # Preserve rank within each class while putting callable BYOM bundles
         # first for this execution-oriented stage plan.
-        fit_results = [item for item in results if _hub_stage_candidate_fit(query, stage_key, item)]
-        other_results = [item for item in results if item not in fit_results]
-        ranked_results = sorted(fit_results, key=lambda item: 0 if _is_borrowable(item) else 1) + other_results
+        scored_results = [
+            (item, *_hub_stage_candidate_score(query, stage_key, item), index)
+            for index, item in enumerate(results)
+        ]
+        # Execution-oriented results keep callable bundles ahead of install-only
+        # packages, then use the additive semantic score.  No result is deleted:
+        # low-scoring candidates remain visible with their evidence for the host
+        # LLM, while the highest positive score controls the automatic worker
+        # recommendation.
+        ranked_results = sorted(
+            scored_results,
+            key=lambda entry: (0 if _is_borrowable(entry[0]) else 1, -entry[1], entry[3]),
+        )
         candidates = []
-        for item in ranked_results[:3]:
+        for item, fit_score, fit_evidence, _original_index in ranked_results[:3]:
             compact = _compact_hub_result(item)
-            compact["intentFit"] = _hub_stage_candidate_fit(query, stage_key, item)
+            compact["intentFitScore"] = fit_score
+            compact["intentFitEvidence"] = fit_evidence
+            compact["semanticRecommendation"] = "recommendable" if fit_score > 0 else "low_evidence"
             candidates.append(compact)
         for item in results:
             slug = str(item.get("slug") or "")
@@ -1152,7 +1237,6 @@ def route_request(
         )
 
     cards, quarantined = load_global_cards(base)
-    cards_by_id = {str(card.get("id")): card for card in cards}
     statuses = {str(card.get("id")): _cached_status(card) for card in cards}
     usable = [card for card in cards if statuses[str(card.get("id"))] not in ("quarantined", "stale")]
     # Plugins are tools an agent loads (required_plugins) — never a user-facing
@@ -1166,15 +1250,13 @@ def route_request(
     ]
     ao_filter_report: dict[str, Any] = {}
     usable, ao_filter_report = _filter_candidates_by_ao(usable, project, caller_id=caller_id)
-    ao_allowed_by: list[str] = []
+    usable_by_id = {str(card.get("id")): card for card in usable}
     ao_blocked_by_axiom: list[str] = []
     ao_fallback_scope: str | None = None
-    if ao_filter_report.get("status") == "mapped_only":
-        chain.append("ao:mapped-only")
-        ao_allowed_by = ["agent_ontology_graph"]
+    if ao_filter_report.get("status") == "mapped_scoped":
+        chain.append("ao:mapped-scoped")
     elif ao_filter_report.get("status") == "caller_filtered":
         chain.append("ao:caller-gated")
-        ao_allowed_by = ["agent_ontology_graph", "caller_gate"]
         blocked = ao_filter_report.get("blocked_by_axiom") or []
         ao_blocked_by_axiom = list(dict.fromkeys([str(item) for item in blocked if isinstance(item, str)]))
         ao_fallback_scope = "local_graph_and_caller_gate"
@@ -1185,17 +1267,32 @@ def route_request(
         # ontology-backed (a routed card gets a real graph_path below), not blind
         # lexical fallback.
         chain.append("ao:card-derived")
-        ao_allowed_by = ["agent_ontology_graph_cards"]
         ao_fallback_scope = "card_derived_ontology"
 
     query_domains = set(classify_domains(query))
+    ao_mapped_ids = {
+        str(card_id)
+        for card_id in (ao_filter_report.get("mapped_ids") or [])
+        if str(card_id)
+    }
+    ao_gate_allowed_ids = {
+        str(card_id)
+        for card_id in (ao_filter_report.get("allowed_targets") or [])
+        if str(card_id)
+    }
+
+    def _uses_card_derived_ontology(card: dict[str, Any] | None) -> bool:
+        if not card:
+            return False
+        status = ao_filter_report.get("status")
+        return status in ("missing", "available_but_unmapped") or str(card.get("id") or "") not in ao_mapped_ids
 
     def _route_graph_path(card: dict[str, Any] | None) -> list[dict[str, Any]]:
         """A concrete AO edge (domain→agent) for a routed card under the
         card-derived ontology scope; empty for any other scope so non-card
         routes are unchanged. Used by every route branch so a routed card never
         reports the empty graph_path this feature was meant to eliminate."""
-        if ao_fallback_scope != "card_derived_ontology" or not card:
+        if not _uses_card_derived_ontology(card):
             return []
         from ..agent_graph import card_route_path
 
@@ -1205,9 +1302,31 @@ def route_request(
             query_domains,
         )
 
+    def _route_allowed_by(card: dict[str, Any] | None, route_evidence: str) -> list[str]:
+        """Return only evidence that was actually evaluated for this card."""
+
+        card_id = str((card or {}).get("id") or "")
+        evidence: list[str] = []
+        if card_id in ao_gate_allowed_ids:
+            evidence.extend(["agent_ontology_graph", "caller_gate"])
+        elif _uses_card_derived_ontology(card):
+            evidence.append("agent_ontology_graph_cards")
+        evidence.append(route_evidence)
+        return evidence
+
+    def _route_fallback_scope(card: dict[str, Any] | None) -> str | None:
+        card_id = str((card or {}).get("id") or "")
+        if card_id in ao_gate_allowed_ids:
+            return "local_graph_and_caller_gate"
+        if _uses_card_derived_ontology(card):
+            return "card_derived_ontology"
+        return ao_fallback_scope
+
     explicit = _explicit_match(query, usable)
     if explicit is None:
-        explicit = _project_override(query, project, cards_by_id)
+        # Project overrides are convenience aliases, not a governance bypass:
+        # resolve them only against cards that survived the AO caller gate.
+        explicit = _project_override(query, project, usable_by_id)
         if explicit is not None and statuses.get(str(explicit.get("id"))) in ("quarantined", "stale"):
             explicit = None
     if explicit is not None:
@@ -1223,9 +1342,9 @@ def route_request(
             ["explicit_match"],
             match_reason="explicit_match",
             graph_path=_route_graph_path(explicit),
-            allowed_by=ao_allowed_by or ["explicit_match"],
+            allowed_by=_route_allowed_by(explicit, "explicit_match"),
             blocked_by_axiom=ao_blocked_by_axiom,
-            fallback_scope=ao_fallback_scope,
+            fallback_scope=_route_fallback_scope(explicit),
         )
 
     # Short, generic creation requests ("새 에이전트 만들어줘") belong to the
@@ -1260,9 +1379,9 @@ def route_request(
                 ["creation_intent"],
                 match_reason="creation_intent",
                 graph_path=_route_graph_path(creator),
-                allowed_by=ao_allowed_by or ["creation_intent"],
+                allowed_by=_route_allowed_by(creator, "creation_intent"),
                 blocked_by_axiom=ao_blocked_by_axiom,
-                fallback_scope=ao_fallback_scope,
+                fallback_scope=_route_fallback_scope(creator),
             )
 
     profile = load_profile(base)
@@ -1387,9 +1506,9 @@ def route_request(
             chain_note,
             match_reason="local_confident",
             graph_path=route_graph_path,
-            allowed_by=(ao_allowed_by or ["local_keyword_score"]) + ["route_confident_threshold"],
+            allowed_by=_route_allowed_by(top_card, "local_keyword_score") + ["route_confident_threshold"],
             blocked_by_axiom=ao_blocked_by_axiom,
-            fallback_scope=ao_fallback_scope,
+            fallback_scope=_route_fallback_scope(top_card),
         )
 
     # Not confident locally → multi-route: merge Hub candidates with local ones.
@@ -1408,7 +1527,7 @@ def route_request(
             ["multi_route", "hub_clarify"],
             match_reason="hub_clarify",
             graph_path=[],
-            allowed_by=(ao_allowed_by or ["hub_low_confidence"]) + ["local_score"],
+            allowed_by=["hub_low_confidence", "local_score"],
             blocked_by_axiom=ao_blocked_by_axiom,
             fallback_scope="local_hub_low_confidence",
         )
@@ -1430,7 +1549,7 @@ def route_request(
             ["multi_route", "hub_results_found"],
             match_reason="multi_route_hub_results",
             graph_path=[],
-            allowed_by=(ao_allowed_by or ["hub_results"]) + ["local_score"],
+            allowed_by=["hub_results", "local_score"],
             blocked_by_axiom=ao_blocked_by_axiom,
             fallback_scope=None,
         )
@@ -1449,7 +1568,7 @@ def route_request(
             ["clarify_threshold"],
             match_reason="low_confidence_threshold",
             graph_path=[],
-            allowed_by=(ao_allowed_by or ["local_score"]) + ["low_confidence"],
+            allowed_by=["local_score", "low_confidence"],
             blocked_by_axiom=ao_blocked_by_axiom,
             fallback_scope="local_low_confidence",
         )
@@ -1470,7 +1589,7 @@ def route_request(
         ["propose_new"] if use_hub else ["local_only_no_match"],
         match_reason="no_local_match",
         graph_path=[],
-        allowed_by=ao_allowed_by or ["no_local_match"],
+        allowed_by=["no_local_match"],
         blocked_by_axiom=ao_blocked_by_axiom,
         fallback_scope=ao_fallback_scope or ("hub_available" if use_hub else "hub_disabled"),
     )
