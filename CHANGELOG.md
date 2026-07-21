@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.1.52 - 2026-07-21
+
+- **The runtime self-update command is now `hep-update` and auto-update is the
+  default on every command.** `hephaestus update` is kept as a backward-compatible
+  alias, and a new `bin/hep-update` wrapper joins the `hep-*` family (registered in
+  the installer and adapter mirrors). The fail-silent, rate-limited background
+  update check (`maybe_auto_update`) was hoisted to run once for *every* command
+  instead of only the network/routing paths, so any invocation keeps the runtime
+  current — still gated by `HEPHAESTUS_AUTO_UPDATE`/`HEPHAESTUS_UPDATE_CHECK` and
+  skipped for the explicit `hep-update` command itself. The update-available
+  notice and `install_command` now point at `hephaestus hep-update`. Applied to
+  the root runtime plus the Claude and Codex meta-agent plugin mirrors.
+
 ## v1.1.51 - 2026-07-18
 
 - **Republishing a same-slug Cloud asset no longer hard-fails on

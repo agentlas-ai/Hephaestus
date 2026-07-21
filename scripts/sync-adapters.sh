@@ -53,6 +53,7 @@ code_files=(
   "bin/hep-upload"
   "bin/hep-storm"
   "bin/hep-global"
+  "bin/hep-update"
   "bin/hephaestus.cmd"
   "bin/agentlas-memory-hook"
 )

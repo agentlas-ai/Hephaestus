@@ -1,6 +1,6 @@
 """Runtime update checks for the Hephaestus CLI.
 
-The explicit ``hephaestus update`` command can install the latest runtime into
+The explicit ``hephaestus hep-update`` command can install the latest runtime into
 ``~/.agentlas/runtime/<version>`` and atomically point ``current`` at it. Normal
 command paths start a detached, fail-silent auto-update worker at most once per
 TTL window so the user's command does not wait on network or install work.
@@ -242,7 +242,7 @@ def run_update(check_only: bool = False, root: Path | None = None) -> dict[str, 
         "current": current,
         "latest": latest.get("tag_name"),
         "html_url": latest.get("html_url"),
-        "install_command": "hephaestus update",
+        "install_command": "hephaestus hep-update",
     }
     if not check_only:
         reconciled = reconcile_adapters()
@@ -324,7 +324,7 @@ def maybe_print_update_notice(root: Path | None = None) -> None:
     if _release_status(current, latest_tag) != "update_available":
         return
     print(
-        f"Hephaestus update available: {latest_tag} (current {current}). Run: hephaestus update",
+        f"Hephaestus update available: {latest_tag} (current {current}). Run: hephaestus hep-update",
         file=sys.stderr,
     )
 

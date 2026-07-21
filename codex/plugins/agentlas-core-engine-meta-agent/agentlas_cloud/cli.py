@@ -184,7 +184,11 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("field-test", help="Run local fixture field test")
     sub.add_parser("doctor", help="Diagnose and self-heal local Hephaestus runtime issues")
-    update = sub.add_parser("update", help="Check for or install the latest Hephaestus runtime")
+    update = sub.add_parser(
+        "hep-update",
+        aliases=["update"],
+        help="Check for or install the latest Hephaestus runtime",
+    )
     update.add_argument("--check", action="store_true", help="Only report whether a newer release is available")
 
     global_router = sub.add_parser("global", help="Install or remove Hephaestus global router prompt blocks")
@@ -634,6 +638,11 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     args = parser.parse_args(argv)
+    # Auto-update is the default: every command kicks off a fail-silent,
+    # rate-limited background runtime update check. hep-update runs its own
+    # synchronous check below, so skip the duplicate spawn for it.
+    if args.command not in {"hep-update", "update"}:
+        maybe_auto_update()
     if args.command == "wizard":
         return emit(run_setup_wizard(args.folder, args.name, write=not args.no_write))
     if args.command == "security" and args.security_command == "scan":
@@ -678,7 +687,7 @@ def main(argv: list[str] | None = None) -> int:
         return emit(run_field_test())
     if args.command == "doctor":
         return emit(run_doctor())
-    if args.command == "update":
+    if args.command in {"hep-update", "update"}:
         return emit(run_update(check_only=args.check))
     if args.command == "global":
         from .global_router import global_router_status, install_global_router, remove_global_router
@@ -1191,7 +1200,6 @@ def main(argv: list[str] | None = None) -> int:
         from .networking import init_networking, search_agents
         from .networking.bootstrap import networking_home
 
-        maybe_auto_update()
         init_networking(networking_home())
         bootstrap = _project_bootstrap_receipt(
             args.project,
@@ -1213,7 +1221,6 @@ def main(argv: list[str] | None = None) -> int:
         from .networking.bootstrap import networking_home
         from .networking.search_call import parse_local_inventory
 
-        maybe_auto_update()
         init_networking(networking_home())
         context = args.context_text or " ".join(args.context).strip()
         if not context:
@@ -1242,7 +1249,6 @@ def main(argv: list[str] | None = None) -> int:
         from .networking.bootstrap import networking_home
         from .networking.stormbreaker_runner import run_stormbreaker_decision
 
-        maybe_auto_update()
         trusted_project_contact = (
             _plugin_contact_runtime(args.runtime)
             or args.scope == "cloud"
@@ -1365,7 +1371,6 @@ def main(argv: list[str] | None = None) -> int:
         from .networking.bootstrap import networking_home
         from .networking.stormbreaker_runner import run_stormbreaker_decision, run_stormbreaker_query
 
-        maybe_auto_update()
         bootstrap = _project_bootstrap_receipt(
             args.project,
             "hephaestus-storm",
@@ -2146,7 +2151,7 @@ def run_field_test() -> dict[str, Any]:
             "agentId": "agent_private_instagram",
             "ownerId": "owner",
             "creatorId": "creator",
-            "version": "1.1.51",
+            "version": "1.1.52",
             "manifest": wizard["manifest"],
             "files": [{"path": "AGENTS.md", "content": (agent / "AGENTS.md").read_text(encoding="utf-8")}],
             "memory": {"scope": "private", "summary": "private campaign memory", "deltas": ["weekly cadence"]},

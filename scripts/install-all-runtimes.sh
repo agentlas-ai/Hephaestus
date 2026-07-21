@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-version="${HEPHAESTUS_REF:-v1.1.51}"
+version="${HEPHAESTUS_REF:-v1.1.52}"
 repo="${HEPHAESTUS_REPO:-agentlas-ai/Agentlas-OS}"
 github_url="${HEPHAESTUS_GITHUB_URL:-https://github.com/$repo}"
 marketplace_name="${HEPHAESTUS_MARKETPLACE:-agentlas-core-engine}"
@@ -217,6 +217,7 @@ install_runtime_home() {
 	    "$home_dir/bin/hep-upload" \
 	    "$home_dir/bin/hep-storm" \
 	    "$home_dir/bin/hep-global" \
+	    "$home_dir/bin/hep-update" \
 	    "$home_dir/bin/agentlas-memory-hook" 2>/dev/null || true
   printf '%s\n' "$version" > "$home_dir/RELEASE"
   write_python3_shim "$home_dir/bin" || true
@@ -239,7 +240,7 @@ install_runtime_home() {
   local user_bin="$HOME/.local/bin"
   if mkdir -p "$user_bin" 2>/dev/null; then
 	  local -a shell_commands=(
-	    hephaestus ontology hep-build hep-network hep-local hep-cloud hep-hub hep-search hep-browser hep-call hep-upload hep-storm hep-global
+	    hephaestus ontology hep-build hep-network hep-local hep-cloud hep-hub hep-search hep-browser hep-call hep-upload hep-storm hep-global hep-update
 	  )
     local command
     for command in "${shell_commands[@]}"; do
