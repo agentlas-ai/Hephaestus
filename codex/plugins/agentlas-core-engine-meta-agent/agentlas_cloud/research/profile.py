@@ -163,7 +163,7 @@ def _operator_summary(
     credential_modules = [
         module
         for module in mounted_modules
-        if module.get("id") in {"platform.reddit.oauth", "platform.threads", "search.jina"}
+        if module.get("id") in {"platform.reddit.oauth", "platform.threads", "search.jina", "search.serpdive"}
     ]
     missing_credentials = [
         module

@@ -17,6 +17,7 @@ from .registry import AdapterRegistry, ResearchAdapter
 
 ENV_REQUIREMENTS: dict[str, tuple[str, ...]] = {
     "search.jina": ("AGENTLAS_JINA_API_KEY", "JINA_API_KEY"),
+    "search.serpdive": ("AGENTLAS_SERPDIVE_API_KEY", "SERPDIVE_API_KEY"),
     "platform.reddit.oauth": ("AGENTLAS_REDDIT_BEARER_TOKEN", "REDDIT_BEARER_TOKEN"),
     "platform.threads": ("AGENTLAS_THREADS_ACCESS_TOKEN", "THREADS_ACCESS_TOKEN"),
 }

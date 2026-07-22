@@ -16,18 +16,20 @@ from .runtime import AgentlasMockStore, compile_runtime_bundle, read_agent_file,
 from .update import maybe_auto_update, reconcile_adapters, run_update, write_python_shims
 
 
-RESEARCH_SEARCH_PROVIDERS = ("ddg-html", "news-rss", "github", "jina")
+RESEARCH_SEARCH_PROVIDERS = ("ddg-html", "news-rss", "github", "jina", "serpdive")
 RESEARCH_SEARCH_PROVIDER_MODULES = {
     "ddg-html": "search.ddg_html",
     "news-rss": "search.news_rss",
     "github": "search.github_repos",
     "jina": "search.jina",
+    "serpdive": "search.serpdive",
 }
 RESEARCH_SEARCH_PROVIDER_HINTS = {
     "ddg-html": "ddg_html",
     "news-rss": "news_rss",
     "github": "github",
     "jina": "jina",
+    "serpdive": "serpdive",
 }
 AGENTLAS_BROWSER_MODULE = "browser.agent_cli"
 

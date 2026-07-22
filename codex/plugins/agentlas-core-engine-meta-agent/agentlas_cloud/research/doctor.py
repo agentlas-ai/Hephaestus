@@ -127,7 +127,7 @@ def _browser_modularity_check(profile_auto: dict[str, Any], profile_browser: dic
 
 
 def _web_search_recall_check(modules: dict[str, ResearchAdapter]) -> dict[str, Any]:
-    search_modules = [module_id for module_id in ("search.ddg_html", "search.news_rss", "search.jina") if module_id in modules]
+    search_modules = [module_id for module_id in ("search.ddg_html", "search.news_rss", "search.jina", "search.serpdive") if module_id in modules]
     variants = [item["name"] for item in query_variant_catalog()]
     ok = {"search.ddg_html", "search.news_rss"}.issubset(set(search_modules)) and {"docs", "reddit", "threads", "github"}.issubset(set(variants))
     return {

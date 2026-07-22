@@ -22,6 +22,7 @@ from .adapters import (
     JinaSearchAdapter,
     NewsRssSearchAdapter,
     PlaywrightMcpAdapter,
+    SerpdiveSearchAdapter,
     StagehandBrowserAdapter,
     SteelBrowserAdapter,
 )
@@ -264,6 +265,7 @@ def default_registry(*, home: Path | str | None = None) -> AdapterRegistry:
     registry.register(NewsRssSearchAdapter())
     registry.register(GitHubReposSearchAdapter())
     registry.register(JinaSearchAdapter())
+    registry.register(SerpdiveSearchAdapter())
     registry.register(HttpReaderAdapter())
     registry.register(InsaneFetchAdapter())
     registry.register(JinaReaderAdapter())
@@ -451,6 +453,7 @@ SEARCH_MODULE_HINTS = {
     "search.news_rss": "news_rss",
     "search.github_repos": "github",
     "search.jina": "jina",
+    "search.serpdive": "serpdive",
 }
 GITHUB_SEARCH_MODULE = "search.github_repos"
 GITHUB_SEARCH_KEYWORDS = ("github", "깃헙", "깃허브", "repo:", "repository", "repositories", "open source", "오픈소스")
@@ -945,6 +948,18 @@ def _escalation_advice(
                 modules=["search.jina"],
                 weight="external_light",
                 note="Configure AGENTLAS_JINA_API_KEY or JINA_API_KEY only when external search disclosure is acceptable.",
+            )
+        )
+
+    if "AGENTLAS_SERPDIVE_API_KEY or SERPDIVE_API_KEY not configured" in attempt_reasons:
+        suggestions.append(
+            _suggestion(
+                action="configure_credentials",
+                reason="serpdive_key_missing",
+                loadout="full",
+                modules=["search.serpdive"],
+                weight="external_light",
+                note="Configure AGENTLAS_SERPDIVE_API_KEY or SERPDIVE_API_KEY only when external search disclosure is acceptable.",
             )
         )
 

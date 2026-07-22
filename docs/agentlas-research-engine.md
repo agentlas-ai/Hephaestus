@@ -509,6 +509,7 @@ bounded search follow-up through the built-in registry:
 | `search.news_rss` | `light` | available | No-key public RSS search for current/news-like web discovery. |
 | `search.github_repos` | `light` | available | No-key GitHub REST repository search for public repo discovery. It is mounted by `public-web`/`full`, but auto fan-out uses it only for GitHub hints or explicit `--provider github`. |
 | `search.jina` | `external_light` | available if configured | Jina web search cartridge for explicit `research search` calls; requires `AGENTLAS_JINA_API_KEY` or `JINA_API_KEY`. |
+| `search.serpdive` | `external_light` | available if configured | SERPdive web search cartridge returning extracted, answer-ready page content per result; requires `AGENTLAS_SERPDIVE_API_KEY` or `SERPDIVE_API_KEY`. |
 | `read.http` | `light` | available | Safe static HTTP/HTML reader. |
 | `read.insane_fetch` | `adaptive_medium` | available if allowed | Bounded public-route fetch-chain inspired by an external resilient-reader design: direct read, Reddit `.rss`, Jina Reader fallback, metadata/feed parsing, route trace evidence, and hard stop on login/paywall. This stays a detachable public reader, not the core research engine. |
 | `read.jina` | `external_light` | available if allowed | Jina Reader URL-to-markdown cartridge; plain URL reads are not sent to Jina unless this module is explicitly allowed. |
@@ -667,6 +668,13 @@ Search through the Jina cartridge when a key is configured:
 ```bash
 AGENTLAS_JINA_API_KEY=... bin/hephaestus research search "agent browser modular research" \
   --provider jina
+```
+
+Search through the SERPdive cartridge when a key is configured:
+
+```bash
+AGENTLAS_SERPDIVE_API_KEY=... bin/hephaestus research search "agent browser modular research" \
+  --provider serpdive
 ```
 
 List detachable modules:

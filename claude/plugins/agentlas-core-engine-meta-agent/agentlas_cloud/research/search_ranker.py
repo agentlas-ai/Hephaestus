@@ -206,6 +206,9 @@ def _score_candidate(
     elif source == "search.jina":
         score += 18
         reasons.append("external_search")
+    elif source == "search.serpdive":
+        score += 18
+        reasons.append("external_search")
     elif source == "search.news_rss":
         score += 10
         reasons.append("news_search")
@@ -263,6 +266,8 @@ def _search_source(result: ResearchResult) -> str:
         return "search.github_repos"
     if "jina_search" in limits or "s.jina.ai" in url:
         return "search.jina"
+    if "serpdive_search" in limits or "api.serpdive.com" in url:
+        return "search.serpdive"
     if "public_rss_search" in limits or "news.google.com" in url:
         return "search.news_rss"
     return "search.unknown"

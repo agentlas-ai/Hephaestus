@@ -19,6 +19,7 @@ AUTO_THREADS_MODULES = ("platform.threads.public",)
 AUTO_GITHUB_MODULES = ("search.github_repos",)
 AUTO_EXTERNAL_HINT_MODULES = {
     "search:jina:": "search.jina",
+    "search:serpdive:": "search.serpdive",
     "jina:": "read.jina",
 }
 GITHUB_SEARCH_KEYWORDS = ("github", "깃헙", "깃허브", "repo:", "repository", "repositories", "open source", "오픈소스")
@@ -129,6 +130,7 @@ LOADOUTS: dict[str, ResearchLoadout] = {
             "search.ddg_html",
             "search.github_repos",
             "search.jina",
+            "search.serpdive",
             "read.http",
             "read.insane_fetch",
             "read.jina",
@@ -252,7 +254,7 @@ def _auto_max_weight(request: ResearchRequest, allowed_modules: list[str]) -> st
         return "adaptive_medium"
     if _has_public_social_hint(request) and any(module in allowed_modules for module in ("platform.reddit", "platform.threads.public")):
         return "adaptive_medium"
-    if any(module in allowed_modules for module in ("search.jina", "read.jina")):
+    if any(module in allowed_modules for module in ("search.jina", "search.serpdive", "read.jina")):
         return "external_light"
     return "light"
 

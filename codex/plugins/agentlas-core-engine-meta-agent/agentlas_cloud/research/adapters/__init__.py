@@ -11,6 +11,7 @@ from .insane_fetch import InsaneFetchAdapter
 from .jina_reader import JinaReaderAdapter, JinaSearchAdapter
 from .news_rss_search import NewsRssSearchAdapter
 from .playwright_mcp import PlaywrightMcpAdapter
+from .serpdive_search import SerpdiveSearchAdapter
 from .stagehand_browser import StagehandBrowserAdapter
 from .steel_browser import SteelBrowserAdapter
 
@@ -27,6 +28,7 @@ __all__ = [
     "JinaSearchAdapter",
     "NewsRssSearchAdapter",
     "PlaywrightMcpAdapter",
+    "SerpdiveSearchAdapter",
     "StagehandBrowserAdapter",
     "SteelBrowserAdapter",
 ]

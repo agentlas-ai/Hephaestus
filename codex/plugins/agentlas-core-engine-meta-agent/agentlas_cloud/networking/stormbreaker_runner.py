@@ -51,6 +51,7 @@ STORMBREAKER_RESEARCH_MODULES = {
     "search.ddg_html",
     "search.github_repos",
     "search.jina",
+    "search.serpdive",
     "search.news_rss",
 }
 STORMBREAKER_SAFE_RESEARCH_MODULES = ["search.ddg_html", "search.news_rss", "read.http"]
