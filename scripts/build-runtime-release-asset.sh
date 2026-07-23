@@ -106,6 +106,7 @@ required_runtime_paths=(
   "manifest.json"
   "package-contract.json"
   "bin/hephaestus"
+  "bin/agentlas-python-cache-boundary"
   "agentlas_cloud/mcp_stdio.py"
   "agentlas_cloud/desktop_repair.py"
   "agentlas_cloud/desktop-update-bridge-v1.json"

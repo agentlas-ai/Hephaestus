@@ -162,3 +162,6 @@ credentials/
 .agentlas/career-graph.sqlite*
 .agentlas/experience-relations.jsonl*
 .agentlas/.experience-relations.jsonl.*
+
+# 로컬 빌드 산출물(런타임 릴리스 tar.gz) — GitHub Release 자산으로만 배포, git 소스로는 안 실음.
+dist/

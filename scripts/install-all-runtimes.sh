@@ -2,7 +2,29 @@
 set -uo pipefail
 
 export PYTHONDONTWRITEBYTECODE=1
-export PYTHONPYCACHEPREFIX="${XDG_CACHE_HOME:-${HOME:-${TMPDIR:-/tmp}}/.cache}/agentlas/python"
+
+agentlas_installer_python_cache_prefix() {
+  local home_real prefix
+  [[ -n "${HOME:-}" && "$HOME" == /* && -d "$HOME" ]] || return 1
+  home_real="$(cd -P "$HOME" 2>/dev/null && pwd)" || return 1
+  case "$(uname -s 2>/dev/null || true)" in
+    Darwin) prefix="$home_real/Library/Caches/Agentlas/python" ;;
+    *) prefix="$home_real/.cache/agentlas/python" ;;
+  esac
+  [[ "$prefix" == /* && "$prefix" != *$'\n'* && "$prefix" != *$'\r'* ]] || return 1
+  case "$prefix" in
+    *.app/Contents/Resources|*.app/Contents/Resources/*|*/resources|*/resources/*)
+      return 1
+      ;;
+  esac
+  printf '%s\n' "$prefix"
+}
+
+PYTHONPYCACHEPREFIX="$(agentlas_installer_python_cache_prefix)" || {
+  printf '%s\n' "Agentlas OS installer could not establish a safe external Python cache directory." >&2
+  exit 78
+}
+export PYTHONPYCACHEPREFIX
 
 version="${HEPHAESTUS_REF:-v1.1.58}"
 repo="${HEPHAESTUS_REPO:-agentlas-ai/Agentlas-OS}"
@@ -265,17 +287,19 @@ EOF
 
 write_python3_shim() {
   local bin_dir="$1"
-  local py
+  local py py_cache py_cache_quoted
   py="$(resolve_python_cmd || true)"
   rm -f "$bin_dir/python3" "$bin_dir/python3.cmd" 2>/dev/null || true
   [[ -n "$py" ]] || return 0
+  py_cache="$(agentlas_installer_python_cache_prefix)" || return 1
+  printf -v py_cache_quoted '%q' "$py_cache"
   mkdir -p "$bin_dir"
   if [[ "$py" == "py -3" ]]; then
-    cat > "$bin_dir/python3" <<'EOF'
+    cat > "$bin_dir/python3" <<EOF
 #!/usr/bin/env bash
 export PYTHONDONTWRITEBYTECODE=1
-export PYTHONPYCACHEPREFIX="${XDG_CACHE_HOME:-${HOME:-${TMPDIR:-/tmp}}/.cache}/agentlas/python"
-exec py -3 "$@"
+export PYTHONPYCACHEPREFIX=$py_cache_quoted
+exec py -3 "\$@"
 EOF
     cat > "$bin_dir/python3.cmd" <<'EOF'
 @echo off
@@ -289,7 +313,7 @@ EOF
     cat > "$bin_dir/python3" <<EOF
 #!/usr/bin/env bash
 export PYTHONDONTWRITEBYTECODE=1
-export PYTHONPYCACHEPREFIX="\${XDG_CACHE_HOME:-\${HOME:-\${TMPDIR:-/tmp}}/.cache}/agentlas/python"
+export PYTHONPYCACHEPREFIX=$py_cache_quoted
 exec "$py" "\$@"
 EOF
     cat > "$bin_dir/python3.cmd" <<EOF

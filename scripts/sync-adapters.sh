@@ -42,6 +42,7 @@ hook_dir_mirrors=(
 code_files=(
   "package-contract.json"
   "bin/hephaestus"
+  "bin/agentlas-python-cache-boundary"
   "bin/ontology"
   "bin/career-graph"
   "bin/hep-build"

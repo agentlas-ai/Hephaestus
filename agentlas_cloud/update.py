@@ -13,6 +13,7 @@ import json
 import os
 import re
 import secrets
+import shlex
 import shutil
 import subprocess
 import sys
@@ -21,7 +22,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 LATEST_RELEASE_URL = os.environ.get(
@@ -621,17 +622,115 @@ def retry_installed_desktop_updater_cleanup(source: Path, home: Path | None = No
         return {"status": "blocked", "reason": "bridge_failed"}
 
 
+def _selected_python_resources(executable: Path) -> Path | None:
+    parts = executable.parts
+    for index, part in enumerate(parts):
+        if (
+            part.endswith(".app")
+            and index + 2 < len(parts)
+            and parts[index + 1] == "Contents"
+            and parts[index + 2] == "Resources"
+        ):
+            return Path(*parts[: index + 3])
+    for index, part in enumerate(parts):
+        if part.lower() == "resources":
+            return Path(*parts[: index + 1])
+    return None
+
+
+def _validated_python_executable(executable: str) -> tuple[str, Path | None]:
+    if any(character in executable for character in ("\r", "\n", "\x00")):
+        raise ValueError("Python executable path is not representable safely")
+
+    # Package-contract tests and POSIX release builders intentionally generate
+    # Windows launchers without executing the referenced interpreter. Permit
+    # only a canonical drive-rooted .exe path in that non-native case. Native
+    # hosts still require the executable to resolve to a real regular file.
+    windows_path = PureWindowsPath(executable)
+    if os.name != "nt" and windows_path.is_absolute():
+        if not re.fullmatch(r"[A-Za-z]:", windows_path.drive):
+            raise ValueError("Non-native Windows Python executable must be drive-rooted")
+        if windows_path.suffix.lower() != ".exe":
+            raise ValueError("Non-native Windows Python executable must name an .exe")
+        if any(character in executable for character in ('"', "%")):
+            raise ValueError("Windows Python executable path is not representable safely")
+        reserved = {
+            "CON",
+            "PRN",
+            "AUX",
+            "NUL",
+            *(f"COM{index}" for index in range(1, 10)),
+            *(f"LPT{index}" for index in range(1, 10)),
+        }
+        for part in windows_path.parts[1:]:
+            if (
+                not part
+                or part in (".", "..")
+                or part.endswith((" ", "."))
+                or any(ord(character) < 32 or character in '<>:"|?*' for character in part)
+                or part.split(".", 1)[0].upper() in reserved
+            ):
+                raise ValueError("Non-native Windows Python executable path is invalid")
+        return executable, None
+
+    if os.name == "nt" and any(character in executable for character in ('"', "%")):
+        raise ValueError("Windows Python executable path is not representable safely")
+    selected = Path(executable).expanduser().resolve(strict=True)
+    if not selected.is_file():
+        raise ValueError("Python executable is not a regular file")
+    return str(selected), selected
+
+
+def _safe_python_cache_prefix(executable: str, home: Path | None = None) -> Path:
+    _, selected = _validated_python_executable(executable)
+    user_home = (home or Path.home()).expanduser()
+    if not user_home.is_absolute():
+        raise ValueError("Python cache home must be absolute")
+    resolved_home = user_home.resolve(strict=True)
+    if not resolved_home.is_dir():
+        raise ValueError("Python cache home is not a directory")
+    if os.name == "nt":
+        prefix = resolved_home / "AppData" / "Local" / "Agentlas" / "PythonCache"
+    elif sys.platform == "darwin":
+        prefix = resolved_home / "Library" / "Caches" / "Agentlas" / "python"
+    else:
+        prefix = resolved_home / ".cache" / "agentlas" / "python"
+    resolved_prefix = prefix.resolve(strict=False)
+    resources = _selected_python_resources(selected) if selected is not None else None
+    if resources is not None and (
+        resolved_prefix == resources or resources in resolved_prefix.parents
+    ):
+        raise ValueError("Python cache directory resolves inside selected runtime resources")
+    text = str(resolved_prefix)
+    if any(character in text for character in ("\r", "\n", "\x00")):
+        raise ValueError("Python cache directory is not representable safely")
+    if os.name == "nt" and any(character in text for character in ('"', "%")):
+        raise ValueError("Python cache directory is not representable safely on Windows")
+    return resolved_prefix
+
+
 def write_python_shims(bin_dir: Path, executable: str) -> None:
     bin_dir.mkdir(parents=True, exist_ok=True)
     shell_shim = bin_dir / "python3"
     cmd_shim = bin_dir / "python3.cmd"
     cmd_runner = bin_dir / "hephaestus.cmd"
     env_cmd = bin_dir / "hephaestus-env.cmd"
+    executable_text, _ = _validated_python_executable(executable)
+    cache_prefix = _safe_python_cache_prefix(executable)
+    shell_executable = shlex.quote(executable_text)
+    shell_cache_prefix = shlex.quote(str(cache_prefix))
+    if os.name == "nt":
+        cmd_cache = f'set "PYTHONPYCACHEPREFIX={cache_prefix}"\r\n'
+    else:
+        cmd_cache = (
+            'if defined LOCALAPPDATA (set "PYTHONPYCACHEPREFIX=%LOCALAPPDATA%\\Agentlas\\PythonCache") '
+            'else (set "PYTHONPYCACHEPREFIX=%TEMP%\\Agentlas-PythonCache")\r\n'
+        )
     shell_shim.write_text(
         '#!/usr/bin/env bash\n'
         'export PYTHONDONTWRITEBYTECODE=1\n'
-        'export PYTHONPYCACHEPREFIX="${XDG_CACHE_HOME:-${HOME:-${TMPDIR:-/tmp}}/.cache}/agentlas/python"\n'
-        f'exec "{executable}" "$@"\n',
+        f"export PYTHONPYCACHEPREFIX={shell_cache_prefix}\n"
+        f'exec {shell_executable} "$@"\n',
         encoding="utf-8",
     )
     shell_shim.chmod(0o755)
@@ -639,31 +738,38 @@ def write_python_shims(bin_dir: Path, executable: str) -> None:
         '@echo off\r\n'
         'setlocal\r\n'
         'set "PYTHONDONTWRITEBYTECODE=1"\r\n'
-        'if defined LOCALAPPDATA (set "PYTHONPYCACHEPREFIX=%LOCALAPPDATA%\\Agentlas\\PythonCache") else (set "PYTHONPYCACHEPREFIX=%TEMP%\\Agentlas-PythonCache")\r\n'
-        f'"{executable}" %*\r\n'
+        f"{cmd_cache}"
+        f'"{executable_text}" %*\r\n'
         'exit /b %ERRORLEVEL%\r\n',
         encoding="utf-8",
     )
-    _write_cmd_runner(cmd_runner)
+    _write_cmd_runner(cmd_runner, cache_prefix)
     env_cmd.write_text(
         '@echo off\r\n'
         'set "PYTHONUTF8=1"\r\n'
         'set "PYTHONIOENCODING=utf-8"\r\n'
         'set "PYTHONDONTWRITEBYTECODE=1"\r\n'
-        'if defined LOCALAPPDATA (set "PYTHONPYCACHEPREFIX=%LOCALAPPDATA%\\Agentlas\\PythonCache") else (set "PYTHONPYCACHEPREFIX=%TEMP%\\Agentlas-PythonCache")\r\n'
+        f"{cmd_cache}"
         'set "PYTHONPATH=%~dp0..;%PYTHONPATH%"\r\n',
         encoding="utf-8",
     )
 
 
-def _write_cmd_runner(path: Path) -> None:
+def _write_cmd_runner(path: Path, cache_prefix: Path | None = None) -> None:
+    if cache_prefix is not None and os.name == "nt":
+        cmd_cache = f'set "PYTHONPYCACHEPREFIX={cache_prefix}"\r\n'
+    else:
+        cmd_cache = (
+            'if defined LOCALAPPDATA (set "PYTHONPYCACHEPREFIX=%LOCALAPPDATA%\\Agentlas\\PythonCache") '
+            'else (set "PYTHONPYCACHEPREFIX=%TEMP%\\Agentlas-PythonCache")\r\n'
+        )
     path.write_text(
         '@echo off\r\n'
         'setlocal\r\n'
         'set "PYTHONUTF8=1"\r\n'
         'set "PYTHONIOENCODING=utf-8"\r\n'
         'set "PYTHONDONTWRITEBYTECODE=1"\r\n'
-        'if defined LOCALAPPDATA (set "PYTHONPYCACHEPREFIX=%LOCALAPPDATA%\\Agentlas\\PythonCache") else (set "PYTHONPYCACHEPREFIX=%TEMP%\\Agentlas-PythonCache")\r\n'
+        f"{cmd_cache}"
         'set "PYTHONPATH=%~dp0..;%PYTHONPATH%"\r\n'
         'if defined HEPHAESTUS_PYTHON goto use_env_python\r\n'
         'if exist "%~dp0python3.cmd" goto use_python3_shim\r\n'

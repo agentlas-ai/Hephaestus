@@ -1,16 +1,76 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import os
+import sys
+
+# This file is also the post-activation bridge used by older managed-runtime
+# updaters. Those callers can start it with a Python executable inside a signed
+# desktop bundle and without any bytecode boundary. Establish the boundary
+# before importing the rest of the installer so this compatibility process
+# itself cannot add caches to that bundle.
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+sys.dont_write_bytecode = True
+if os.name == "nt":
+    _BOOTSTRAP_HOME = os.path.realpath(
+        os.environ.get("HOME") or os.environ.get("USERPROFILE") or "C:\\"
+    )
+    _BOOTSTRAP_CACHE_PREFIX = os.path.join(
+        _BOOTSTRAP_HOME,
+        "AppData",
+        "Local",
+        "Agentlas",
+        "PythonCache",
+    )
+else:
+    _BOOTSTRAP_HOME = os.path.realpath(os.environ.get("HOME") or "/tmp")
+    if sys.platform == "darwin":
+        _BOOTSTRAP_CACHE_PREFIX = os.path.join(
+            _BOOTSTRAP_HOME,
+            "Library",
+            "Caches",
+            "Agentlas",
+            "python",
+        )
+    else:
+        _BOOTSTRAP_CACHE_PREFIX = os.path.join(
+            _BOOTSTRAP_HOME,
+            ".cache",
+            "agentlas",
+            "python",
+        )
+_BOOTSTRAP_EXECUTABLE = os.path.realpath(sys.executable)
+_BOOTSTRAP_MARKER = f".app{os.sep}Contents{os.sep}Resources"
+if _BOOTSTRAP_MARKER in _BOOTSTRAP_EXECUTABLE:
+    _BOOTSTRAP_RESOURCES = (
+        _BOOTSTRAP_EXECUTABLE.split(_BOOTSTRAP_MARKER, 1)[0]
+        + _BOOTSTRAP_MARKER
+    )
+    try:
+        _BOOTSTRAP_INSIDE_RESOURCES = (
+            os.path.commonpath((_BOOTSTRAP_RESOURCES, _BOOTSTRAP_CACHE_PREFIX))
+            == _BOOTSTRAP_RESOURCES
+        )
+    except ValueError:
+        _BOOTSTRAP_INSIDE_RESOURCES = False
+    if _BOOTSTRAP_INSIDE_RESOURCES:
+        _BOOTSTRAP_CACHE_PREFIX = os.path.join(
+            "/tmp" if os.name != "nt" else "C:\\Windows\\Temp",
+            f"agentlas-python-{os.getuid() if hasattr(os, 'getuid') else 'user'}",
+        )
+os.environ["PYTHONPYCACHEPREFIX"] = _BOOTSTRAP_CACHE_PREFIX
+sys.pycache_prefix = _BOOTSTRAP_CACHE_PREFIX
+
 import argparse
 import hashlib
 import json
-import os
 import plistlib
 import re
+import shlex
 import shutil
 import stat
 import subprocess
-import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -25,6 +85,7 @@ from agentlas_cloud.desktop_repair import (
 from agentlas_cloud.desktop_updater_cleanup import (
     repair_installed_desktop_updater_cache as run_desktop_updater_cleanup_bridge,
 )
+from agentlas_cloud.update import _safe_python_cache_prefix
 
 
 BEGIN_MARKER = "<!-- AGENTLAS:MEMORY-HOOK:BEGIN -->"
@@ -40,6 +101,17 @@ DESKTOP_REQUIREMENT = (
     'certificate leaf[field.1.2.840.113635.100.6.1.13] exists and '
     'certificate 1[field.1.2.840.113635.100.6.2.6] exists and '
     'certificate leaf[subject.OU] = "F469CGM7T5"'
+)
+RUNTIME_SHIM_FILES = (
+    "python3",
+    "python3.cmd",
+    "hephaestus.cmd",
+    "hephaestus-env.cmd",
+)
+RUNTIME_VERSION_RE = re.compile(
+    r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
+    r"(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?"
+    r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?"
 )
 
 
@@ -390,6 +462,317 @@ def _atomic_write(path: Path, content: str) -> None:
     os.replace(tmp, path)
 
 
+def _regular_single_link(path: Path) -> os.stat_result:
+    try:
+        metadata = path.lstat()
+    except OSError as exc:
+        raise InstallError(f"managed runtime file is unreadable: {path.name}") from exc
+    if (
+        stat.S_ISLNK(metadata.st_mode)
+        or not stat.S_ISREG(metadata.st_mode)
+        or metadata.st_nlink != 1
+    ):
+        raise InstallError(f"managed runtime file is not a private regular file: {path.name}")
+    return metadata
+
+
+def _directory_identity(path: Path) -> tuple[int, int]:
+    try:
+        metadata = path.lstat()
+    except OSError as exc:
+        raise InstallError(f"managed runtime directory is unreadable: {path.name}") from exc
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
+        raise InstallError(f"managed runtime directory is linked: {path.name}")
+    return metadata.st_dev, metadata.st_ino
+
+
+def _file_digest(path: Path) -> str:
+    _regular_single_link(path)
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _source_runtime_version(source_dir: Path) -> str:
+    manifest = source_dir / "manifest.json"
+    _regular_single_link(manifest)
+    try:
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise InstallError("runtime source manifest is unreadable") from exc
+    version = str(payload.get("version") or "") if isinstance(payload, dict) else ""
+    if not RUNTIME_VERSION_RE.fullmatch(version):
+        raise InstallError("runtime source version is invalid")
+    return version
+
+
+def _validate_runtime_copy(root: Path, source_dir: Path, version: str) -> None:
+    _directory_identity(root)
+    release = root / "RELEASE"
+    _regular_single_link(release)
+    if release.read_text(encoding="utf-8").strip() != f"v{version}":
+        raise InstallError("managed runtime release does not match verified source")
+    for relative in (
+        Path("scripts") / "install-memory-hooks.py",
+        Path("agentlas_cloud") / "update.py",
+    ):
+        if _file_digest(root / relative) != _file_digest(source_dir / relative):
+            raise InstallError("managed runtime content does not match verified source")
+    bin_dir = root / "bin"
+    _directory_identity(bin_dir)
+    for name in RUNTIME_SHIM_FILES:
+        _regular_single_link(bin_dir / name)
+
+
+def _managed_runtime_copies(
+    source_dir: Path,
+    home: Path,
+) -> tuple[str, list[Path]]:
+    source_identity = _directory_identity(source_dir)
+    try:
+        resolved_source = source_dir.resolve(strict=True)
+    except OSError as exc:
+        raise InstallError("runtime source cannot be resolved") from exc
+    if _directory_identity(resolved_source) != source_identity:
+        raise InstallError("runtime source changed identity")
+    if not any(parent.name.startswith("hephaestus-update-") for parent in resolved_source.parents):
+        raise InstallError("not a verified runtime update extraction")
+
+    version = _source_runtime_version(resolved_source)
+    configured_base = Path(
+        os.environ.get("HEPHAESTUS_RUNTIME_BASE")
+        or home / ".agentlas" / "runtime"
+    ).expanduser()
+    if not configured_base.is_absolute():
+        raise InstallError("managed runtime base must be absolute")
+    base_identity = _directory_identity(configured_base)
+    try:
+        runtime_base = configured_base.resolve(strict=True)
+    except OSError as exc:
+        raise InstallError("managed runtime base cannot be resolved") from exc
+    if _directory_identity(runtime_base) != base_identity:
+        raise InstallError("managed runtime base changed identity")
+
+    target = runtime_base / version
+    if target.parent != runtime_base:
+        raise InstallError("managed runtime target escaped its base")
+    _validate_runtime_copy(target, resolved_source, version)
+
+    current = runtime_base / "current"
+    try:
+        current_metadata = current.lstat()
+    except OSError as exc:
+        raise InstallError("managed runtime current pointer is unreadable") from exc
+    copies = [target]
+    if stat.S_ISLNK(current_metadata.st_mode):
+        if current_metadata.st_nlink != 1:
+            raise InstallError("managed runtime current pointer is not private")
+        try:
+            resolved_current = current.resolve(strict=True)
+        except OSError as exc:
+            raise InstallError("managed runtime current pointer is broken") from exc
+        if resolved_current != target.resolve(strict=True):
+            raise InstallError("managed runtime current pointer does not select the verified release")
+    elif stat.S_ISDIR(current_metadata.st_mode):
+        # Windows and restricted POSIX hosts can fall back to a private copy
+        # when creating a directory symlink is unavailable. Repair both the
+        # active current copy and the versioned target. Active-first ordering
+        # keeps the selected runtime safe even if a later filesystem write
+        # fails after all preflight validation has passed.
+        _validate_runtime_copy(current, resolved_source, version)
+        copies = [current, target]
+    else:
+        raise InstallError("managed runtime current pointer has an unsafe type")
+    return version, copies
+
+
+def _shim_payloads(
+    executable: Path,
+    cache_prefix: Path,
+) -> dict[str, tuple[str, int]]:
+    executable_text = str(executable)
+    if any(character in executable_text for character in ("\r", "\n", "\x00")):
+        raise InstallError("Python executable path is unsafe")
+    if os.name == "nt" and any(character in executable_text for character in ('"', "%")):
+        raise InstallError("Python executable path cannot be represented safely")
+    shell_executable = shlex.quote(executable_text)
+    shell_cache_prefix = shlex.quote(str(cache_prefix))
+    if os.name == "nt":
+        cmd_cache = f'set "PYTHONPYCACHEPREFIX={cache_prefix}"\r\n'
+    else:
+        cmd_cache = (
+            'if defined LOCALAPPDATA (set "PYTHONPYCACHEPREFIX=%LOCALAPPDATA%\\Agentlas\\PythonCache") '
+            'else (set "PYTHONPYCACHEPREFIX=%TEMP%\\Agentlas-PythonCache")\r\n'
+        )
+    python_cmd = (
+        '@echo off\r\n'
+        'setlocal\r\n'
+        'set "PYTHONDONTWRITEBYTECODE=1"\r\n'
+        f"{cmd_cache}"
+        f'"{executable_text}" %*\r\n'
+        'exit /b %ERRORLEVEL%\r\n'
+    )
+    hephaestus_cmd = (
+        '@echo off\r\n'
+        'setlocal\r\n'
+        'set "PYTHONUTF8=1"\r\n'
+        'set "PYTHONIOENCODING=utf-8"\r\n'
+        'set "PYTHONDONTWRITEBYTECODE=1"\r\n'
+        f"{cmd_cache}"
+        'set "PYTHONPATH=%~dp0..;%PYTHONPATH%"\r\n'
+        'if defined HEPHAESTUS_PYTHON goto use_env_python\r\n'
+        'if exist "%~dp0python3.cmd" goto use_python3_shim\r\n'
+        'where py >nul 2>nul\r\n'
+        'if not errorlevel 1 goto use_py_launcher\r\n'
+        'where python >nul 2>nul\r\n'
+        'if not errorlevel 1 goto use_path_python\r\n'
+        'echo hephaestus: Python 3.9+ not found. Install Python from python.org and rerun hephaestus doctor. 1>&2\r\n'
+        'exit /b 127\r\n'
+        '\r\n'
+        ':use_env_python\r\n'
+        '"%HEPHAESTUS_PYTHON%" -m agentlas_cloud %*\r\n'
+        'exit /b %ERRORLEVEL%\r\n'
+        '\r\n'
+        ':use_python3_shim\r\n'
+        'call "%~dp0python3.cmd" -m agentlas_cloud %*\r\n'
+        'exit /b %ERRORLEVEL%\r\n'
+        '\r\n'
+        ':use_py_launcher\r\n'
+        'py -3 -m agentlas_cloud %*\r\n'
+        'exit /b %ERRORLEVEL%\r\n'
+        '\r\n'
+        ':use_path_python\r\n'
+        'python -m agentlas_cloud %*\r\n'
+        'exit /b %ERRORLEVEL%\r\n'
+    )
+    env_cmd = (
+        '@echo off\r\n'
+        'set "PYTHONUTF8=1"\r\n'
+        'set "PYTHONIOENCODING=utf-8"\r\n'
+        'set "PYTHONDONTWRITEBYTECODE=1"\r\n'
+        f"{cmd_cache}"
+        'set "PYTHONPATH=%~dp0..;%PYTHONPATH%"\r\n'
+    )
+    return {
+        "python3": (
+            '#!/usr/bin/env bash\n'
+            'export PYTHONDONTWRITEBYTECODE=1\n'
+            f"export PYTHONPYCACHEPREFIX={shell_cache_prefix}\n"
+            f"exec {shell_executable} \"$@\"\n",
+            0o755,
+        ),
+        "python3.cmd": (python_cmd, 0o644),
+        "hephaestus.cmd": (hephaestus_cmd, 0o644),
+        "hephaestus-env.cmd": (env_cmd, 0o644),
+    }
+
+
+def _atomic_replace_runtime_files(
+    bin_dir: Path,
+    payloads: dict[str, tuple[str, int]],
+) -> None:
+    parent_dev, parent_ino = _directory_identity(bin_dir)
+    expected: dict[str, tuple[int, int]] = {}
+    for name in payloads:
+        metadata = _regular_single_link(bin_dir / name)
+        expected[name] = (metadata.st_dev, metadata.st_ino)
+
+    prepared: dict[str, Path] = {}
+    try:
+        for name, (content, mode) in payloads.items():
+            descriptor, temporary_name = tempfile.mkstemp(
+                prefix=f".{name}.bridge-",
+                suffix=".tmp",
+                dir=bin_dir,
+                text=False,
+            )
+            temporary = Path(temporary_name)
+            prepared[name] = temporary
+            try:
+                encoded = content.encode("utf-8")
+                with os.fdopen(descriptor, "wb", closefd=True) as handle:
+                    handle.write(encoded)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.chmod(temporary, mode)
+                temporary_metadata = temporary.lstat()
+                if (
+                    not stat.S_ISREG(temporary_metadata.st_mode)
+                    or temporary_metadata.st_nlink != 1
+                ):
+                    raise InstallError("atomic shim replacement created an unsafe temporary file")
+            except Exception:
+                try:
+                    os.close(descriptor)
+                except OSError:
+                    pass
+                raise
+
+        current_parent = bin_dir.lstat()
+        if (
+            stat.S_ISLNK(current_parent.st_mode)
+            or not stat.S_ISDIR(current_parent.st_mode)
+            or current_parent.st_dev != parent_dev
+            or current_parent.st_ino != parent_ino
+        ):
+            raise InstallError("managed runtime bin directory changed identity")
+        for name, identity in expected.items():
+            current = _regular_single_link(bin_dir / name)
+            if (current.st_dev, current.st_ino) != identity:
+                raise InstallError("managed runtime shim changed identity")
+
+        for name in payloads:
+            os.replace(prepared[name], bin_dir / name)
+            prepared.pop(name)
+        try:
+            directory_fd = os.open(bin_dir, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        except OSError:
+            # Windows and some filesystems do not permit fsync on directories;
+            # each file replacement above is still atomic.
+            pass
+    finally:
+        for temporary in prepared.values():
+            try:
+                temporary.unlink()
+            except OSError:
+                pass
+
+
+def repair_managed_runtime_python_shims(
+    source_dir: Path,
+    home: Path,
+) -> dict[str, Any]:
+    try:
+        version, runtime_copies = _managed_runtime_copies(source_dir, home)
+        executable = Path(sys.executable).resolve(strict=True)
+        if not executable.is_file():
+            raise InstallError("Python executable is not a regular file")
+        cache_prefix = _safe_python_cache_prefix(str(executable), home)
+        payloads = _shim_payloads(executable, cache_prefix)
+    except (InstallError, OSError, ValueError):
+        return {"status": "not_applicable", "reason": "unverified_runtime_update_context"}
+    try:
+        for runtime_root in runtime_copies:
+            _atomic_replace_runtime_files(runtime_root / "bin", payloads)
+            for name, (content, mode) in payloads.items():
+                path = runtime_root / "bin" / name
+                metadata = _regular_single_link(path)
+                if path.read_bytes() != content.encode("utf-8"):
+                    raise InstallError("managed runtime shim verification failed")
+                if os.name != "nt" and stat.S_IMODE(metadata.st_mode) != mode:
+                    raise InstallError("managed runtime shim mode verification failed")
+        return {
+            "status": "repaired",
+            "runtimeVersion": version,
+            "runtimeCopies": len(runtime_copies),
+            "shimCount": len(payloads) * len(runtime_copies),
+        }
+    except (InstallError, OSError, ValueError):
+        return {"status": "blocked", "reason": "shim_repair_failed"}
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
@@ -509,6 +892,7 @@ def main(argv: list[str] | None = None) -> int:
     }
     installed: dict[str, list[str]] = {}
     errors: dict[str, str] = {}
+    runtime_shim_repair = repair_managed_runtime_python_shims(source_dir, home)
     try:
         # v1.1.56 callers terminate this installer after 30 seconds. Run the
         # bounded v0.8.65/v0.8.66 updater recovery first so an unrelated older
@@ -530,6 +914,7 @@ def main(argv: list[str] | None = None) -> int:
                 "status": "pass" if not errors else "fail",
                 "installed": installed,
                 "errors": errors,
+                "runtime_shim_repair": runtime_shim_repair,
                 "desktop_repair": desktop_repair,
                 "desktop_updater_cleanup": desktop_updater_cleanup,
             },

@@ -3,5 +3,9 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PYTHONDONTWRITEBYTECODE=1
-export PYTHONPYCACHEPREFIX="${XDG_CACHE_HOME:-${HOME:-${TMPDIR:-/tmp}}/.cache}/agentlas/python"
+source "$root/bin/agentlas-python-cache-boundary"
+if ! agentlas_export_python_cache_boundary; then
+  printf '%s\n' "career-graph: could not establish a safe external Python cache directory." >&2
+  exit 78
+fi
 PYTHONPATH="$root${PYTHONPATH:+:$PYTHONPATH}" python3 -m career_graph "$@"
